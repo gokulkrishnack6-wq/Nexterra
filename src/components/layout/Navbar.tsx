@@ -25,10 +25,10 @@ export const Navbar: React.FC = () => {
 
   const navLinks = [
     { name: 'Explore Materials', path: '/marketplace' },
+    { name: 'How It Works', path: '/#how-it-works' },
     { name: 'AI Scanner', path: '/scanner' },
-    { name: 'Smart Match', path: '/smart-match' },
-    { name: 'Impact', path: '/impact' },
     { name: 'Directory Map', path: '/map' },
+    { name: 'Impact', path: '/impact' },
     { name: 'Community', path: '/community' },
   ];
 
@@ -163,6 +163,14 @@ export const Navbar: React.FC = () => {
               <span className="text-[11px] text-charcoal-muted font-normal">
                 ({currentUser.eco_points_balance} pts)
               </span>
+            </Link>
+
+            {/* Sign In Link */}
+            <Link
+              to="/login"
+              className="text-xs text-charcoal hover:text-forest font-medium hidden lg:inline mr-1"
+            >
+              Sign In
             </Link>
 
             {/* List Waste Button */}

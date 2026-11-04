@@ -4,18 +4,21 @@
 
 @layer base {
   body {
-    @apply bg-cream text-charcoal font-sans antialiased selection:bg-olive selection:text-forest-dark;
     background-color: #F7F7F0;
     color: #292F2A;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-heading tracking-tight text-forest;
+    font-family: 'Manrope', 'Inter', sans-serif;
+    letter-spacing: -0.02em;
     color: #234B35;
   }
 
   p {
-    @apply leading-relaxed;
+    line-height: 1.6;
   }
 }
 
@@ -38,7 +41,7 @@
   background: #A8B89F;
 }
 
-/* Leaflet container cleanly bordered without glowing elements */
+/* Leaflet container cleanly bordered */
 .leaflet-container {
   width: 100%;
   height: 100%;

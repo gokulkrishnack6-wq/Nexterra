@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   ArrowRight, 
@@ -19,6 +19,13 @@ import { ListingCard } from '../../components/marketplace/ListingCard';
 
 export const LandingPage: React.FC = () => {
   const { listings, metrics } = useData();
+
+  useEffect(() => {
+    if (window.location.hash === '#how-it-works') {
+      const el = document.getElementById('how-it-works');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, []);
 
   // Featured 5 representative materials requested:
   // Coconut husk, Used cardboard, Plastic bottles, Vegetable waste, Used books
@@ -96,7 +103,7 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* 2. HOW IT WORKS */}
-      <section className="bg-white border-y border-[#E8E8DE] py-14">
+      <section id="how-it-works" className="bg-white border-y border-[#E8E8DE] py-14 scroll-mt-20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-10">
           <div className="max-w-xl">
             <h2 className="font-heading font-bold text-xl sm:text-2xl text-forest">
