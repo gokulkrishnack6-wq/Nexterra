@@ -408,3 +408,4 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
     </div>
   );
 };
+

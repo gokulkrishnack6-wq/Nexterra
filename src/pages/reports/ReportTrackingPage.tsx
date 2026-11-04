@@ -185,3 +185,4 @@ export const ReportTrackingPage: React.FC = () => {
     </div>
   );
 };
+
