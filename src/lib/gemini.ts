@@ -1,185 +1,115 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { AIScanResult } from '../types';
 
-const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-
-export const isGeminiConfigured = Boolean(
-  geminiApiKey && 
-  geminiApiKey !== 'your-gemini-api-key-here' &&
-  geminiApiKey.length > 20
-);
-
-const genAI = isGeminiConfigured ? new GoogleGenerativeAI(geminiApiKey) : null;
-
-/**
- * Intelligent Fallback Waste Classifier when Gemini API Key is not set or network fails
- */
-function runSmartFallbackClassifier(fileNameOrHint?: string): AIScanResult {
-  const hint = (fileNameOrHint || '').toLowerCase();
-
-  if (hint.includes('veg') || hint.includes('food') || hint.includes('fruit') || hint.includes('peel') || hint.includes('organic')) {
-    return {
-      detected_material: 'Pre-consumer Kitchen Organic Scraps',
-      category_slug: 'organic',
-      category_name: 'Organic & Kitchen Waste',
-      confidence: 96.8,
-      suggested_action: 'composting',
-      reasoning: 'High organic nitrogen content detected. Rapid aerobic degradation makes this ideal for local farm composting or vermiculture.',
-      recyclability_score: 95,
-      estimated_weight_range: '5 - 25 kg',
-      safety_guidance: [
-        'Keep free from plastic wrappers and aluminium foils.',
-        'Store in ventilated tubs to prevent anaerobic odor development.',
-        'Transfer to compost pit or recipient within 24-48 hours.'
-      ],
-      circular_value_tips: [
-        'Can enrich topsoil nitrogen by 3.2% when converted to compost.',
-        'Diverts 1.80 kg CO2e per kg from municipal landfills.'
-      ],
-      potential_matches_summary: '3 organic farmers in Malappuram & Palakkad are actively requesting kitchen peels.'
-    };
+// Read API key from env or sessionStorage if user provided it directly
+export function getGeminiApiKey(): string {
+  if (typeof window !== 'undefined' && typeof window.sessionStorage !== 'undefined') {
+    const sessionKey = window.sessionStorage.getItem('greenloop_user_gemini_key');
+    if (sessionKey && sessionKey.trim().length > 20) {
+      return sessionKey.trim();
+    }
   }
+  return import.meta.env.VITE_GEMINI_API_KEY || '';
+}
 
-  if (hint.includes('box') || hint.includes('cardboard') || hint.includes('paper') || hint.includes('carton')) {
-    return {
-      detected_material: 'Corrugated Kraft Cardboard & Boxes',
-      category_slug: 'paper',
-      category_name: 'Paper & Cardboard',
-      confidence: 98.2,
-      suggested_action: 'recycling',
-      reasoning: 'Clean cellulose fibre composition detected. High tensile strength cardboard suitable for pulping or secondary packaging.',
-      recyclability_score: 88,
-      estimated_weight_range: '10 - 30 kg',
-      safety_guidance: [
-        'Remove excessive adhesive plastic packaging tape.',
-        'Keep in dry storage away from moisture or oil contamination.',
-        'Flatten cartons into flat bundles for compact transport.'
-      ],
-      circular_value_tips: [
-        'Saves 2.10 kg CO2e and approximately 26 litres of clean water per kg recycled.',
-        'Accepted directly by Haritha Karma Sena Collection Facilities.'
-      ],
-      potential_matches_summary: 'Clean Kerala Company and 2 packaging units accept corrugated boxes nearby.'
-    };
+export function setGeminiSessionKey(key: string) {
+  if (typeof window !== 'undefined' && typeof window.sessionStorage !== 'undefined') {
+    if (key && key.trim().length > 20) {
+      window.sessionStorage.setItem('greenloop_user_gemini_key', key.trim());
+    } else {
+      window.sessionStorage.removeItem('greenloop_user_gemini_key');
+    }
   }
+}
 
-  if (hint.includes('coconut') || hint.includes('husk') || hint.includes('shell') || hint.includes('agri')) {
-    return {
-      detected_material: 'Raw Coconut Husks & Fibres',
-      category_slug: 'agricultural',
-      category_name: 'Coconut & Agricultural Residue',
-      confidence: 94.6,
-      suggested_action: 'upcycling',
-      reasoning: 'Lignin-rich coir fibre with high moisture retention properties. Optimal for mulch, coir yarn, or biochar production.',
-      recyclability_score: 92,
-      estimated_weight_range: '50 - 150 kg',
-      safety_guidance: [
-        'Ensure husks are sun-dried to avoid fungal mould.',
-        'Wear gloves to avoid fibre splinters during handling.'
-      ],
-      circular_value_tips: [
-        'Biochar made from coconut shells sequesters carbon for up to 100 years.',
-        'High demand among Kerala organic spice and orchid planters.'
-      ],
-      potential_matches_summary: '2 agro-processing hubs and 4 farmers within 20km accept coconut husks.'
-    };
-  }
-
-  if (hint.includes('wire') || hint.includes('cable') || hint.includes('electronic') || hint.includes('phone') || hint.includes('battery')) {
-    return {
-      detected_material: 'Electronic Circuitry & Secondary Cables',
-      category_slug: 'e-waste',
-      category_name: 'E-Waste & Electronics',
-      confidence: 93.1,
-      suggested_action: 'safe_disposal',
-      reasoning: 'Precious metal contacts (copper/gold/silver traces) embedded in PCB substrate. Requires authorized hydrometallurgical recycling.',
-      recyclability_score: 68,
-      estimated_weight_range: '2 - 10 kg',
-      safety_guidance: [
-        'Do not attempt to crush, incinerate, or burn cables.',
-        'Keep lithium battery cells insulated to avoid short circuits.',
-        'Deliver only to certified recyclers or Haritha Karma Sena E-waste drives.'
-      ],
-      circular_value_tips: [
-        'Diverts 5.80 kg CO2e per kg and prevents heavy metal leaching into Kerala water tables.',
-        'Eligible for highest tier GreenLoop EcoPoints.'
-      ],
-      potential_matches_summary: 'Clean Kerala Company regional collection hub is ready for safe recovery.'
-    };
-  }
-
-  // Default scan result for mixed/plastic/general items
-  return {
-    detected_material: 'High-Density Polyethylene (HDPE) Recyclables',
-    category_slug: 'plastics',
-    category_name: 'Plastics (Clean / Sorted)',
-    confidence: 95.3,
-    suggested_action: 'recycling',
-    reasoning: 'Identified rigid thermoplastic with polymer SPI code 2. Excellent thermal stability for mechanical re-pelletization.',
-    recyclability_score: 82,
-    estimated_weight_range: '5 - 20 kg',
-    safety_guidance: [
-      'Rinse any food or milk residues with water and allow to dry.',
-      'Separate colored caps from translucent bottle bodies.',
-      'Do not mix with hazardous chemical containers.'
-    ],
-    circular_value_tips: [
-      'Avoids 2.50 kg CO2e per kg compared to virgin polymer production.',
-      'Can be shredded and extruded into composite lumber and drainage conduits.'
-    ],
-    potential_matches_summary: 'GreenMatrix Central Polymers Facility accepts this batch.'
-  };
+export function isGeminiConfigured(): boolean {
+  const key = getGeminiApiKey();
+  return Boolean(key && !key.includes('your-gemini') && key.length > 20);
 }
 
 /**
- * Classifies an uploaded waste image using Gemini 2.5/1.5 Flash Vision API
- * Falls back to intelligent heuristic classifier if no API key is provided
+ * Genuine Multimodal AI Waste Material Classifier using Google Gemini Vision
+ * Analyzes the actual base64 pixel data of the image.
+ * Will throw genuine errors if the API key is unconfigured or if the image cannot be processed.
  */
 export async function analyzeWasteImage(
   imageBase64: string, 
-  mimeType: string = 'image/jpeg',
-  fileName?: string
+  mimeType: string = 'image/jpeg'
 ): Promise<AIScanResult> {
-  if (!isGeminiConfigured || !genAI) {
-    // Artificial small delay for realistic UX scan feedback
-    await new Promise((resolve) => setTimeout(resolve, 1400));
-    return runSmartFallbackClassifier(fileName);
+  const apiKey = getGeminiApiKey();
+
+  if (!apiKey || apiKey.length < 20 || apiKey.includes('your-gemini')) {
+    throw new Error(
+      'Gemini Vision API key is not configured. Please configure VITE_GEMINI_API_KEY in .env or enter your key in scanner settings to analyze real photos.'
+    );
   }
 
-  try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  if (!imageBase64 || imageBase64.length < 50) {
+    throw new Error('Invalid image data. Please capture or upload a valid photo.');
+  }
 
-    const prompt = `
-You are an expert circular economy AI and waste recovery engineer evaluating discarded materials for the GreenLoop Kerala Platform.
-Analyze this image and identify the waste material.
+  // Strip data:image/...;base64, prefix if present
+  const cleanBase64 = imageBase64.includes(',') 
+    ? imageBase64.split(',')[1] 
+    : imageBase64;
 
-Respond ONLY with a valid JSON object matching this schema without any markdown formatting:
+  const genAI = new GoogleGenerativeAI(apiKey);
+  // Prefer gemini-1.5-flash for speed and multimodal vision accuracy
+  const model = genAI.getGenerativeModel({ 
+    model: 'gemini-1.5-flash',
+    generationConfig: {
+      temperature: 0.2,
+      topP: 0.8,
+    }
+  });
+
+  const prompt = `
+You are an expert waste classification and circular materials engineer.
+Thoroughly examine the uploaded image pixels and perform real visual inspection of the material.
+
+1. Inspect the visual characteristics: colors, texture, shape, labels, transparency, rigidity, and signs of use/wear.
+2. Determine if the image is clear or ambiguous. If the image is blurry, too dark, out of focus, or contains a chaotic mix of unrecognizable items, set "is_ambiguous": true with a helpful "ambiguity_reason" advising how to retake a clearer photo.
+3. Classify into one of these exact category slugs:
+   - "organic" (Food scraps, peels, wet kitchen discards)
+   - "agricultural" (Coconut husks, coir dust, paddy straw, farm residues)
+   - "paper" (Cardboard boxes, packaging cartons, newsprint, office paper)
+   - "plastics" (PET bottles, HDPE containers, LDPE film, crates)
+   - "e-waste" (Circuit boards, cables, chargers, electronics, batteries)
+   - "metals" (Aluminium cans, scrap iron, steel, copper wire)
+   - "glass" (Glass bottles, pickle jars, broken cullet)
+   - "textiles" (Old clothes, fabric scraps, tailoring remnants)
+4. Provide genuine estimated recyclability score (1-100), realistic estimated batch weight range, specific safety/handling guidance, and practical reuse methods for Kerala's decentralized ecosystem (composting, Haritha Karma Sena collection, upcycling, etc.).
+
+Return ONLY a valid JSON object matching this schema without any markdown code fence wrappers:
 {
-  "detected_material": "Concise name of the material (e.g. Sorted HDPE Bottles, Vegetable Kitchen Peels)",
-  "category_slug": "one of: organic, agricultural, paper, plastics, e-waste, metals, glass, textiles",
-  "category_name": "Full category name corresponding to the slug",
-  "confidence": 95.5,
+  "detected_material": "Specific material name (e.g. Dry Coconut Husks, Corrugated Cardboard, Polyethylene Terephthalate Bottle)",
+  "category_slug": "exact slug from the 8 categories above",
+  "category_name": "Human-readable Category Title",
+  "subcategory": "Specific subcategory or polymer/grade if applicable",
+  "confidence": 88.5,
+  "is_ambiguous": false,
+  "ambiguity_reason": "",
+  "visible_characteristics": [
+    "Feature 1 observed in the image",
+    "Feature 2 observed in the image"
+  ],
   "suggested_action": "one of: composting, upcycling, recycling, safe_disposal, bio_methanation",
-  "reasoning": "2-3 sentences explaining material properties and why this circular path is optimal.",
+  "reasoning": "2-3 sentences based on what is visually evident in the image.",
   "recyclability_score": 85,
-  "estimated_weight_range": "e.g. 5 - 15 kg",
+  "estimated_weight_range": "e.g. 2 - 5 kg",
   "safety_guidance": [
-    "Safety tip 1",
-    "Safety tip 2"
+    "Handling tip 1",
+    "Handling tip 2"
   ],
   "circular_value_tips": [
-    "Environmental benefit 1",
-    "Environmental benefit 2"
+    "Ecological reuse tip 1",
+    "Carbon diversion impact"
   ],
-  "potential_matches_summary": "Summary of likely recipients (e.g. Organic farmers, Coir mills, Haritha Karma Sena)"
+  "potential_matches_summary": "Recommended local recipients (e.g. Local vermicomposters, Haritha Karma Sena MCF, Coir artisans)"
 }
 `;
 
-    // Strip data prefix if included
-    const cleanBase64 = imageBase64.includes(',') 
-      ? imageBase64.split(',')[1] 
-      : imageBase64;
-
+  try {
     const result = await model.generateContent([
       prompt,
       {
@@ -191,15 +121,33 @@ Respond ONLY with a valid JSON object matching this schema without any markdown 
     ]);
 
     const response = await result.response;
-    const text = response.text().trim();
+    const rawText = response.text().trim();
     
-    // Clean potential markdown blocks
-    const jsonStr = text.replace(/^```json/g, '').replace(/```$/g, '').trim();
-    const parsed: AIScanResult = JSON.parse(jsonStr);
+    // Clean markdown code blocks if the model wrapped it in ```json ... ```
+    const cleanedJson = rawText
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/i, '')
+      .replace(/\s*```$/i, '')
+      .trim();
+
+    const parsed: AIScanResult = JSON.parse(cleanedJson);
+
+    // Validate essential fields
+    if (!parsed.detected_material || !parsed.category_slug) {
+      throw new Error('AI analysis produced an incomplete result. Please try another image.');
+    }
+
     return parsed;
-  } catch (error) {
-    console.warn('Gemini vision API error, falling back to smart heuristic classifier:', error);
-    return runSmartFallbackClassifier(fileName);
+  } catch (err: any) {
+    if (err.message?.includes('API_KEY_INVALID') || err.message?.includes('API key not valid')) {
+      throw new Error('Invalid Gemini API Key. Please verify your Gemini API key in .env or scanner settings.');
+    }
+    if (err.message?.includes('quota') || err.message?.includes('RESOURCE_EXHAUSTED')) {
+      throw new Error('Gemini API rate limit or quota exceeded. Please wait a moment or check your API quota.');
+    }
+    if (err.name === 'SyntaxError') {
+      throw new Error('Could not parse AI response. The model did not return a structured JSON response. Please retake the photo.');
+    }
+    throw new Error(err.message || 'Failed to analyze image with Gemini AI.');
   }
 }
-

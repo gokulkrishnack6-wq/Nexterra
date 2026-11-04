@@ -7,17 +7,14 @@ import {
   Send, 
   CheckCircle2, 
   Heart,
-  UserCheck,
-  ShieldCheck,
   Sparkles,
-  Award,
-  Layers,
-  Scale
+  ShieldCheck,
+  Package
 } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useGeolocation, calculateDistanceKm } from '../../hooks/useGeolocation';
 import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
 import { Input, Textarea } from '../../components/ui/Input';
 
@@ -26,10 +23,11 @@ export const ListingDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { listings, createExchangeRequest, favourites, toggleFavourite, categories } = useData();
   const { currentUser } = useAuth();
+  const { coords } = useGeolocation();
 
   const listing = listings.find((l) => l.id === id);
 
-  const [requestedQuantity, setRequestedQuantity] = useState<number>(listing?.quantity || 10);
+  const [requestedQuantity, setRequestedQuantity] = useState<number>(listing?.quantity || 1);
   const [proposedAction, setProposedAction] = useState('Composting & organic soil amendment');
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -38,20 +36,24 @@ export const ListingDetailPage: React.FC = () => {
   if (!listing) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-center space-y-3">
-        <h2 className="font-heading font-bold text-xl text-primary">Listing not found</h2>
-        <p className="font-body-sm text-body-sm text-on-surface-variant">This material listing may have been completed or removed.</p>
+        <h2 className="font-heading font-bold text-xl text-primary">Listing Not Found</h2>
+        <p className="font-body-sm text-body-sm text-on-surface-variant">This material listing may have been completed, expired, or removed.</p>
         <Link to="/marketplace">
           <Button variant="secondary" size="sm" icon={<ArrowLeft className="w-3.5 h-3.5" />}>
-            Back to marketplace
+            Back to Marketplace
           </Button>
         </Link>
       </div>
     );
   }
 
-  const category = categories.find((c) => c.id === listing.category_id);
-  const isOwner = listing.user_id === currentUser.id;
+  const category = categories.find((c) => c.id === listing.category_id || c.slug === listing.category_id);
+  const isOwner = currentUser && listing.user_id === currentUser.id;
   const isFav = favourites.includes(listing.id);
+
+  const distanceKm = coords && listing.latitude && listing.longitude
+    ? calculateDistanceKm(coords.latitude, coords.longitude, listing.latitude, listing.longitude)
+    : null;
 
   const handleRequestSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,12 +70,12 @@ export const ListingDetailPage: React.FC = () => {
         proposedAction,
         message || `Requesting ${requestedQuantity} ${listing.unit} of ${listing.title} for reuse.`
       );
-      setSuccessMessage('Exchange request sent. The generator will review your pickup proposal.');
+      setSuccessMessage('Exchange request sent. The material generator will review your proposal.');
       setTimeout(() => {
         navigate('/dashboard/exchanges');
-      }, 1600);
+      }, 1500);
     } catch (err: any) {
-      alert(err.message || 'Failed to submit request');
+      alert(err.message || 'Failed to submit exchange proposal');
     } finally {
       setSubmitting(false);
     }
@@ -82,6 +84,9 @@ export const ListingDetailPage: React.FC = () => {
   const images = listing.images && listing.images.length > 0
     ? listing.images
     : ['https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=800&q=80'];
+
+  const ownerName = listing.user?.full_name || 'Community Member';
+  const ownerInitial = ownerName.trim().charAt(0).toUpperCase();
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 space-y-6 text-left">
@@ -103,7 +108,7 @@ export const ListingDetailPage: React.FC = () => {
               : 'bg-surface-container-lowest text-on-surface-variant border-outline-variant hover:text-on-surface'
           }`}
         >
-          <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-error' : ''}`} />
+          <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-error text-error' : ''}`} />
           <span>{isFav ? 'Saved' : 'Save Material'}</span>
         </button>
       </div>
@@ -119,7 +124,7 @@ export const ListingDetailPage: React.FC = () => {
                 className="w-full h-full object-cover"
               />
               <div className="absolute top-3 left-3 flex gap-2">
-                <span className="font-label-sm text-label-sm text-primary font-bold bg-tertiary-fixed px-3 py-1 rounded-full shadow-sm">
+                <span className="font-label-sm text-label-sm text-primary font-bold bg-secondary-container px-3 py-1 rounded-full shadow-sm">
                   {listing.listing_type === 'free' ? 'Free Claim' : listing.listing_type === 'exchange' ? 'Barter Exchange' : `₹${listing.price}`}
                 </span>
                 {listing.ai_classified && (
@@ -140,7 +145,9 @@ export const ListingDetailPage: React.FC = () => {
                 </h1>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-on-surface-variant font-body-sm text-body-sm mt-2">
                   <span className="flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5 text-primary" /> {listing.locality}, {listing.district}
+                    <MapPin className="w-3.5 h-3.5 text-primary" />
+                    {distanceKm !== null ? `${distanceKm} km away • ` : ''}
+                    {listing.locality}, {listing.district}
                   </span>
                   <span>•</span>
                   <span className="flex items-center gap-1">
@@ -177,15 +184,16 @@ export const ListingDetailPage: React.FC = () => {
               {/* AI Guidance if present */}
               {listing.suggested_action && (
                 <div className="p-3.5 rounded-lg bg-surface-container-low border border-outline-variant/60 flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-tertiary-fixed text-primary mt-0.5">
+                  <div className="p-2 rounded-lg bg-secondary-container text-primary mt-0.5">
                     <Sparkles className="w-4 h-4" />
                   </div>
                   <div>
                     <span className="font-heading font-semibold text-body-md text-primary block">
-                      AI Circular Recommendation
+                      AI Circular Suggestion
                     </span>
                     <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
-                      Suggested Action: <strong className="capitalize text-primary">{listing.suggested_action.replace('_', ' ')}</strong>. Confidence score {Math.round((listing.ai_confidence || 0.9) * 100)}%.
+                      Suggested Action: <strong className="capitalize text-primary">{listing.suggested_action.replace('_', ' ')}</strong>
+                      {listing.ai_confidence ? ` • Confidence ${Math.round(listing.ai_confidence * 100)}%` : ''}
                     </p>
                   </div>
                 </div>
@@ -198,37 +206,43 @@ export const ListingDetailPage: React.FC = () => {
         <div className="lg:col-span-5 space-y-4">
           
           {/* Generator Info */}
-          <Card variant="elevated" className="space-y-3">
+          <Card variant="elevated" className="space-y-3 p-4">
             <div className="flex items-center gap-3">
-              <img
-                src={listing.user?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'}
-                alt={listing.user?.full_name || 'Listing Owner'}
-                className="w-12 h-12 rounded-full object-cover ring-1 ring-outline-variant"
-              />
+              {listing.user?.avatar_url ? (
+                <img
+                  src={listing.user.avatar_url}
+                  alt={ownerName}
+                  className="w-12 h-12 rounded-full object-cover ring-1 ring-outline-variant"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-primary-container text-on-primary font-bold text-base flex items-center justify-center ring-1 ring-outline-variant">
+                  {ownerInitial}
+                </div>
+              )}
               <div>
                 <div className="flex items-center gap-1.5">
                   <span className="font-heading font-semibold text-title-md text-on-surface">
-                    {listing.user?.full_name || 'Verified Generator'}
+                    {ownerName}
                   </span>
-                  <ShieldCheck className="w-4 h-4 text-surface-tint" />
+                  <ShieldCheck className="w-4 h-4 text-primary" />
                 </div>
                 <span className="font-body-sm text-body-sm text-outline block capitalize">
-                  {listing.user?.role || 'Household'} • {listing.district}
+                  {listing.user?.role || 'Community Member'} • {listing.district}
                 </span>
               </div>
             </div>
 
             <div className="pt-2 border-t border-outline-variant/40 flex items-center justify-between text-body-sm text-on-surface-variant">
-              <span>EcoPoints Earned:</span>
-              <span className="font-semibold text-primary">{listing.user?.eco_points_balance || 480} PTS</span>
+              <span>EcoPoints Balance:</span>
+              <span className="font-semibold text-primary">{listing.user?.eco_points_balance ?? 0} PTS</span>
             </div>
           </Card>
 
           {/* Request Form or Owner Controls */}
           {isOwner ? (
-            <Card variant="flat" className="space-y-3">
+            <Card variant="flat" className="space-y-3 p-4">
               <span className="font-label-sm text-label-sm text-outline uppercase tracking-wider font-semibold">
-                Your Active Listing
+                Your Published Listing
               </span>
               <p className="font-body-sm text-body-sm text-on-surface-variant">
                 You created this material listing. Incoming exchange proposals from nearby collectors will appear in your exchanges pipeline.
@@ -238,17 +252,17 @@ export const ListingDetailPage: React.FC = () => {
                 fullWidth
                 onClick={() => navigate('/dashboard/exchanges')}
               >
-                View Exchange Pipeline
+                View My Exchanges
               </Button>
             </Card>
           ) : (
-            <Card variant="elevated" className="space-y-4">
+            <Card variant="elevated" className="space-y-4 p-5">
               <h3 className="font-heading font-semibold text-title-md text-primary">
                 Propose Material Exchange
               </h3>
 
               {successMessage ? (
-                <div className="p-4 bg-tertiary-fixed text-primary rounded-lg text-body-sm font-medium border border-primary/20 space-y-1">
+                <div className="p-4 bg-secondary-container text-primary rounded-lg text-body-sm font-medium border border-primary/20 space-y-1">
                   <div className="flex items-center gap-1.5 font-bold">
                     <CheckCircle2 className="w-4 h-4" /> Request Submitted
                   </div>
@@ -267,17 +281,17 @@ export const ListingDetailPage: React.FC = () => {
                   />
 
                   <div>
-                    <label className="block font-label-md text-label-md text-on-surface mb-1">
+                    <label className="block font-label-md text-label-md text-on-surface mb-1 font-semibold">
                       Proposed Circular Purpose *
                     </label>
                     <select
                       value={proposedAction}
                       onChange={(e) => setProposedAction(e.target.value)}
-                      className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 py-2.5 px-3 transition-all"
+                      className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-3 transition-all"
                     >
                       <option value="Composting & organic soil amendment">Composting & organic soil amendment</option>
                       <option value="Direct reuse or packaging">Direct reuse or packaging</option>
-                      <option value="Mechanical recycling at registered MCF">Mechanical recycling at registered MCF</option>
+                      <option value="Mechanical recycling at registered centre">Mechanical recycling at registered centre</option>
                       <option value="Artisanal upcycling / crafts">Artisanal upcycling / crafts</option>
                       <option value="Bio-gas generation / animal feed">Bio-gas generation / animal feed</option>
                     </select>
@@ -285,7 +299,7 @@ export const ListingDetailPage: React.FC = () => {
 
                   <Textarea
                     label="Message to Generator"
-                    placeholder="e.g. Can pick up tomorrow at 4 PM near Kadavanthra hub..."
+                    placeholder="e.g. Can pick up this weekend near your locality..."
                     rows={3}
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
@@ -296,10 +310,10 @@ export const ListingDetailPage: React.FC = () => {
                     variant="primary"
                     fullWidth
                     size="lg"
-                    disabled={submitting}
+                    loading={submitting}
                     icon={<Send className="w-4 h-4" />}
                   >
-                    {submitting ? 'Submitting Request...' : 'Submit Pickup Proposal'}
+                    {submitting ? 'Submitting Proposal...' : 'Submit Pickup Proposal'}
                   </Button>
                 </form>
               )}

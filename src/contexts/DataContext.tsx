@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 import { 
   WasteCategory, 
@@ -13,18 +13,8 @@ import {
   PublicWasteBin,
   EnvironmentalReport
 } from '../types';
-import { 
-  INITIAL_CATEGORIES, 
-  INITIAL_LISTINGS, 
-  INITIAL_EXCHANGE_REQUESTS, 
-  INITIAL_TRANSACTIONS, 
-  INITIAL_ECO_POINTS, 
-  INITIAL_CHALLENGES, 
-  INITIAL_RECYCLING_CENTRES, 
-  INITIAL_NOTIFICATIONS,
-  INITIAL_WASTE_BINS,
-  INITIAL_ENVIRONMENTAL_REPORTS
-} from '../lib/mockData';
+import { INITIAL_CATEGORIES } from '../lib/mockData';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 
 interface DataContextType {
@@ -40,6 +30,8 @@ interface DataContextType {
   metrics: SustainabilityMetrics;
   wasteBins: PublicWasteBin[];
   reports: EnvironmentalReport[];
+  isLoading: boolean;
+  refreshData: () => Promise<void>;
   
   // Actions
   addListing: (listing: Omit<WasteListing, 'id' | 'created_at' | 'user' | 'category'>) => string;
@@ -62,63 +54,66 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser } = useAuth();
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const [categories] = useState<WasteCategory[]>(INITIAL_CATEGORIES);
+  // Taxonomy standard categories for Kerala circular materials
+  const [categories, setCategories] = useState<WasteCategory[]>(INITIAL_CATEGORIES);
 
+  // Real data collections — initialized from local persistent store or empty arrays (NO FAKE MOCK DATA)
   const [listings, setListings] = useState<WasteListing[]>(() => {
-    const saved = localStorage.getItem('greenloop_listings');
+    const saved = localStorage.getItem('greenloop_user_listings');
     if (saved) {
       try { return JSON.parse(saved); } catch (e) { /* fallback */ }
     }
-    return INITIAL_LISTINGS;
+    return [];
   });
 
   const [exchangeRequests, setExchangeRequests] = useState<ExchangeRequest[]>(() => {
-    const saved = localStorage.getItem('greenloop_exchange_requests');
+    const saved = localStorage.getItem('greenloop_user_exchange_requests');
     if (saved) {
       try { return JSON.parse(saved); } catch (e) { /* fallback */ }
     }
-    return INITIAL_EXCHANGE_REQUESTS;
+    return [];
   });
 
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    const saved = localStorage.getItem('greenloop_transactions');
+    const saved = localStorage.getItem('greenloop_user_transactions');
     if (saved) {
       try { return JSON.parse(saved); } catch (e) { /* fallback */ }
     }
-    return INITIAL_TRANSACTIONS;
+    return [];
   });
 
   const [ecoPointsLedger, setEcoPointsLedger] = useState<EcoPointRecord[]>(() => {
-    const saved = localStorage.getItem('greenloop_ecopoints');
+    const saved = localStorage.getItem('greenloop_user_ecopoints');
     if (saved) {
       try { return JSON.parse(saved); } catch (e) { /* fallback */ }
     }
-    return INITIAL_ECO_POINTS;
+    return [];
   });
 
   const [challenges, setChallenges] = useState<Challenge[]>(() => {
-    const saved = localStorage.getItem('greenloop_challenges');
+    const saved = localStorage.getItem('greenloop_user_challenges');
     if (saved) {
       try { return JSON.parse(saved); } catch (e) { /* fallback */ }
     }
-    return INITIAL_CHALLENGES;
+    return [];
   });
 
   const [recyclingCentres, setRecyclingCentres] = useState<RecyclingCentre[]>(() => {
-    const saved = localStorage.getItem('greenloop_recycling_centres');
+    const saved = localStorage.getItem('greenloop_user_recycling_centres');
     if (saved) {
       try { return JSON.parse(saved); } catch (e) { /* fallback */ }
     }
-    return INITIAL_RECYCLING_CENTRES;
+    return [];
   });
 
   const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
-    const saved = localStorage.getItem('greenloop_notifications');
+    const saved = localStorage.getItem('greenloop_user_notifications');
     if (saved) {
       try { return JSON.parse(saved); } catch (e) { /* fallback */ }
     }
-    return INITIAL_NOTIFICATIONS;
+    return [];
   });
 
   const [favourites, setFavourites] = useState<string[]>(() => {
@@ -126,48 +121,48 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (saved) {
       try { return JSON.parse(saved); } catch (e) { /* fallback */ }
     }
-    return ['list-101'];
+    return [];
   });
 
   const [wasteBins, setWasteBins] = useState<PublicWasteBin[]>(() => {
-    const saved = localStorage.getItem('greenloop_waste_bins');
+    const saved = localStorage.getItem('greenloop_user_waste_bins');
     if (saved) {
       try { return JSON.parse(saved); } catch (e) { /* fallback */ }
     }
-    return INITIAL_WASTE_BINS;
+    return [];
   });
 
   const [reports, setReports] = useState<EnvironmentalReport[]>(() => {
-    const saved = localStorage.getItem('greenloop_reports');
+    const saved = localStorage.getItem('greenloop_user_reports');
     if (saved) {
       try { return JSON.parse(saved); } catch (e) { /* fallback */ }
     }
-    return INITIAL_ENVIRONMENTAL_REPORTS;
+    return [];
   });
 
-  // Sync to local storage
+  // Sync state to local storage to maintain persistence across sessions
   useEffect(() => {
-    localStorage.setItem('greenloop_listings', JSON.stringify(listings));
+    localStorage.setItem('greenloop_user_listings', JSON.stringify(listings));
   }, [listings]);
 
   useEffect(() => {
-    localStorage.setItem('greenloop_exchange_requests', JSON.stringify(exchangeRequests));
+    localStorage.setItem('greenloop_user_exchange_requests', JSON.stringify(exchangeRequests));
   }, [exchangeRequests]);
 
   useEffect(() => {
-    localStorage.setItem('greenloop_transactions', JSON.stringify(transactions));
+    localStorage.setItem('greenloop_user_transactions', JSON.stringify(transactions));
   }, [transactions]);
 
   useEffect(() => {
-    localStorage.setItem('greenloop_ecopoints', JSON.stringify(ecoPointsLedger));
+    localStorage.setItem('greenloop_user_ecopoints', JSON.stringify(ecoPointsLedger));
   }, [ecoPointsLedger]);
 
   useEffect(() => {
-    localStorage.setItem('greenloop_challenges', JSON.stringify(challenges));
+    localStorage.setItem('greenloop_user_challenges', JSON.stringify(challenges));
   }, [challenges]);
 
   useEffect(() => {
-    localStorage.setItem('greenloop_notifications', JSON.stringify(notifications));
+    localStorage.setItem('greenloop_user_notifications', JSON.stringify(notifications));
   }, [notifications]);
 
   useEffect(() => {
@@ -175,22 +170,123 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [favourites]);
 
   useEffect(() => {
-    localStorage.setItem('greenloop_waste_bins', JSON.stringify(wasteBins));
+    localStorage.setItem('greenloop_user_waste_bins', JSON.stringify(wasteBins));
   }, [wasteBins]);
 
   useEffect(() => {
-    localStorage.setItem('greenloop_reports', JSON.stringify(reports));
+    localStorage.setItem('greenloop_user_reports', JSON.stringify(reports));
   }, [reports]);
+
+  // Fetch real data from live Supabase backend
+  const fetchData = useCallback(async () => {
+    if (!isSupabaseConfigured) {
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // 1. Fetch categories
+      const { data: dbCategories, error: catError } = await supabase
+        .from('waste_categories')
+        .select('*');
+      if (!catError && dbCategories && dbCategories.length > 0) {
+        setCategories(dbCategories as WasteCategory[]);
+      }
+
+      // 2. Fetch listings
+      const { data: dbListings, error: listError } = await supabase
+        .from('listings')
+        .select('*, user:profiles(*), category:waste_categories(*)');
+      
+      if (!listError && dbListings) {
+        // Merge Supabase listings with any locally staged ones
+        setListings((prev) => {
+          const map = new Map<string, WasteListing>();
+          // Remote listings first
+          dbListings.forEach((item: any) => map.set(item.id, item as WasteListing));
+          // Local override/supplements
+          prev.forEach((item) => {
+            if (!map.has(item.id)) map.set(item.id, item);
+          });
+          return Array.from(map.values());
+        });
+      }
+
+      // 3. Fetch recycling centres
+      const { data: dbCentres, error: centreError } = await supabase
+        .from('recycling_centres')
+        .select('*');
+      if (!centreError && dbCentres) {
+        setRecyclingCentres(dbCentres as RecyclingCentre[]);
+      }
+
+      // 4. Fetch exchange requests
+      const { data: dbRequests, error: reqError } = await supabase
+        .from('exchange_requests')
+        .select('*, listing:listings(*), requester:profiles(*)');
+      if (!reqError && dbRequests) {
+        setExchangeRequests((prev) => {
+          const map = new Map<string, ExchangeRequest>();
+          dbRequests.forEach((item: any) => map.set(item.id, item as ExchangeRequest));
+          prev.forEach((item) => {
+            if (!map.has(item.id)) map.set(item.id, item);
+          });
+          return Array.from(map.values());
+        });
+      }
+
+      // 5. Fetch transactions
+      const { data: dbTransactions, error: txError } = await supabase
+        .from('transactions')
+        .select('*, listing:listings(*), category:waste_categories(*)');
+      if (!txError && dbTransactions) {
+        setTransactions(dbTransactions as Transaction[]);
+      }
+
+      // 6. Fetch environmental reports
+      const { data: dbReports, error: repError } = await supabase
+        .from('reports')
+        .select('*');
+      if (!repError && dbReports) {
+        setReports((prev) => {
+          const map = new Map<string, EnvironmentalReport>();
+          dbReports.forEach((item: any) => map.set(item.id, item as EnvironmentalReport));
+          prev.forEach((item) => {
+            if (!map.has(item.id)) map.set(item.id, item);
+          });
+          return Array.from(map.values());
+        });
+      }
+
+      // 7. Fetch challenges
+      const { data: dbChallenges, error: chalError } = await supabase
+        .from('challenges')
+        .select('*');
+      if (!chalError && dbChallenges) {
+        setChallenges(dbChallenges as Challenge[]);
+      }
+    } catch (err) {
+      console.warn('Supabase live fetch note: using active local state', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   // Enrich listings with category metadata
   const populatedListings = useMemo(() => {
     return listings.map((l) => ({
       ...l,
-      category: categories.find((c) => c.id === l.category_id),
+      category: l.category || categories.find((c) => c.id === l.category_id || c.slug === l.category_id),
+      user: l.user || (currentUser && l.user_id === currentUser.id ? currentUser : undefined),
     }));
-  }, [listings, categories]);
+  }, [listings, categories, currentUser]);
 
-  // Sustainability Metrics calculated in real-time from transactions
+  // Sustainability Metrics: calculated strictly from real completed transactions
   const metrics = useMemo<SustainabilityMetrics>(() => {
     let totalWaste = 0;
     let totalCo2e = 0;
@@ -214,6 +310,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       percentage: totalWaste > 0 ? Math.round((weight / totalWaste) * 100) : 0,
     }));
 
+    // Derive empirical monthly history from real transaction timestamps
+    const monthlyMap: Record<string, { diverted_kg: number; co2e_saved_kg: number }> = {};
+    transactions.forEach((tx) => {
+      const date = tx.completed_at ? new Date(tx.completed_at) : new Date();
+      const monthStr = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      if (!monthlyMap[monthStr]) {
+        monthlyMap[monthStr] = { diverted_kg: 0, co2e_saved_kg: 0 };
+      }
+      monthlyMap[monthStr].diverted_kg += Number(tx.quantity) || 0;
+      monthlyMap[monthStr].co2e_saved_kg += Number(tx.co2_saved_kg) || 0;
+    });
+
+    const monthly_trend = Object.entries(monthlyMap).map(([month, val]) => ({
+      month,
+      diverted_kg: Math.round(val.diverted_kg * 10) / 10,
+      co2e_saved_kg: Math.round(val.co2e_saved_kg * 10) / 10,
+    }));
+
     return {
       total_waste_diverted_kg: Math.round(totalWaste * 10) / 10,
       total_co2e_avoided_kg: Math.round(totalCo2e * 10) / 10,
@@ -223,13 +337,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       total_completed_exchanges: transactions.length,
       total_ecopoints_circulated: ecoPointsLedger.reduce((acc, curr) => acc + (curr.points > 0 ? curr.points : 0), 0),
       category_breakdown,
-      monthly_trend: [
-        { month: 'Nov 25', diverted_kg: 24, co2e_saved_kg: 48 },
-        { month: 'Dec 25', diverted_kg: 68, co2e_saved_kg: 135 },
-        { month: 'Jan 26', diverted_kg: 145, co2e_saved_kg: 290 },
-        { month: 'Feb 26', diverted_kg: 210, co2e_saved_kg: 420 },
-        { month: 'Mar 26', diverted_kg: Math.max(280, Math.round(totalWaste)), co2e_saved_kg: Math.max(540, Math.round(totalCo2e)) },
-      ]
+      monthly_trend,
     };
   }, [transactions, listings, ecoPointsLedger, categories]);
 
@@ -242,15 +350,47 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ...listingData,
       id,
       created_at: new Date().toISOString(),
+      user: currentUser || undefined,
     };
 
     setListings((prev) => [newListing, ...prev]);
 
+    // Push to Supabase if logged in with live backend
+    if (isSupabaseConfigured && currentUser) {
+      supabase.from('listings').insert([
+        {
+          id,
+          user_id: currentUser.id,
+          category_id: listingData.category_id,
+          title: listingData.title,
+          description: listingData.description,
+          material_type: listingData.material_type,
+          quantity: listingData.quantity,
+          unit: listingData.unit,
+          listing_type: listingData.listing_type,
+          price: listingData.price || 0,
+          condition: listingData.condition,
+          district: listingData.district,
+          locality: listingData.locality,
+          address: listingData.address || '',
+          latitude: listingData.latitude,
+          longitude: listingData.longitude,
+          status: 'active',
+          ai_classified: listingData.ai_classified || false,
+          ai_confidence: listingData.ai_confidence || null,
+          suggested_action: listingData.suggested_action || '',
+        }
+      ]).then(({ error }) => {
+        if (error) console.warn('Supabase listing insert note:', error.message);
+      });
+    }
+
     // Award EcoPoints for listing creation
     const pointsAwarded = 30;
+    const userId = currentUser ? currentUser.id : 'guest-user';
     const newPointRecord: EcoPointRecord = {
       id: `pt-${Date.now()}`,
-      user_id: currentUser.id,
+      user_id: userId,
       points: pointsAwarded,
       action_type: 'listing_created',
       reference_id: id,
@@ -262,9 +402,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Notification
     const newNotif: NotificationItem = {
       id: `notif-${Date.now()}`,
-      user_id: currentUser.id,
-      title: 'Listing Published!',
-      message: `"${listingData.title}" is now visible to nearby circular recyclers. +${pointsAwarded} EcoPoints earned!`,
+      user_id: userId,
+      title: 'Listing Published',
+      message: `"${listingData.title}" is now visible to nearby circular recyclers. +${pointsAwarded} EcoPoints earned.`,
       type: 'points',
       link: `/marketplace/${id}`,
       is_read: false,
@@ -279,10 +419,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setListings((prev) =>
       prev.map((l) => (l.id === id ? { ...l, ...updates, updated_at: new Date().toISOString() } : l))
     );
+    if (isSupabaseConfigured) {
+      supabase.from('listings').update(updates).eq('id', id).then();
+    }
   };
 
   const deleteListing = (id: string) => {
     setListings((prev) => prev.filter((l) => l.id !== id));
+    if (isSupabaseConfigured) {
+      supabase.from('listings').delete().eq('id', id).then();
+    }
   };
 
   // Action: Create Exchange Request
@@ -297,27 +443,45 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const requestId = `req-${Date.now()}`;
     const code = `GL-${Math.floor(1000 + Math.random() * 9000)}`;
+    const requesterId = currentUser ? currentUser.id : 'guest-user';
 
     const newRequest: ExchangeRequest = {
       id: requestId,
       listing_id: listingId,
-      requester_id: currentUser.id,
+      requester_id: requesterId,
       requested_quantity: requestedQuantity,
       proposed_action: proposedAction,
       message,
       status: 'pending',
       completion_code: code,
       created_at: new Date().toISOString(),
+      requester: currentUser || undefined,
+      listing: targetListing,
     };
 
     setExchangeRequests((prev) => [newRequest, ...prev]);
+
+    if (isSupabaseConfigured && currentUser) {
+      supabase.from('exchange_requests').insert([
+        {
+          id: requestId,
+          listing_id: listingId,
+          requester_id: requesterId,
+          proposed_action: proposedAction,
+          requested_quantity: requestedQuantity,
+          message,
+          status: 'pending',
+          completion_code: code,
+        }
+      ]).then();
+    }
 
     // Notify the listing generator
     const notif: NotificationItem = {
       id: `notif-${Date.now()}`,
       user_id: targetListing.user_id,
       title: 'New Exchange Request',
-      message: `${currentUser.full_name} requested ${requestedQuantity} ${targetListing.unit} of "${targetListing.title}"`,
+      message: `${currentUser ? currentUser.full_name : 'A community member'} requested ${requestedQuantity} ${targetListing.unit} of "${targetListing.title}"`,
       type: 'request',
       link: '/dashboard/exchanges',
       is_read: false,
@@ -346,15 +510,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const targetReq = exchangeRequests.find((r) => r.id === requestId);
     if (targetReq) {
       const listing = listings.find((l) => l.id === targetReq.listing_id);
-      // Mark listing as pending exchange
       updateListing(targetReq.listing_id, { status: 'pending' });
 
-      // Notify requester
       setNotifications((prev) => [
         {
           id: `notif-${Date.now()}`,
           user_id: targetReq.requester_id,
-          title: 'Request Accepted!',
+          title: 'Request Accepted',
           message: `Your request for "${listing?.title}" was accepted. Pickup verification code: ${targetReq.completion_code}`,
           type: 'request',
           link: '/dashboard/exchanges',
@@ -378,7 +540,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
   };
 
-  // Action: Complete Handover & Generate Transaction
+  // Action: Complete Handover & Generate Real Transaction
   const confirmHandover = (
     requestId: string,
     completionCodeInput: string
@@ -406,7 +568,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const pointsGen = 50;
     const pointsRec = 30;
 
-    // Create Transaction
+    // Create Real Transaction
     const newTransaction: Transaction = {
       id: `tx-${Date.now()}`,
       listing_id: listing.id,
@@ -426,13 +588,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setTransactions((prev) => [newTransaction, ...prev]);
 
-    // Update status of request and listing
     setExchangeRequests((prev) =>
       prev.map((r) => (r.id === req.id ? { ...r, status: 'completed', updated_at: new Date().toISOString() } : r))
     );
     updateListing(listing.id, { status: 'completed' });
 
-    // Award EcoPoints to Generator
+    // Award EcoPoints to Generator and Recipient
     setEcoPointsLedger((prev) => [
       {
         id: `pt-${Date.now()}-1`,
@@ -460,8 +621,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {
         id: `notif-${Date.now()}-1`,
         user_id: listing.user_id,
-        title: 'Exchange Completed! 🎉',
-        message: `Your exchange of "${listing.title}" is complete. Saved ${co2Saved}kg CO2e & earned ${pointsGen} EcoPoints!`,
+        title: 'Exchange Completed',
+        message: `Your exchange of "${listing.title}" is complete. Saved ${co2Saved}kg CO2e & earned ${pointsGen} EcoPoints.`,
         type: 'points',
         link: '/dashboard/impact',
         is_read: false,
@@ -470,8 +631,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {
         id: `notif-${Date.now()}-2`,
         user_id: req.requester_id,
-        title: 'Material Received! 🌿',
-        message: `Collection verified. Diverted ${landfillSaved}kg from landfill & earned ${pointsRec} EcoPoints!`,
+        title: 'Material Received',
+        message: `Collection verified. Diverted ${landfillSaved}kg from landfill & earned ${pointsRec} EcoPoints.`,
         type: 'points',
         link: '/dashboard/impact',
         is_read: false,
@@ -480,16 +641,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ...prev,
     ]);
 
-    // Trigger visual confetti celebration
     try {
       confetti({
         particleCount: 80,
         spread: 70,
         origin: { y: 0.6 },
-        colors: ['#174D36', '#B6D96B', '#A8C5A2', '#F7F9F5'],
+        colors: ['#234B35', '#A8B89F', '#DCE5D4', '#F7F7F0'],
       });
     } catch (e) {
-      // Confetti optional
+      // Optional celebration
     }
 
     return {
@@ -509,19 +669,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       prev.map((c) => (c.id === challengeId ? { ...c, is_participating: true } : c))
     );
 
-    setNotifications((prev) => [
-      {
-        id: `notif-${Date.now()}`,
-        user_id: currentUser.id,
-        title: 'Challenge Joined!',
-        message: 'You have joined this community sustainability challenge. Log exchanges to contribute!',
-        type: 'challenge',
-        link: '/community',
-        is_read: false,
-        created_at: new Date().toISOString(),
-      },
-      ...prev,
-    ]);
+    if (currentUser) {
+      setNotifications((prev) => [
+        {
+          id: `notif-${Date.now()}`,
+          user_id: currentUser.id,
+          title: 'Challenge Joined',
+          message: 'You joined this community sustainability challenge. Log exchanges to contribute.',
+          type: 'challenge',
+          link: '/community',
+          is_read: false,
+          created_at: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+    }
   };
 
   const markNotificationAsRead = (notificationId: string) => {
@@ -534,25 +696,53 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
   };
 
+  // Action: Submit Environmental Report (Honest, clean, no fake municipal squad claims)
   const submitReport = (reportData: Omit<EnvironmentalReport, 'id' | 'ticket_number' | 'created_at' | 'updated_at' | 'status'>) => {
-    const randomTicket = `KMC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const randomTicket = `GL-REP-${Math.floor(1000 + Math.random() * 9000)}`;
+    const reporterId = currentUser ? currentUser.id : 'guest-reporter';
+    const reporterName = currentUser ? currentUser.full_name : 'Community Citizen';
+
     const newReport: EnvironmentalReport = {
       ...reportData,
       id: `rep-${Date.now()}`,
       ticket_number: randomTicket,
+      reporter_id: reporterId,
+      reporter_name: reporterName,
       status: 'pending',
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     };
 
     setReports((prev) => [newReport, ...prev]);
 
+    if (isSupabaseConfigured && currentUser) {
+      supabase.from('reports').insert([
+        {
+          id: newReport.id,
+          reporter_id: reporterId,
+          reported_item_type: 'environmental_issue',
+          reported_item_id: newReport.id,
+          reason: newReport.issue_type,
+          details: JSON.stringify({
+            title: newReport.title,
+            description: newReport.description,
+            district: newReport.district,
+            locality: newReport.locality,
+            latitude: newReport.latitude,
+            longitude: newReport.longitude,
+            ticket_number: randomTicket,
+          }),
+          status: 'pending',
+        }
+      ]).then();
+    }
+
     setNotifications((prev) => [
       {
         id: `notif-${Date.now()}`,
-        user_id: currentUser.id,
+        user_id: reporterId,
         title: `Report Registered: #${randomTicket}`,
-        message: `Your environmental report for ${reportData.locality} has been dispatched to KMC Ward Squad.`,
+        message: `Your environmental report for ${reportData.locality} has been recorded in the GreenLoop tracking registry.`,
         type: 'system',
         link: '/reports',
         is_read: false,
@@ -572,7 +762,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
               ...r,
               status,
               resolution_notes: notes || r.resolution_notes,
-              updated_at: new Date().toISOString()
+              updated_at: new Date().toISOString(),
             }
           : r
       )
@@ -594,6 +784,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         metrics,
         wasteBins,
         reports,
+        isLoading,
+        refreshData: fetchData,
         addListing,
         updateListing,
         deleteListing,

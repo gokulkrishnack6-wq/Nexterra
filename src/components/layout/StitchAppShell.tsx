@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
-import { RoleSwitcher } from '../common/RoleSwitcher';
+import { useGeolocation, KERALA_DISTRICT_COORDS } from '../../hooks/useGeolocation';
 import { 
   LayoutDashboard, 
   Store, 
@@ -22,7 +22,10 @@ import {
   ChevronDown,
   Navigation,
   CheckCircle2,
-  FileText
+  LogIn,
+  LogOut,
+  User,
+  Loader2
 } from 'lucide-react';
 
 export interface StitchAppShellProps {
@@ -30,26 +33,27 @@ export interface StitchAppShellProps {
 }
 
 export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, signOut } = useAuth();
   const { notifications, markNotificationAsRead, markAllNotificationsAsRead } = useData();
+  const { 
+    district: currentDistrict, 
+    locality: currentLocality, 
+    loading: geoLoading, 
+    error: geoError, 
+    detectLocation, 
+    setManualDistrict 
+  } = useGeolocation();
+
   const location = useLocation();
   const navigate = useNavigate();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
-  const [wardSelectorOpen, setWardSelectorOpen] = useState(false);
-  const [selectedWard, setSelectedWard] = useState('Ernakulam / Kochi Metro Region');
+  const [locationMenuOpen, setLocationMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
-  const wards = [
-    'Ernakulam / Kochi Metro Region',
-    'Thiruvananthapuram Central',
-    'Kozhikode Beach & South',
-    'Thrissur Cultural Hub',
-    'Malappuram Perinthalmanna',
-    'Kollam Coastal Zone'
-  ];
-
+  const keralaDistricts = Object.keys(KERALA_DISTRICT_COORDS);
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   const navLinks = [
@@ -65,7 +69,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
     { label: 'Community Drives', path: '/community', icon: Users },
   ];
 
-  if (currentUser.role === 'admin') {
+  if (currentUser && currentUser.role === 'admin') {
     navLinks.push({ label: 'Admin Console', path: '/admin', icon: Settings });
   }
 
@@ -76,23 +80,12 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
     return location.pathname.startsWith(path);
   };
 
-  const getRoleTitle = (role: string) => {
-    switch (role) {
-      case 'individual': return 'Terrace Gardener • Kochi';
-      case 'business': return 'Organic Kitchen • Ernakulam';
-      case 'farmer': return 'Bio-Compost Collective';
-      case 'recycler': return 'Clean Kerala MCF Partner';
-      case 'ngo': return 'Haritha Ward Co-op';
-      case 'admin': return 'KMC Systems Administrator';
-      default: return 'Active Participant';
-    }
+  const getInitial = (name: string) => {
+    return name ? name.trim().charAt(0).toUpperCase() : 'U';
   };
 
   return (
     <div className="min-h-screen bg-background font-body text-on-surface flex flex-col">
-      {/* Top Embedded Role Switcher for demonstration testing */}
-      <RoleSwitcher />
-
       {/* Desktop Sidebar (w-64) */}
       <aside className="fixed left-0 top-0 h-full w-64 bg-surface-container-low z-50 hidden lg:flex flex-col justify-between py-space-md border-r border-outline-variant/60 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
         <div className="flex flex-col gap-space-sm">
@@ -112,7 +105,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
           </Link>
 
           {/* Nav Item Links */}
-          <nav className="flex flex-col gap-1 px-space-sm overflow-y-auto max-h-[calc(100vh-160px)]">
+          <nav className="flex flex-col gap-1 px-space-sm overflow-y-auto max-h-[calc(100vh-170px)]">
             {navLinks.map((item) => {
               const active = isLinkActive(item.path, item.exact);
               const Icon = item.icon;
@@ -134,15 +127,48 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
           </nav>
         </div>
 
-        {/* Bottom Settings Link */}
+        {/* Bottom Profile / Auth Info */}
         <div className="px-space-sm pt-space-xs border-t border-outline-variant/40">
-          <Link
-            to="/impact"
-            className="flex items-center gap-3 px-space-sm py-2 rounded-lg text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-high hover:text-on-surface transition-colors"
-          >
-            <Settings className="w-[18px] h-[18px] text-outline" />
-            <span>Settings & Preferences</span>
-          </Link>
+          {currentUser ? (
+            <div className="flex items-center justify-between p-2 rounded-lg bg-surface-container/50">
+              <div className="flex items-center gap-2.5 overflow-hidden">
+                {currentUser.avatar_url ? (
+                  <img
+                    src={currentUser.avatar_url}
+                    alt={currentUser.full_name}
+                    className="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-outline-variant"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-primary-container text-on-primary font-bold text-xs flex items-center justify-center shrink-0">
+                    {getInitial(currentUser.full_name)}
+                  </div>
+                )}
+                <div className="flex flex-col truncate">
+                  <span className="text-xs font-semibold text-primary truncate leading-tight">
+                    {currentUser.full_name}
+                  </span>
+                  <span className="text-[10px] text-outline capitalize truncate">
+                    {currentUser.role}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => signOut()}
+                className="p-1.5 text-outline hover:text-error hover:bg-surface-container rounded-md transition-colors"
+                title="Sign Out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <Link
+              to="/login"
+              className="flex items-center justify-center gap-2 w-full py-2 px-3 rounded-lg bg-primary-container text-on-primary text-xs font-semibold hover:bg-primary transition-colors"
+            >
+              <LogIn className="w-4 h-4" />
+              <span>Sign In to GreenLoop</span>
+            </Link>
+          )}
         </div>
       </aside>
 
@@ -197,18 +223,42 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
             </div>
 
             <div className="pt-2 border-t border-outline-variant/40 px-2">
-              <span className="text-xs text-outline block mb-1">Signed in as:</span>
-              <span className="text-xs font-semibold text-primary block truncate">{currentUser.email}</span>
+              {currentUser ? (
+                <div className="flex items-center justify-between">
+                  <div className="truncate">
+                    <span className="text-xs font-semibold text-primary block truncate">{currentUser.full_name}</span>
+                    <span className="text-[10px] text-outline block truncate">{currentUser.email}</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      signOut();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="p-1.5 text-outline hover:text-error"
+                    title="Sign Out"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  to="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block text-center py-2 text-xs font-semibold text-on-primary bg-primary-container rounded-lg"
+                >
+                  Sign In
+                </Link>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Main Wrapper with Sticky Top Header */}
+      {/* Main Content Area */}
       <div className="lg:pl-64 flex flex-col flex-1">
-        {/* Fixed Top Header (h-16) */}
+        {/* Top Header */}
         <header className="fixed top-0 left-0 lg:left-64 right-0 h-16 bg-surface/90 backdrop-blur-xl border-b border-outline-variant/50 shadow-[0_1px_8px_rgba(0,0,0,0.03)] z-40 px-4 sm:px-space-lg flex items-center justify-between">
-          {/* Left: Mobile Toggle + Ward Selector */}
+          {/* Left: Mobile Toggle + Geolocation Context Pill */}
           <div className="flex items-center gap-2 sm:gap-space-md">
             <button
               onClick={() => setMobileMenuOpen(true)}
@@ -218,39 +268,67 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
               <Menu className="w-5 h-5" />
             </button>
 
-            {/* Ward Context Pill */}
+            {/* Geolocation Selector Pill */}
             <div className="relative">
               <button
-                onClick={() => setWardSelectorOpen(!wardSelectorOpen)}
+                onClick={() => setLocationMenuOpen(!locationMenuOpen)}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container text-on-surface text-label-sm font-label-sm cursor-pointer hover:bg-surface-container-high transition-colors border border-outline-variant/40"
+                title="Current Location"
               >
-                <Navigation className="w-3.5 h-3.5 text-secondary" />
-                <span className="truncate max-w-[140px] sm:max-w-xs">{selectedWard}</span>
+                {geoLoading ? (
+                  <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
+                ) : (
+                  <Navigation className="w-3.5 h-3.5 text-secondary" />
+                )}
+                <span className="truncate max-w-[130px] sm:max-w-xs">
+                  {geoLoading ? 'Detecting Location...' : (currentLocality || currentDistrict)}
+                </span>
                 <ChevronDown className="w-3 h-3 text-outline" />
               </button>
 
-              {wardSelectorOpen && (
-                <div className="absolute left-0 mt-2 w-64 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-dropdown py-2 z-50">
-                  <div className="px-3 py-1 text-[11px] uppercase tracking-wider text-outline font-semibold">
-                    Select Your Operating Region
-                  </div>
-                  {wards.map((ward) => (
+              {locationMenuOpen && (
+                <div className="absolute left-0 mt-2 w-72 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-dropdown py-2 z-50">
+                  <div className="px-3 py-2 border-b border-outline-variant/40">
                     <button
-                      key={ward}
                       onClick={() => {
-                        setSelectedWard(ward);
-                        setWardSelectorOpen(false);
+                        detectLocation();
+                        setLocationMenuOpen(false);
                       }}
-                      className={`w-full text-left px-3 py-2 text-xs transition-colors flex items-center justify-between ${
-                        selectedWard === ward 
-                          ? 'bg-surface-container text-primary font-semibold' 
-                          : 'text-on-surface hover:bg-surface-container-low'
-                      }`}
+                      disabled={geoLoading}
+                      className="w-full inline-flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg bg-primary-container text-on-primary text-xs font-semibold hover:bg-primary transition-colors disabled:opacity-50"
                     >
-                      <span>{ward}</span>
-                      {selectedWard === ward && <CheckCircle2 className="w-3.5 h-3.5 text-primary" />}
+                      {geoLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Navigation className="w-3.5 h-3.5" />}
+                      <span>Detect My GPS Location</span>
                     </button>
-                  ))}
+                    {geoError && (
+                      <p className="text-[11px] text-error mt-1.5 leading-snug">
+                        {geoError}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-outline font-semibold">
+                    Or Select Kerala District
+                  </div>
+                  <div className="max-h-56 overflow-y-auto">
+                    {keralaDistricts.map((district) => (
+                      <button
+                        key={district}
+                        onClick={() => {
+                          setManualDistrict(district);
+                          setLocationMenuOpen(false);
+                        }}
+                        className={`w-full text-left px-3 py-1.5 text-xs transition-colors flex items-center justify-between ${
+                          currentDistrict === district 
+                            ? 'bg-surface-container text-primary font-semibold' 
+                            : 'text-on-surface hover:bg-surface-container-low'
+                        }`}
+                      >
+                        <span>{district}</span>
+                        {currentDistrict === district && <CheckCircle2 className="w-3.5 h-3.5 text-primary" />}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -266,7 +344,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                 type="button"
               >
                 <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">+ New Listing / Report</span>
+                <span className="hidden sm:inline">New Action</span>
                 <span className="sm:hidden">New</span>
               </button>
 
@@ -281,8 +359,8 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                   >
                     <Plus className="w-4 h-4 text-primary" />
                     <div>
-                      <span className="font-semibold block">List Unwanted Material</span>
-                      <span className="text-[10px] text-outline">Post for reuse or recycling</span>
+                      <span className="font-semibold block">List Material</span>
+                      <span className="text-[10px] text-outline">Post reusable waste</span>
                     </div>
                   </button>
                   <button
@@ -292,10 +370,10 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                     }}
                     className="w-full text-left px-3 py-2 text-xs text-on-surface hover:bg-surface-container flex items-center gap-2"
                   >
-                    <ScanLine className="w-4 h-4 text-surface-tint" />
+                    <ScanLine className="w-4 h-4 text-primary" />
                     <div>
-                      <span className="font-semibold block">Scan with AI</span>
-                      <span className="text-[10px] text-outline">Identify and pre-fill details</span>
+                      <span className="font-semibold block">Scan with AI Camera</span>
+                      <span className="text-[10px] text-outline">Recognise material from image</span>
                     </div>
                   </button>
                   <button
@@ -307,8 +385,8 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                   >
                     <AlertTriangle className="w-4 h-4 text-error" />
                     <div>
-                      <span className="font-semibold block text-error">Report Local Issue</span>
-                      <span className="text-[10px] text-outline">Illegal dumping or overflowing bin</span>
+                      <span className="font-semibold block text-error">Report Issue</span>
+                      <span className="text-[10px] text-outline">Waste dump or overflowing bin</span>
                     </div>
                   </button>
                 </div>
@@ -381,21 +459,108 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
               )}
             </div>
 
-            {/* Profile Avatar & Info Chip */}
-            <div className="flex items-center gap-space-sm pl-space-xs border-l border-outline-variant/40">
-              <div className="flex flex-col text-right hidden sm:flex">
-                <span className="font-label-md text-label-md text-on-surface leading-tight font-semibold">
-                  {currentUser.full_name}
-                </span>
-                <span className="font-body-sm text-[11px] text-outline leading-tight">
-                  {getRoleTitle(currentUser.role)}
-                </span>
-              </div>
-              <img
-                src={currentUser.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'}
-                alt={currentUser.full_name}
-                className="w-8 h-8 rounded-full object-cover ring-1 ring-outline-variant"
-              />
+            {/* Profile Avatar & User Dropdown */}
+            <div className="relative">
+              {currentUser ? (
+                <>
+                  <button
+                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    className="flex items-center gap-2 pl-2 border-l border-outline-variant/40 hover:opacity-85 transition-opacity"
+                  >
+                    <div className="flex flex-col text-right hidden sm:flex">
+                      <span className="font-label-md text-label-md text-on-surface leading-tight font-semibold">
+                        {currentUser.full_name}
+                      </span>
+                      <span className="font-body-sm text-[11px] text-outline leading-tight capitalize">
+                        {currentUser.district} • {currentUser.role}
+                      </span>
+                    </div>
+                    {currentUser.avatar_url ? (
+                      <img
+                        src={currentUser.avatar_url}
+                        alt={currentUser.full_name}
+                        className="w-8 h-8 rounded-full object-cover ring-1 ring-outline-variant"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-primary-container text-on-primary flex items-center justify-center font-bold text-xs ring-1 ring-outline-variant">
+                        {getInitial(currentUser.full_name)}
+                      </div>
+                    )}
+                  </button>
+
+                  {userMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-64 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-dropdown py-2 z-50">
+                      <div className="px-4 py-2 border-b border-outline-variant/40">
+                        <span className="font-semibold text-sm text-primary block truncate">
+                          {currentUser.full_name}
+                        </span>
+                        <span className="text-xs text-outline block truncate">
+                          {currentUser.email}
+                        </span>
+                        <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-container/10 text-primary text-xs font-semibold">
+                          <Award className="w-3.5 h-3.5" />
+                          <span>{currentUser.eco_points_balance || 0} EcoPoints</span>
+                        </div>
+                      </div>
+
+                      <div className="py-1">
+                        <Link
+                          to="/dashboard"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2 text-xs text-on-surface hover:bg-surface-container"
+                        >
+                          <LayoutDashboard className="w-4 h-4 text-outline" />
+                          <span>My Overview</span>
+                        </Link>
+                        <Link
+                          to="/dashboard/exchanges"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2 text-xs text-on-surface hover:bg-surface-container"
+                        >
+                          <Repeat className="w-4 h-4 text-outline" />
+                          <span>My Exchanges</span>
+                        </Link>
+                        <Link
+                          to="/impact"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2 text-xs text-on-surface hover:bg-surface-container"
+                        >
+                          <Award className="w-4 h-4 text-outline" />
+                          <span>EcoPoints Ledger</span>
+                        </Link>
+                      </div>
+
+                      <div className="border-t border-outline-variant/40 pt-1">
+                        <button
+                          onClick={() => {
+                            setUserMenuOpen(false);
+                            signOut();
+                          }}
+                          className="w-full text-left flex items-center gap-2.5 px-4 py-2 text-xs text-error hover:bg-surface-container"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          <span>Sign Out</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="flex items-center gap-2 pl-2 border-l border-outline-variant/40">
+                  <Link
+                    to="/login"
+                    className="px-3 py-1.5 text-xs font-semibold text-primary hover:bg-surface-container rounded-lg transition-colors"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="px-3 py-1.5 text-xs font-semibold text-on-primary bg-primary-container hover:bg-primary rounded-lg transition-colors"
+                  >
+                    Register
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </header>
@@ -408,4 +573,3 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
     </div>
   );
 };
-

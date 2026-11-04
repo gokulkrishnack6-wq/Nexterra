@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   ArrowRight, 
-  Sparkles, 
   MapPin, 
   CheckCircle2, 
   ScanLine, 
@@ -12,8 +11,7 @@ import {
   Recycle,
   ShieldCheck,
   TrendingUp,
-  Award,
-  Layers
+  Award
 } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { ListingCard } from '../../components/marketplace/ListingCard';
@@ -31,18 +29,7 @@ export const LandingPage: React.FC = () => {
     }
   }, []);
 
-  // Featured representative materials
-  const previewListings = listings.filter((l) => {
-    const title = l.title.toLowerCase();
-    return (
-      title.includes('vegetable') ||
-      title.includes('coconut') ||
-      title.includes('carton') ||
-      title.includes('cardboard') ||
-      title.includes('plastic') ||
-      title.includes('glass')
-    );
-  }).slice(0, 4);
+  const previewListings = listings.filter((l) => l.status === 'active').slice(0, 4);
 
   return (
     <div className="space-y-16 pb-20">
@@ -59,7 +46,7 @@ export const LandingPage: React.FC = () => {
               </span>
               <span className="text-outline text-xs">•</span>
               <span className="text-secondary font-label-sm text-label-sm flex items-center gap-1 font-medium">
-                <ShieldCheck className="w-3.5 h-3.5 text-surface-tint" /> Haritha Karma Sena Synced
+                <ShieldCheck className="w-3.5 h-3.5 text-primary" /> Community Verified
               </span>
             </div>
 
@@ -86,14 +73,14 @@ export const LandingPage: React.FC = () => {
               </Link>
 
               <Link to="/scanner">
-                <Button size="lg" variant="secondary" icon={<ScanLine className="w-4 h-4 text-surface-tint" />}>
+                <Button size="lg" variant="secondary" icon={<ScanLine className="w-4 h-4 text-primary" />}>
                   Scan with AI
                 </Button>
               </Link>
             </div>
 
             <p className="font-body-sm text-body-sm text-outline pt-1">
-              Free community service • Zero platform commissions • Local Kerala ward tracking.
+              Community platform • Direct circular exchange • Local Kerala district tracking.
             </p>
           </div>
 
@@ -107,10 +94,10 @@ export const LandingPage: React.FC = () => {
               />
               <div className="p-3 bg-surface-container-lowest border-t border-outline-variant flex items-center justify-between text-xs text-on-surface-variant">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-surface-tint"></span>
+                  <span className="w-2 h-2 rounded-full bg-primary"></span>
                   <span className="font-medium text-on-surface">Decentralized Waste Diversion</span>
                 </div>
-                <span className="text-outline">Perinthalmanna, Malappuram</span>
+                <span className="text-outline">Kerala, India</span>
               </div>
             </div>
           </div>
@@ -134,7 +121,7 @@ export const LandingPage: React.FC = () => {
                 <span className="font-label-sm text-secondary font-semibold">kg</span>
               </div>
               <span className="font-body-sm text-body-sm text-on-surface-variant block mt-0.5">
-                Saved from Brahmapuram & landfills
+                Empirical landfill diversion
               </span>
             </div>
 
@@ -161,10 +148,10 @@ export const LandingPage: React.FC = () => {
                 <span className="font-heading font-bold text-2xl sm:text-3xl text-primary">
                   {metrics.total_active_listings}
                 </span>
-                <span className="font-label-sm text-surface-tint font-semibold">lots</span>
+                <span className="font-label-sm text-primary font-semibold">lots</span>
               </div>
               <span className="font-body-sm text-body-sm text-on-surface-variant block mt-0.5">
-                Ready for immediate pickup
+                Available for pickup
               </span>
             </div>
 
@@ -176,10 +163,10 @@ export const LandingPage: React.FC = () => {
                 <span className="font-heading font-bold text-2xl sm:text-3xl text-primary">
                   {metrics.total_completed_exchanges}
                 </span>
-                <span className="font-label-sm text-primary-container font-semibold">verified</span>
+                <span className="font-label-sm text-primary font-semibold">verified</span>
               </div>
               <span className="font-body-sm text-body-sm text-on-surface-variant block mt-0.5">
-                QR verified handovers
+                Code verified handovers
               </span>
             </div>
 
@@ -192,10 +179,10 @@ export const LandingPage: React.FC = () => {
         <div className="text-left mb-8 space-y-1">
           <Badge variant="brand">Operational Workflow</Badge>
           <h2 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight">
-            How GreenLoop works in your ward
+            How GreenLoop works in your area
           </h2>
           <p className="font-body text-body-md text-on-surface-variant max-w-2xl">
-            A simple, verified loop from waste generation to responsible circular redistribution.
+            A simple, verified loop from material generation to responsible circular redistribution.
           </p>
         </div>
 
@@ -214,24 +201,24 @@ export const LandingPage: React.FC = () => {
               </p>
             </div>
             <div className="pt-4 mt-4 border-t border-outline-variant/40 text-[11px] text-outline">
-              Instant mobile post
+              Instant listing
             </div>
           </Card>
 
           <Card variant="elevated" className="flex flex-col justify-between">
             <div>
-              <div className="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center font-heading font-bold text-surface-tint mb-3">
+              <div className="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center font-heading font-bold text-primary mb-3">
                 2
               </div>
               <h3 className="font-heading font-bold text-lg text-primary mb-1">
                 AI circular guidance
               </h3>
               <p className="font-body-sm text-body-sm text-on-surface-variant">
-                Gemini Vision AI classifies the material, estimates weight, gives safety advice, and suggests composting or recycling.
+                Camera AI classifies the material, estimates weight, gives handling guidance, and suggests composting or recycling.
               </p>
             </div>
             <div className="pt-4 mt-4 border-t border-outline-variant/40 text-[11px] text-outline">
-              Gemini Vision Powered
+              Vision AI Powered
             </div>
           </Card>
 
@@ -244,7 +231,7 @@ export const LandingPage: React.FC = () => {
                 Local smart match
               </h3>
               <p className="font-body-sm text-body-sm text-on-surface-variant">
-                Nearby terrace gardeners, compost yards, or Haritha Karma Sena hubs receive compatibility notifications.
+                Nearby terrace gardeners, compost yards, or collection hubs discover compatible materials.
               </p>
             </div>
             <div className="pt-4 mt-4 border-t border-outline-variant/40 text-[11px] text-outline">
@@ -290,11 +277,24 @@ export const LandingPage: React.FC = () => {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {previewListings.map((listing) => (
-            <ListingCard key={listing.id} listing={listing} />
-          ))}
-        </div>
+        {previewListings.length === 0 ? (
+          <div className="p-8 border border-dashed border-outline-variant rounded-xl bg-surface-container-low/40 text-center max-w-lg mx-auto">
+            <p className="font-body-md text-on-surface-variant text-sm mb-3">
+              Be the first in your district to list reusable materials, biomass, or recyclables!
+            </p>
+            <Link to="/marketplace/new">
+              <Button variant="primary" size="sm">
+                + List Material
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {previewListings.map((listing) => (
+              <ListingCard key={listing.id} listing={listing} />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* 5. KERALA STAKEHOLDERS GRID */}
@@ -305,7 +305,7 @@ export const LandingPage: React.FC = () => {
               Local Ecosystem
             </span>
             <h2 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight">
-              Built for everyone in Kerala's waste cycle
+              Built for everyone in Kerala's circular cycle
             </h2>
           </div>
 
@@ -343,7 +343,7 @@ export const LandingPage: React.FC = () => {
                 Farmers & Gardeners
               </h3>
               <p className="font-body-sm text-body-sm text-on-surface-variant">
-                Source free organic substrates, coir dust, coffee grounds, and compost material within a 5 km radius.
+                Source free organic substrates, coir dust, coffee grounds, and compost material within a local radius.
               </p>
             </div>
 
@@ -352,10 +352,10 @@ export const LandingPage: React.FC = () => {
                 <Recycle className="w-5 h-5" />
               </div>
               <h3 className="font-heading font-bold text-base text-primary mb-1">
-                Recycling MCFs & NGOs
+                Recycling MCFs & Centres
               </h3>
               <p className="font-body-sm text-body-sm text-on-surface-variant">
-                Haritha Karma Sena units and scrap aggregators locate segregated batches of clean plastics, metals, and e-waste.
+                Collection hubs and recyclers locate segregated batches of clean plastics, metals, paper, and e-waste.
               </p>
             </div>
 
@@ -368,13 +368,13 @@ export const LandingPage: React.FC = () => {
         <div className="bg-primary-container text-on-primary rounded-xl p-space-lg sm:p-space-xl relative overflow-hidden shadow-sm">
           <div className="relative z-10 max-w-xl space-y-4 text-left">
             <span className="px-2.5 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-semibold tracking-wide uppercase">
-              Join Ward 24 Circular Action
+              Join Kerala Circular Action
             </span>
             <h2 className="font-heading font-bold text-2xl sm:text-3xl lg:text-4xl text-on-primary tracking-tight">
               Start diverting materials today.
             </h2>
             <p className="font-body text-body-md text-on-primary-container leading-relaxed">
-              Whether you have 2 kg of kitchen scrap or 50 shipping cartons, someone in your neighborhood can put it to productive use.
+              Whether you have 2 kg of kitchen scrap or 50 shipping cartons, someone in your community can give it a second life.
             </p>
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <Link to="/marketplace/new">

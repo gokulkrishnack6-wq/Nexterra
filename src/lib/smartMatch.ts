@@ -27,77 +27,81 @@ export function calculateDistanceKm(
  */
 export function calculateSmartMatches(
   listings: WasteListing[],
-  currentUser: UserProfile
+  currentUser?: UserProfile | null
 ): SmartMatchResult[] {
+  const userLat = currentUser?.latitude || 10.2500;
+  const userLon = currentUser?.longitude || 76.3500;
+  const userDistrict = currentUser?.district || 'Ernakulam';
+  const userRole = currentUser?.role || 'individual';
+  const currentUserId = currentUser?.id || '';
+
   return listings
-    .filter((l) => l.status === 'active' && l.user_id !== currentUser.id)
+    .filter((l) => l.status === 'active' && l.user_id !== currentUserId)
     .map((listing) => {
       // 1. Distance Calculation
       const distance = calculateDistanceKm(
-        currentUser.latitude,
-        currentUser.longitude,
-        listing.latitude,
-        listing.longitude
+        userLat,
+        userLon,
+        listing.latitude || userLat,
+        listing.longitude || userLon
       );
 
-      // 2. Location Proximity Score (100 if < 10km, decays smoothly up to 100km)
+      // 2. Location Proximity Score
       let locationProximity = 100 - Math.min(distance * 0.8, 70);
-      if (listing.district === currentUser.district) {
+      if (listing.district === userDistrict) {
         locationProximity = Math.max(locationProximity, 85);
       }
 
       // 3. Category Fit based on user role
-      let categoryFit = 60; // base score
+      let categoryFit = 60;
       let recommendationReason = 'Available in your regional circular network.';
 
-      // Extract slug from joined category or category_id
       let categorySlug = listing.category?.slug || '';
       if (!categorySlug) {
-        if (listing.category_id.includes('organic')) categorySlug = 'organic';
-        else if (listing.category_id.includes('agricultural')) categorySlug = 'agricultural';
-        else if (listing.category_id.includes('paper')) categorySlug = 'paper';
-        else if (listing.category_id.includes('plastics')) categorySlug = 'plastics';
-        else if (listing.category_id.includes('ewaste')) categorySlug = 'e-waste';
-        else if (listing.category_id.includes('metals')) categorySlug = 'metals';
-        else if (listing.category_id.includes('glass')) categorySlug = 'glass';
-        else if (listing.category_id.includes('textiles')) categorySlug = 'textiles';
+        if (listing.category_id?.includes('organic')) categorySlug = 'organic';
+        else if (listing.category_id?.includes('agricultural')) categorySlug = 'agricultural';
+        else if (listing.category_id?.includes('paper')) categorySlug = 'paper';
+        else if (listing.category_id?.includes('plastics')) categorySlug = 'plastics';
+        else if (listing.category_id?.includes('ewaste')) categorySlug = 'e-waste';
+        else if (listing.category_id?.includes('metals')) categorySlug = 'metals';
+        else if (listing.category_id?.includes('glass')) categorySlug = 'glass';
+        else if (listing.category_id?.includes('textiles')) categorySlug = 'textiles';
       }
 
-      if (currentUser.role === 'farmer') {
+      if (userRole === 'farmer') {
         if (categorySlug === 'organic' || categorySlug === 'agricultural') {
           categoryFit = 98;
           recommendationReason = 'High organic nitrogen/fibre content ideal for soil enrichment and mulching.';
         } else {
           categoryFit = 30;
         }
-      } else if (currentUser.role === 'recycler') {
+      } else if (userRole === 'recycler') {
         if (['plastics', 'paper', 'metals', 'e-waste', 'glass'].includes(categorySlug)) {
           categoryFit = 95;
-          recommendationReason = 'Commercial-grade clean recyclables matching your recovery intake categories.';
+          recommendationReason = 'Commercial-grade clean recyclables matching recovery intake categories.';
         } else {
           categoryFit = 40;
         }
-      } else if (currentUser.role === 'business') {
+      } else if (userRole === 'business') {
         if (listing.listing_type === 'free' || listing.listing_type === 'exchange') {
           categoryFit = 85;
           recommendationReason = 'Cost-effective circular exchange for enterprise resource redistribution.';
         }
-      } else if (currentUser.role === 'ngo') {
+      } else if (userRole === 'ngo') {
         categoryFit = 90;
         recommendationReason = 'Great candidate for community collection drives and volunteer upcycling.';
       } else {
-        // Individual
         categoryFit = 80;
         recommendationReason = 'Convenient household reuse and neighborhood circular exchange.';
       }
 
-      // 4. Quantity Suitability (prefer moderate to high quantity for commercial/farmers, manageable for individuals)
+      // 4. Quantity Suitability
       let quantitySuitability = 80;
-      if (currentUser.role === 'farmer' && listing.quantity >= 20) {
+      if (userRole === 'farmer' && listing.quantity >= 20) {
         quantitySuitability = 95;
-      } else if (currentUser.role === 'recycler' && listing.quantity >= 15) {
+      } else if (userRole === 'recycler' && listing.quantity >= 15) {
         quantitySuitability = 90;
-      } else if (currentUser.role === 'individual' && listing.quantity <= 30) {
+      } else if (userRole === 'individual' && listing.quantity <= 30) {
         quantitySuitability = 92;
       }
 
@@ -105,7 +109,6 @@ export function calculateSmartMatches(
       const recyclability = listing.category?.recyclability_score || 80;
       const circularImpact = Math.round(recyclability * 0.95);
 
-      // Weighted Composite Score
       const compositeScore = Math.round(
         categoryFit * 0.40 +
         locationProximity * 0.30 +

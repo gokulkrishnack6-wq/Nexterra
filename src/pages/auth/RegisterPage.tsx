@@ -2,44 +2,57 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserRole } from '../../types';
-import { KERALA_DISTRICTS } from '../../lib/mockData';
+import { KERALA_DISTRICT_COORDS } from '../../hooks/useGeolocation';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Card } from '../../components/ui/Card';
-import { Badge } from '../../components/ui/Badge';
-import { Home, Building2, Sprout, Recycle, Users, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Home, Building2, Sprout, Recycle, Users, ArrowRight, AlertCircle } from 'lucide-react';
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
-  const { registerUser } = useAuth();
+  const { signUp } = useAuth();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<UserRole>('individual');
   const [district, setDistrict] = useState('Ernakulam');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const keralaDistricts = Object.keys(KERALA_DISTRICT_COORDS);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await registerUser(name, email, role, district);
-      navigate('/dashboard');
+      const res = await signUp(email, password, name, role, district);
+      if (!res.success) {
+        setError(res.error || 'Registration failed.');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err: any) {
-      alert(err.message || 'Registration failed');
+      setError(err?.message || 'Registration error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   const roleOptions: { role: UserRole; title: string; desc: string; icon: any }[] = [
-    { role: 'individual', title: 'Individual / Household', desc: 'Exchange domestic recyclables & husks', icon: Home },
-    { role: 'business', title: 'Business / Restaurant', desc: 'Divert commercial food scrap & cartons', icon: Building2 },
-    { role: 'farmer', title: 'Farmer / Gardener', desc: 'Source bio-waste & organic substrate', icon: Sprout },
-    { role: 'recycler', title: 'Recycler / MCF', desc: 'Aggregate sorted plastics, glass, metals', icon: Recycle },
-    { role: 'ngo', title: 'NGO / Community Group', desc: 'Organize ward drives & challenges', icon: Users },
+    { role: 'individual', title: 'Individual / Household', desc: 'List domestic recyclables, husk & garden biomass', icon: Home },
+    { role: 'business', title: 'Business / Restaurant', desc: 'Divert commercial food surplus, cartons & packaging', icon: Building2 },
+    { role: 'farmer', title: 'Farmer / Gardener', desc: 'Source organic waste & compostable materials', icon: Sprout },
+    { role: 'recycler', title: 'Recycler / Collection Centre', desc: 'Aggregate sorted dry plastics, paper, glass & metals', icon: Recycle },
+    { role: 'ngo', title: 'NGO / Community Group', desc: 'Organise waste collection drives & local drives', icon: Users },
   ];
 
   return (
@@ -58,9 +71,16 @@ export const RegisterPage: React.FC = () => {
 
       <Card variant="elevated" className="space-y-6 p-6 sm:p-8">
         <form onSubmit={handleSubmit} className="space-y-5">
+          {error && (
+            <div className="p-3 bg-error-container text-on-error-container rounded-lg text-body-sm font-medium border border-error/20 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-error" />
+              <span>{error}</span>
+            </div>
+          )}
+
           {/* Role Selection Grid */}
           <div>
-            <label className="block font-label-md text-label-md text-on-surface mb-2">
+            <label className="block font-label-md text-label-md text-on-surface mb-2 font-semibold">
               Select Your Role in the Circular Chain *
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -96,12 +116,12 @@ export const RegisterPage: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
-              label="Full Name / Organization *"
+              label="Full Name / Organization Name *"
               type="text"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Ananya Nair / Green Bakes"
+              placeholder="Your name or organization"
             />
 
             <Input
@@ -121,11 +141,11 @@ export const RegisterPage: React.FC = () => {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Minimum 8 characters"
+              placeholder="Minimum 6 characters"
             />
 
             <div>
-              <label className="block font-label-md text-label-md text-on-surface mb-1">
+              <label className="block font-label-md text-label-md text-on-surface mb-1 font-semibold">
                 Kerala District *
               </label>
               <select
@@ -133,7 +153,7 @@ export const RegisterPage: React.FC = () => {
                 onChange={(e) => setDistrict(e.target.value)}
                 className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 py-2.5 px-3 transition-all"
               >
-                {KERALA_DISTRICTS.map((d) => (
+                {keralaDistricts.map((d) => (
                   <option key={d} value={d}>{d}</option>
                 ))}
               </select>
@@ -145,11 +165,11 @@ export const RegisterPage: React.FC = () => {
             variant="primary"
             fullWidth
             size="lg"
-            disabled={loading}
+            loading={loading}
             icon={<ArrowRight className="w-4 h-4" />}
             iconPosition="right"
           >
-            {loading ? 'Registering Account...' : 'Create GreenLoop Account'}
+            {loading ? 'Creating Account...' : 'Create GreenLoop Account'}
           </Button>
         </form>
 

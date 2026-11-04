@@ -4,52 +4,55 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Card } from '../../components/ui/Card';
-import { Badge } from '../../components/ui/Badge';
-import { ArrowRight, CheckCircle2, ShieldCheck, Mail, Lock } from 'lucide-react';
+import { ArrowRight, Mail, Lock, AlertCircle } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { loginUser, allDemoUsers, switchUser } = useAuth();
+  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
-    const ok = await loginUser(email);
-    if (ok) {
-      navigate('/dashboard');
-    } else {
-      setError('Account with this email not found. You can select any verified demo persona below.');
+    try {
+      const res = await signIn(email, password);
+      if (!res.success) {
+        setError(res.error || 'Invalid email or password.');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Failed to sign in. Please check your credentials.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleQuickLogin = (userId: string) => {
-    switchUser(userId);
-    navigate('/dashboard');
-  };
-
   return (
-    <div className="max-w-md mx-auto px-4 py-12 space-y-6">
+    <div className="max-w-md mx-auto px-4 py-16 space-y-6">
       <div className="text-center space-y-2">
         <div className="w-10 h-10 rounded-xl bg-primary-container text-on-primary flex items-center justify-center mx-auto shadow-sm">
           <span className="material-symbols-outlined text-[22px]">cyclone</span>
         </div>
         <h1 className="font-heading font-bold text-2xl text-primary tracking-tight">
-          Sign in to GreenLoop
+          Sign In to GreenLoop
         </h1>
         <p className="font-body-sm text-body-sm text-on-surface-variant">
-          Access Kerala's verified circular resource exchange network.
+          Access Kerala's circular resource exchange network.
         </p>
       </div>
 
-      <Card variant="elevated" className="space-y-5">
+      <Card variant="elevated" className="space-y-5 p-6 sm:p-8">
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="p-3 bg-error-container text-on-error-container rounded-lg text-body-sm font-medium border border-error/20">
-              {error}
+            <div className="p-3 bg-error-container text-on-error-container rounded-lg text-body-sm font-medium border border-error/20 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-error" />
+              <span>{error}</span>
             </div>
           )}
 
@@ -78,44 +81,19 @@ export const LoginPage: React.FC = () => {
             variant="primary"
             fullWidth
             size="lg"
+            loading={loading}
             icon={<ArrowRight className="w-4 h-4" />}
             iconPosition="right"
           >
-            Sign In to Dashboard
+            {loading ? 'Signing in...' : 'Sign In'}
           </Button>
         </form>
 
-        {/* Demo Fast Personas */}
-        <div className="pt-4 border-t border-outline-variant/60 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="font-label-sm text-label-sm text-outline uppercase tracking-wider font-semibold">
-              Instant Demo Personas
-            </span>
-            <Badge variant="success">One-Click Switch</Badge>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            {allDemoUsers.map((u) => (
-              <button
-                key={u.id}
-                onClick={() => handleQuickLogin(u.id)}
-                className="p-2.5 bg-surface-container hover:bg-surface-container-high text-left rounded-lg border border-outline-variant/60 transition-all text-xs"
-              >
-                <div className="font-heading font-semibold text-primary truncate">
-                  {u.full_name}
-                </div>
-                <div className="text-[11px] text-on-surface-variant capitalize">
-                  {u.role} • {u.district}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="pt-2 text-center">
+        <div className="pt-4 border-t border-outline-variant/60 text-center">
           <p className="font-body-sm text-body-sm text-on-surface-variant">
-            Don't have an account?{' '}
+            Don't have an account yet?{' '}
             <Link to="/register" className="font-semibold text-primary hover:underline">
-              Register here
+              Register now
             </Link>
           </p>
         </div>

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { MapPin, Heart, ArrowRight } from 'lucide-react';
 import { WasteListing } from '../../types';
 import { useData } from '../../contexts/DataContext';
-import { Badge } from '../ui/Badge';
+import { useGeolocation, calculateDistanceKm } from '../../hooks/useGeolocation';
 
 interface ListingCardProps {
   listing: WasteListing;
@@ -11,24 +11,29 @@ interface ListingCardProps {
 
 export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
   const { favourites, toggleFavourite } = useData();
+  const { coords } = useGeolocation();
   const isFav = favourites.includes(listing.id);
 
   const primaryImage = listing.images && listing.images.length > 0 
     ? listing.images[0] 
     : 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=600&q=80';
 
+  const distanceKm = coords && listing.latitude && listing.longitude
+    ? calculateDistanceKm(coords.latitude, coords.longitude, listing.latitude, listing.longitude)
+    : null;
+
   const getPricingBadge = () => {
     switch (listing.listing_type) {
       case 'free':
         return (
-          <span className="font-label-sm text-label-sm text-primary font-bold bg-tertiary-fixed px-2.5 py-0.5 rounded-full shadow-sm">
-            Free Claim
+          <span className="font-label-sm text-label-sm text-primary font-bold bg-secondary-container px-2.5 py-0.5 rounded-full shadow-sm">
+            Free
           </span>
         );
       case 'exchange':
         return (
-          <span className="font-label-sm text-label-sm text-on-secondary-container font-medium bg-secondary-container px-2.5 py-0.5 rounded-full shadow-sm">
-            Barter Exchange
+          <span className="font-label-sm text-label-sm text-on-secondary-container font-medium bg-surface-container px-2.5 py-0.5 rounded-full shadow-sm">
+            Exchange
           </span>
         );
       case 'sale':
@@ -100,7 +105,10 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
         <div className="mt-3 pt-2.5 border-t border-outline-variant/40 flex items-center justify-between text-body-sm">
           <div className="flex items-center gap-1 text-on-surface-variant truncate">
             <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
-            <span className="truncate text-[11px]">{listing.locality}, {listing.district}</span>
+            <span className="truncate text-[11px]">
+              {distanceKm !== null ? `${distanceKm} km • ` : ''}
+              {listing.locality || listing.district}
+            </span>
           </div>
 
           <Link

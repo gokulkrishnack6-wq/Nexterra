@@ -216,7 +216,9 @@ export interface AIScanResult {
   detected_material: string;
   category_slug: string;
   category_name: string;
+  subcategory?: string;
   confidence: number;
+  visible_characteristics?: string[];
   suggested_action: 'composting' | 'upcycling' | 'recycling' | 'safe_disposal' | 'bio_methanation';
   reasoning: string;
   recyclability_score: number;
@@ -224,6 +226,8 @@ export interface AIScanResult {
   safety_guidance: string[];
   circular_value_tips: string[];
   potential_matches_summary: string;
+  is_ambiguous?: boolean;
+  ambiguity_reason?: string;
 }
 
 export interface SmartMatchResult {

@@ -2,18 +2,17 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
+import { useGeolocation } from '../../hooks/useGeolocation';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
-import { Card } from '../../components/ui/Card';
 import { MetricCard } from '../../components/ui/MetricCard';
+import { EmptyState, MetricCardSkeleton } from '../../components/ui/Skeleton';
 import { 
   Package, 
   Repeat, 
   Award, 
   Leaf, 
   Sparkles, 
-  ShieldCheck, 
-  MapPin, 
   ArrowRight, 
   CheckCircle2, 
   AlertTriangle, 
@@ -23,64 +22,74 @@ import {
   QrCode, 
   MessageSquare,
   Clock,
-  ExternalLink
+  Compass
 } from 'lucide-react';
 
 export const OverviewPage: React.FC = () => {
   const { currentUser } = useAuth();
-  const { listings, exchangeRequests, metrics, challenges } = useData();
+  const { listings, exchangeRequests, metrics, challenges, reports, isLoading } = useData();
+  const { district: userDistrict, locality: userLocality } = useGeolocation();
   const navigate = useNavigate();
 
-  // User-specific stats
-  const myListings = listings.filter(l => l.user_id === currentUser.id);
-  const myExchanges = exchangeRequests.filter(r => r.requester_id === currentUser.id || r.listing?.user_id === currentUser.id);
-  const activeExchanges = myExchanges.filter(r => r.status === 'accepted' || r.status === 'pending');
+  // User-specific stats (safely handled when unauthenticated or freshly signed up)
+  const currentUserId = currentUser?.id || '';
+  const myListings = listings.filter((l) => l.user_id === currentUserId);
+  const myExchanges = exchangeRequests.filter(
+    (r) => r.requester_id === currentUserId || r.listing?.user_id === currentUserId
+  );
+  const activeExchanges = myExchanges.filter(
+    (r) => r.status === 'accepted' || r.status === 'pending'
+  );
 
-  // Spotlight drive
-  const spotlightDrive = challenges[0] || {
-    id: 'c1',
-    title: 'Panampilly Nagar E-Waste Collection Drive',
-    description: 'Co-organized with Clean Kerala Company Ltd. Segregate spent lithium batteries and obsolete cables.',
-    reward_points: 50,
-    start_date: 'This Saturday • 9:00 AM',
-    banner_url: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=600&q=80',
-    district: 'Ernakulam'
-  };
-
+  // Available community challenge or spotlight drive
+  const spotlightDrive = challenges[0] || null;
   const [rsvpDone, setRsvpDone] = useState(false);
+
+  // Recent civic reports in the area
+  const recentReports = reports.slice(0, 3);
+
+  // Smart suggestions from available listings in other categories
+  const suggestedListings = listings.filter((l) => l.user_id !== currentUserId && l.status === 'active').slice(0, 2);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col w-full gap-6 pb-12 max-w-7xl mx-auto">
+        <div className="h-40 rounded-xl bg-surface-container-high/40 animate-pulse" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <MetricCardSkeleton />
+          <MetricCardSkeleton />
+          <MetricCardSkeleton />
+          <MetricCardSkeleton />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col w-full gap-space-lg pb-space-xl max-w-7xl mx-auto">
       
-      {/* 1. TOP WELCOME & WARD CONTEXT BANNER */}
+      {/* 1. TOP WELCOME & LOCATION CONTEXT BANNER */}
       <section className="relative overflow-hidden rounded-xl bg-surface-container p-space-md sm:p-space-lg border border-outline-variant/60 shadow-sm">
-        {/* Background Subtle Watermark Leaf / Cyclone */}
-        <div className="absolute right-0 top-0 w-96 h-full opacity-10 pointer-events-none flex items-center justify-end pr-space-md">
-          <svg className="text-primary" fill="none" height="280" viewBox="0 0 200 200" width="280">
-            <path d="M100 20C55.8 20 20 55.8 20 100C20 144.2 55.8 180 100 180C144.2 180 180 144.2 180 100" stroke="currentColor" strokeLinecap="round" strokeWidth="12" />
-            <path d="M100 60C77.9 60 60 77.9 60 100C60 122.1 77.9 140 100 140" stroke="currentColor" strokeDasharray="6 8" strokeWidth="8" />
-            <circle cx="100" cy="100" fill="currentColor" r="16" />
-          </svg>
-        </div>
-
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-space-md">
           <div className="flex flex-col gap-1 text-left">
             <div className="inline-flex items-center gap-2">
               <span className="px-2.5 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm tracking-wide uppercase font-semibold">
-                Haritha Karma Sena Synced
+                Kerala Circular Network
               </span>
               <span className="text-outline font-body-sm text-body-sm">•</span>
               <span className="text-secondary font-label-sm text-label-sm flex items-center gap-1 font-medium">
-                <ShieldCheck className="w-3.5 h-3.5 text-surface-tint" /> Ward 24 Verified
+                <Compass className="w-3.5 h-3.5 text-primary" /> {userLocality || userDistrict}
               </span>
             </div>
             
             <h1 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight">
-              Namaskaram, {currentUser.full_name}!
+              {currentUser ? `Namaskaram, ${currentUser.full_name}` : 'Welcome to GreenLoop'}
             </h1>
             
             <p className="font-body-md text-body-md text-on-surface-variant max-w-xl">
-              {currentUser.district} Central Ward 24 • Active Participant. Your neighborhood loop is operating at 88% circular diversion this cycle.
+              {currentUser
+                ? `${currentUser.district} • ${currentUser.role.toUpperCase()} account. Keep reusable materials in active local circulation.`
+                : 'Connect with local individuals, businesses, farmers, and recycling collection centres across Kerala.'}
             </p>
           </div>
 
@@ -91,13 +100,13 @@ export const OverviewPage: React.FC = () => {
               variant="primary"
               icon={<Plus className="w-4 h-4" />}
             >
-              List Unwanted Materials
+              List Materials
             </Button>
 
             <Button
               onClick={() => navigate('/scanner')}
               variant="subtle"
-              icon={<ScanLine className="w-4 h-4 text-surface-tint" />}
+              icon={<ScanLine className="w-4 h-4 text-primary" />}
             >
               Scan with AI
             </Button>
@@ -108,69 +117,67 @@ export const OverviewPage: React.FC = () => {
               className="hover:text-error hover:border-error/40"
               icon={<AlertTriangle className="w-4 h-4 text-error" />}
             >
-              Report Local Issue
+              Report Issue
             </Button>
           </div>
         </div>
       </section>
 
-      {/* 2. KPI METRICS RIBBON (4 Columns) */}
+      {/* 2. KPI METRICS RIBBON (4 Columns) - Genuine Empirical Values */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md">
         
         {/* Active Listings */}
         <MetricCard
-          label="Active Listings"
-          value={myListings.length > 0 ? myListings.length : 3}
-          unit="available for claim"
-          subtext="Coconut Husks, Cartons, Glass Jars"
+          label="My Active Listings"
+          value={myListings.length}
+          unit="listed"
+          subtext={myListings.length === 0 ? 'No listings published yet' : `${myListings.length} active in marketplace`}
           icon={<Package className="w-5 h-5" />}
           iconBg="bg-surface-container"
           iconColor="text-primary"
-          footerLabel="Last updated"
-          footerValue="Yesterday, 18:30"
+          footerLabel="Total marketplace listings"
+          footerValue={`${listings.filter((l) => l.status === 'active').length} available`}
         />
 
         {/* Ongoing Exchanges */}
         <MetricCard
-          label="Ongoing Exchanges"
-          value={activeExchanges.length > 0 ? activeExchanges.length : 2}
-          unit="in handover pipe"
-          subtext="1 Awaiting Handover • 1 In Review"
+          label="My Active Exchanges"
+          value={activeExchanges.length}
+          unit="in progress"
+          subtext={activeExchanges.length === 0 ? 'No active handovers' : `${activeExchanges.length} pending verification`}
           icon={<Repeat className="w-5 h-5" />}
           iconBg="bg-secondary-container"
           iconColor="text-on-secondary-container"
-          footerLabel="Next event"
-          footerValue="Today at 16:00"
+          footerLabel="Total completed exchanges"
+          footerValue={`${metrics.total_completed_exchanges} verified`}
         />
 
         {/* EcoPoints Balance */}
         <MetricCard
           label="EcoPoints Balance"
-          value={currentUser.eco_points_balance}
+          value={currentUser ? currentUser.eco_points_balance : 0}
           unit="PTS"
           badge={
             <span className="font-label-sm text-label-sm text-on-surface px-2 py-0.5 rounded-full bg-surface-container border border-outline-variant/60 font-semibold">
-              Lvl 2: Green Contributor
+              {currentUser ? `Role: ${currentUser.role}` : 'Sign in to earn'}
             </span>
           }
           icon={<Award className="w-5 h-5" />}
           iconBg="bg-tertiary-fixed"
           iconColor="text-primary"
-          progressPercent={80}
-          progressLabel="Tier Progress (480 / 600)"
         />
 
         {/* Total Diverted */}
         <MetricCard
           label="Total Waste Diverted"
-          value={(metrics.total_waste_diverted_kg / 10).toFixed(1)}
+          value={metrics.total_waste_diverted_kg}
           unit="kg verified"
-          subtext="Diverted from Brahmapuram & landfills"
+          subtext={metrics.total_waste_diverted_kg === 0 ? 'Based on verified handovers' : 'Saved from landfills'}
           icon={<Leaf className="w-5 h-5" />}
           iconBg="bg-surface-container-highest"
           iconColor="text-primary"
-          footerLabel="Carbon offset equivalent"
-          footerValue={`~${((metrics.total_waste_diverted_kg / 10) * 1.5).toFixed(1)} kg CO₂e`}
+          footerLabel="Avoided Carbon"
+          footerValue={`${metrics.total_co2e_avoided_kg} kg CO₂e`}
         />
 
       </section>
@@ -185,373 +192,300 @@ export const OverviewPage: React.FC = () => {
           <section className="flex flex-col gap-space-md">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-surface-tint" />
+                <Sparkles className="w-5 h-5 text-primary" />
                 <h2 className="font-heading font-bold text-headline-sm text-primary">
                   Smart Material Matches
                 </h2>
               </div>
-              <span className="font-label-sm text-label-sm text-secondary bg-surface-container px-2.5 py-1 rounded-full border border-outline-variant/50 font-semibold">
-                Algorithmic Local Pairing
-              </span>
+              <Link to="/smart-match" className="font-label-md text-label-md text-primary hover:underline flex items-center gap-1">
+                <span>View all matches</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">
-              {/* Card 1: Coconut Husk Match */}
-              <div className="flex flex-col justify-between bg-surface-container-lowest rounded-xl p-space-md border border-outline-variant/60 shadow-sm hover:shadow-md transition-all text-left">
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <span className="inline-flex items-center gap-1 font-label-sm text-label-sm text-primary font-bold bg-tertiary-fixed px-2 py-0.5 rounded-full mb-1">
-                        <Sparkles className="w-3 h-3" /> 96% Match Score
-                      </span>
-                      <h3 className="font-heading font-semibold text-title-md text-on-surface">
-                        Kochi Organic Farm Collective
-                      </h3>
-                    </div>
-                    <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center shrink-0 text-primary">
-                      <span className="material-symbols-outlined text-[20px]">potted_plant</span>
-                    </div>
-                  </div>
-
-                  <div className="p-2.5 rounded-lg bg-surface-container-low flex flex-col gap-1 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="text-outline">Target Material:</span>
-                      <span className="font-semibold text-primary">Coconut Husk & Coir Dust</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-outline">Distance:</span>
-                      <span className="font-medium text-on-surface">4.2 km (Vyttila Hub)</span>
-                    </div>
-                  </div>
-
-                  <p className="font-body-sm text-body-sm text-on-surface-variant">
-                    Urgent demand for organic mulching & terrace bed substrates for summer vegetable crops. Matches your active backyard husk store.
-                  </p>
-                </div>
-
-                <div className="pt-space-md mt-space-sm flex items-center justify-between gap-2 border-t border-outline-variant/40">
-                  <span className="font-label-sm text-label-sm text-secondary font-medium flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[15px]">electric_moped</span> Direct Doorstep Pickup
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    onClick={() => navigate('/smart-match')}
-                    icon={<ArrowRight className="w-3.5 h-3.5" />}
-                    iconPosition="right"
+            {suggestedListings.length === 0 ? (
+              <EmptyState
+                icon={<Sparkles className="w-6 h-6" />}
+                title="No Nearby Matches Right Now"
+                description="As more individuals, restaurants, and farmers in your district list materials, automated circular matches will appear here."
+                actionLabel="List Your First Material"
+                actionLink="/marketplace/new"
+              />
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">
+                {suggestedListings.map((listing) => (
+                  <div
+                    key={listing.id}
+                    className="flex flex-col justify-between bg-surface-container-lowest rounded-xl p-space-md border border-outline-variant/60 shadow-sm hover:shadow-md transition-all text-left"
                   >
-                    Initiate Exchange
-                  </Button>
-                </div>
-              </div>
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <span className="inline-flex items-center gap-1 font-label-sm text-label-sm text-primary font-bold bg-secondary-container px-2 py-0.5 rounded-full mb-1">
+                            {listing.category?.name || 'Recyclable'}
+                          </span>
+                          <h3 className="font-heading font-semibold text-title-md text-on-surface line-clamp-1">
+                            {listing.title}
+                          </h3>
+                        </div>
+                      </div>
 
-              {/* Card 2: Glass Bottles Match */}
-              <div className="flex flex-col justify-between bg-surface-container-lowest rounded-xl p-space-md border border-outline-variant/60 shadow-sm hover:shadow-md transition-all text-left">
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <span className="inline-flex items-center gap-1 font-label-sm text-label-sm text-secondary font-bold bg-secondary-fixed px-2 py-0.5 rounded-full mb-1">
-                        <span className="material-symbols-outlined text-[13px]">tune</span> 89% Match Score
+                      <div className="p-2.5 rounded-lg bg-surface-container-low flex flex-col gap-1 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="text-outline">Quantity:</span>
+                          <span className="font-semibold text-primary">{listing.quantity} {listing.unit}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-outline">District:</span>
+                          <span className="font-medium text-on-surface">{listing.district}</span>
+                        </div>
+                      </div>
+
+                      <p className="font-body-sm text-body-sm text-on-surface-variant line-clamp-2">
+                        {listing.description}
+                      </p>
+                    </div>
+
+                    <div className="pt-space-md mt-space-sm flex items-center justify-between gap-2 border-t border-outline-variant/40">
+                      <span className="font-label-sm text-label-sm text-secondary font-medium">
+                        {listing.listing_type === 'free' ? 'Free Material' : listing.listing_type}
                       </span>
-                      <h3 className="font-heading font-semibold text-title-md text-on-surface">
-                        Mattancherry Upcycle Studio
-                      </h3>
-                    </div>
-                    <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center shrink-0 text-primary">
-                      <span className="material-symbols-outlined text-[20px]">palette</span>
-                    </div>
-                  </div>
-
-                  <div className="p-2.5 rounded-lg bg-surface-container-low flex flex-col gap-1 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="text-outline">Target Material:</span>
-                      <span className="font-semibold text-primary">Clear Glass Bottles (750ml)</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-outline">Distance:</span>
-                      <span className="font-medium text-on-surface">6.8 km (Bazaar Road)</span>
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        onClick={() => navigate(`/marketplace/${listing.id}`)}
+                        icon={<ArrowRight className="w-3.5 h-3.5" />}
+                        iconPosition="right"
+                      >
+                        Inspect
+                      </Button>
                     </div>
                   </div>
-
-                  <p className="font-body-sm text-body-sm text-on-surface-variant">
-                    Seeking undamaged swing-top or crown-neck bottles for artisanal kombucha & cold-brew bottling batches.
-                  </p>
-                </div>
-
-                <div className="pt-space-md mt-space-sm flex items-center justify-between gap-2 border-t border-outline-variant/40">
-                  <span className="font-label-sm text-label-sm text-secondary font-medium flex items-center gap-1">
-                    <Award className="w-3.5 h-3.5 text-primary" /> +35 EcoPoints
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => navigate('/smart-match')}
-                  >
-                    View Request
-                  </Button>
-                </div>
+                ))}
               </div>
-            </div>
+            )}
           </section>
 
           {/* Active Exchanges Pipeline */}
           <section className="flex flex-col gap-space-md">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Repeat className="w-5 h-5 text-surface-tint" />
+                <Repeat className="w-5 h-5 text-primary" />
                 <h2 className="font-heading font-bold text-headline-sm text-primary">
                   Active Exchanges Pipeline
                 </h2>
               </div>
               <Link to="/dashboard/exchanges" className="font-label-md text-label-md text-primary hover:underline flex items-center gap-0.5">
-                <span>All Historical (14)</span>
+                <span>View all ({myExchanges.length})</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
 
-            <div className="flex flex-col gap-3">
-              {/* Pipeline Item 1 */}
-              <div className="bg-surface-container-lowest p-space-md rounded-xl border border-outline-variant/60 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 text-left">
-                <div className="flex items-start gap-3.5">
-                  <div className="w-12 h-12 rounded-xl bg-surface-container flex items-center justify-center shrink-0 text-primary">
-                    <span className="material-symbols-outlined text-[24px]">compost</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h4 className="font-heading font-semibold text-title-md text-on-surface">
-                        Dry Coconut Shells (15 kg)
-                      </h4>
-                      <Badge variant="success">Awaiting Handover</Badge>
+            {activeExchanges.length === 0 ? (
+              <EmptyState
+                icon={<Repeat className="w-6 h-6" />}
+                title="No Active Exchanges"
+                description="You currently have no ongoing material handovers. Explore available listings or submit a request to start exchanging."
+                actionLabel="Explore Marketplace"
+                actionLink="/marketplace"
+              />
+            ) : (
+              <div className="flex flex-col gap-3">
+                {activeExchanges.map((req) => (
+                  <div
+                    key={req.id}
+                    className="bg-surface-container-lowest p-space-md rounded-xl border border-outline-variant/60 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 text-left"
+                  >
+                    <div className="flex items-start gap-3.5">
+                      <div className="w-12 h-12 rounded-xl bg-surface-container flex items-center justify-center shrink-0 text-primary">
+                        <Package className="w-6 h-6" />
+                      </div>
+                      <div className="flex flex-col">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h4 className="font-heading font-semibold text-title-md text-on-surface">
+                            {req.listing?.title || 'Material Exchange'} ({req.requested_quantity} {req.listing?.unit || 'kg'})
+                          </h4>
+                          <Badge variant={req.status === 'accepted' ? 'success' : 'pending'}>
+                            {req.status === 'accepted' ? 'Accepted • Verification Ready' : 'Pending Confirmation'}
+                          </Badge>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-on-surface-variant font-body-sm text-body-sm mt-1">
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5 text-outline" /> {new Date(req.created_at).toLocaleDateString()}
+                          </span>
+                          <span>•</span>
+                          <span>Verification Code: <strong className="font-mono text-primary">{req.completion_code}</strong></span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-on-surface-variant font-body-sm text-body-sm mt-1">
-                      <span className="flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[15px] text-outline">person</span> Saji K. (Terrace Potter, Aluva)
-                      </span>
-                      <span>•</span>
-                      <span className="flex items-center gap-1 text-primary font-medium">
-                        <Clock className="w-3.5 h-3.5" /> Today, 4:00 PM
-                      </span>
-                      <span>•</span>
-                      <span>Location: Kadavanthra Junction Hub</span>
-                    </div>
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    icon={<MessageSquare className="w-3.5 h-3.5" />}
-                    onClick={() => navigate('/dashboard/exchanges')}
-                  >
-                    Chat
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    icon={<QrCode className="w-3.5 h-3.5" />}
-                    onClick={() => navigate('/dashboard/exchanges')}
-                  >
-                    View QR Pass
-                  </Button>
-                </div>
+                    <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        icon={<QrCode className="w-3.5 h-3.5" />}
+                        onClick={() => navigate('/dashboard/exchanges')}
+                      >
+                        Manage Exchange
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </div>
-
-              {/* Pipeline Item 2 */}
-              <div className="bg-surface-container-lowest p-space-md rounded-xl border border-outline-variant/60 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 text-left">
-                <div className="flex items-start gap-3.5">
-                  <div className="w-12 h-12 rounded-xl bg-surface-container flex items-center justify-center shrink-0 text-primary">
-                    <span className="material-symbols-outlined text-[24px]">inventory</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h4 className="font-heading font-semibold text-title-md text-on-surface">
-                        Corrugated Shipping Boxes (8 units)
-                      </h4>
-                      <Badge variant="pending">Accepted - Pickup Scheduled</Badge>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-on-surface-variant font-body-sm text-body-sm mt-1">
-                      <span className="flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[15px] text-outline">local_shipping</span> GreenKart Logistics (EV Route 04)
-                      </span>
-                      <span>•</span>
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5 text-outline" /> Tomorrow, 10:30 AM
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => navigate('/dashboard/exchanges')}
-                  >
-                    Contact Logistics
-                  </Button>
-                </div>
-              </div>
-            </div>
+            )}
           </section>
 
-          {/* Circular Impact Breakdown Infographic Widget (Donut Chart) */}
+          {/* Real Diversion Footprint Breakdown */}
           <section className="bg-surface-container p-space-md rounded-xl border border-outline-variant/60 shadow-sm flex flex-col sm:flex-row items-center gap-space-md text-left">
-            <div className="w-28 h-28 shrink-0 relative flex items-center justify-center">
-              {/* Circular mini SVG donut chart representing material split */}
-              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                <path className="text-surface-container-high" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="4" />
-                {/* Organic 55% */}
-                <path className="text-primary-container" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeDasharray="55, 100" strokeWidth="4" />
-                {/* Paper 30% */}
-                <path className="text-surface-tint" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeDasharray="30, 100" strokeDashoffset="-55" strokeWidth="4" />
-                {/* Glass 15% */}
-                <path className="text-secondary" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeDasharray="15, 100" strokeDashoffset="-85" strokeWidth="4" />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="font-heading font-bold text-headline-sm text-primary leading-none">84.5</span>
-                <span className="font-label-sm text-label-sm text-outline">kg</span>
-              </div>
-            </div>
-
             <div className="flex flex-col gap-2 w-full">
               <div className="flex items-center justify-between">
                 <h4 className="font-heading font-semibold text-title-md text-primary">
-                  Your Diversion Footprint by Category
+                  Empirical Material Diversion
                 </h4>
-                <span className="font-label-sm text-label-sm text-outline">Q1 2026 Audit</span>
+                <span className="font-label-sm text-label-sm text-outline">Real Completed Exchanges</span>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 pt-1">
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-1.5 font-label-sm text-label-sm text-on-surface">
-                    <span className="w-2.5 h-2.5 rounded-full bg-primary-container"></span>
-                    <span>Organic / Biomass</span>
-                  </div>
-                  <span className="font-heading font-bold text-title-md text-primary mt-0.5">46.5 kg</span>
+              {metrics.category_breakdown.length === 0 ? (
+                <p className="text-body-sm text-on-surface-variant py-2">
+                  No verified material exchanges recorded yet. Completed exchanges will dynamically update your diversion metrics and carbon offsets.
+                </p>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
+                  {metrics.category_breakdown.map((cat) => (
+                    <div key={cat.category_name} className="flex flex-col p-2.5 rounded-lg bg-surface-container-lowest border border-outline-variant/40">
+                      <span className="font-label-sm text-xs text-on-surface-variant truncate">
+                        {cat.category_name}
+                      </span>
+                      <span className="font-heading font-bold text-lg text-primary mt-0.5">
+                        {cat.diverted_kg} kg
+                      </span>
+                      <span className="text-[10px] text-outline">
+                        {cat.percentage}% of diverted total
+                      </span>
+                    </div>
+                  ))}
                 </div>
-
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-1.5 font-label-sm text-label-sm text-on-surface">
-                    <span className="w-2.5 h-2.5 rounded-full bg-surface-tint"></span>
-                    <span>Paper & Cardboard</span>
-                  </div>
-                  <span className="font-heading font-bold text-title-md text-primary mt-0.5">25.3 kg</span>
-                </div>
-
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-1.5 font-label-sm text-label-sm text-on-surface">
-                    <span className="w-2.5 h-2.5 rounded-full bg-secondary"></span>
-                    <span>Glass & Metals</span>
-                  </div>
-                  <span className="font-heading font-bold text-title-md text-primary mt-0.5">12.7 kg</span>
-                </div>
-              </div>
+              )}
             </div>
           </section>
 
         </div>
 
-        {/* Right Column (4 Cols): Community Drives & Neighborhood Watch */}
+        {/* Right Column (4 Cols): Community Drives & Civic Watch */}
         <div className="lg:col-span-4 flex flex-col gap-space-lg">
           
           {/* Community Drive Spotlight */}
+          {spotlightDrive ? (
+            <section className="bg-surface-container-lowest rounded-xl p-space-md border border-outline-variant/60 shadow-sm flex flex-col gap-space-md text-left">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-primary" />
+                  <h3 className="font-heading font-bold text-title-md text-primary">Upcoming Drive</h3>
+                </div>
+                <span className="font-label-sm text-label-sm text-primary font-semibold">
+                  {spotlightDrive.district}
+                </span>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <h4 className="font-heading font-semibold text-title-md text-on-surface">
+                  {spotlightDrive.title}
+                </h4>
+                <p className="font-body-sm text-body-sm text-on-surface-variant line-clamp-3">
+                  {spotlightDrive.description}
+                </p>
+              </div>
+
+              <div className="p-2.5 rounded-lg bg-secondary-container flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Award className="w-4 h-4 text-primary" />
+                  <span className="font-label-sm text-label-sm text-primary font-semibold">Participation Reward</span>
+                </div>
+                <span className="font-heading font-bold text-title-md text-primary">+{spotlightDrive.reward_points} EcoPoints</span>
+              </div>
+
+              <Button
+                variant={rsvpDone ? 'secondary' : 'primary'}
+                fullWidth
+                onClick={() => setRsvpDone(!rsvpDone)}
+                icon={<CheckCircle2 className="w-4 h-4" />}
+              >
+                {rsvpDone ? 'RSVP Confirmed' : 'RSVP for Drive'}
+              </Button>
+            </section>
+          ) : (
+            <section className="bg-surface-container-lowest rounded-xl p-space-md border border-outline-variant/60 shadow-sm flex flex-col gap-2 text-left">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-primary" />
+                <h3 className="font-heading font-bold text-title-md text-primary">Community Drives</h3>
+              </div>
+              <p className="font-body-sm text-body-sm text-on-surface-variant">
+                No scheduled drives in your district right now. You can propose or join community cleanup initiatives.
+              </p>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="mt-2"
+                onClick={() => navigate('/community')}
+              >
+                Explore Community Initiatives
+              </Button>
+            </section>
+          )}
+
+          {/* Real Civic Environmental Watch */}
           <section className="bg-surface-container-lowest rounded-xl p-space-md border border-outline-variant/60 shadow-sm flex flex-col gap-space-md text-left">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-surface-tint" />
-                <h3 className="font-heading font-bold text-title-md text-primary">Upcoming Drive</h3>
+                <AlertTriangle className="w-4 h-4 text-primary" />
+                <h3 className="font-heading font-bold text-title-md text-primary">Local Civic Watch</h3>
               </div>
-              <span className="font-label-sm text-label-sm text-on-primary bg-primary-container px-2 py-0.5 rounded font-semibold">
-                Ward 24 Drive
-              </span>
+              <Link to="/reports" className="font-label-sm text-label-sm text-primary hover:underline font-semibold">
+                View Tracker →
+              </Link>
             </div>
 
-            <div className="rounded-lg overflow-hidden bg-surface-container relative">
-              <img
-                className="w-full h-36 object-cover"
-                alt="Community waste recycling drive volunteers in Kerala"
-                src={spotlightDrive.banner_url || 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=600&q=80'}
-              />
-              <div className="absolute bottom-2 right-2 bg-surface/90 backdrop-blur-sm px-2 py-1 rounded text-primary font-label-sm text-label-sm border border-outline-variant/40">
-                This Saturday • 9:00 AM
+            {recentReports.length === 0 ? (
+              <div className="p-4 rounded-lg bg-surface-container-low border border-outline-variant/40 text-center">
+                <p className="font-body-sm text-body-sm text-on-surface-variant">
+                  No open environmental issues logged in your area yet.
+                </p>
               </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <h4 className="font-heading font-semibold text-title-md text-on-surface">
-                {spotlightDrive.title}
-              </h4>
-              <p className="font-body-sm text-body-sm text-on-surface-variant">
-                {spotlightDrive.description}
-              </p>
-            </div>
-
-            <div className="p-2.5 rounded-lg bg-tertiary-fixed flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Award className="w-4 h-4 text-primary" />
-                <span className="font-label-sm text-label-sm text-primary font-semibold">Participation Reward</span>
+            ) : (
+              <div className="flex flex-col gap-2.5">
+                {recentReports.map((report) => (
+                  <div
+                    key={report.id}
+                    className="p-3 rounded-lg bg-surface-container-low flex flex-col gap-1.5 border border-outline-variant/40"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span className={`font-label-sm text-[11px] px-2 py-0.5 rounded font-semibold ${
+                        report.status === 'resolved' 
+                          ? 'bg-secondary-container text-on-secondary-container' 
+                          : 'bg-surface-container text-on-surface'
+                      }`}>
+                        {report.status === 'resolved' ? 'Resolved' : report.status === 'in_progress' ? 'In Review' : 'Reported'}
+                      </span>
+                      <span className="font-body-sm text-[11px] text-outline">
+                        {new Date(report.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <h5 className="font-heading font-semibold text-body-md text-on-surface line-clamp-1">
+                      {report.title}
+                    </h5>
+                    <p className="font-body-sm text-[11px] text-on-surface-variant line-clamp-2">
+                      {report.locality}, {report.district}
+                    </p>
+                    <div className="pt-1 flex items-center justify-between text-outline text-[11px]">
+                      <span>Ticket: #{report.ticket_number}</span>
+                      <Link to="/reports" className="text-primary hover:underline font-medium">
+                        Track →
+                      </Link>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <span className="font-heading font-bold text-title-md text-primary">+{spotlightDrive.reward_points} EcoPoints</span>
-            </div>
-
-            <Button
-              variant={rsvpDone ? 'secondary' : 'primary'}
-              fullWidth
-              onClick={() => setRsvpDone(!rsvpDone)}
-              icon={<CheckCircle2 className="w-4 h-4" />}
-            >
-              {rsvpDone ? 'RSVP Confirmed (Added to Ward Cal)' : 'RSVP / Add to Ward Calendar'}
-            </Button>
-          </section>
-
-          {/* Neighborhood Environmental Watch (Ward Civic Watch) */}
-          <section className="bg-surface-container-lowest rounded-xl p-space-md border border-outline-variant/60 shadow-sm flex flex-col gap-space-md text-left">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-surface-tint text-[20px]">visibility</span>
-                <h3 className="font-heading font-bold text-title-md text-primary">Ward Civic Watch</h3>
-              </div>
-              <span className="font-label-sm text-label-sm text-outline font-medium">KMC Real-time</span>
-            </div>
-
-            {/* Issue 1: Under Action */}
-            <div className="p-3 rounded-lg bg-surface-container-low flex flex-col gap-2 border border-outline-variant/40">
-              <div className="flex items-start justify-between gap-2">
-                <span className="font-label-sm text-label-sm text-secondary bg-surface-container px-2 py-0.5 rounded flex items-center gap-1 font-semibold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span> Action in Progress
-                </span>
-                <span className="font-body-sm text-body-sm text-outline">Reported 2d ago</span>
-              </div>
-              <h5 className="font-heading font-semibold text-body-md text-on-surface">
-                Overflowing Bin near Marine Drive Walkway
-              </h5>
-              <p className="font-body-sm text-body-sm text-on-surface-variant">
-                Dispatched to Kochi Municipal Corporation sanitation crew. Route vehicle assigned #KL-07-CS-4190.
-              </p>
-              <div className="pt-1 flex items-center justify-between text-outline font-label-sm text-label-sm border-t border-outline-variant/30">
-                <span>Ticket: #KMC-2026-8812</span>
-                <Link to="/reports" className="text-primary hover:underline font-semibold flex items-center gap-0.5">
-                  Track Updates →
-                </Link>
-              </div>
-            </div>
-
-            {/* Issue 2: Cleared & Verified */}
-            <div className="p-3 rounded-lg bg-surface-container-low flex flex-col gap-2 border border-outline-variant/40">
-              <div className="flex items-start justify-between gap-2">
-                <span className="font-label-sm text-label-sm text-primary font-bold bg-primary-fixed px-2 py-0.5 rounded flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-primary" /> Cleared • Verified
-                </span>
-                <span className="font-body-sm text-body-sm text-outline">3d ago</span>
-              </div>
-              <h5 className="font-heading font-semibold text-body-md text-on-surface">
-                Coir Residue Dumping at Ravipuram Corner
-              </h5>
-              <p className="font-body-sm text-body-sm text-on-surface-variant">
-                Haritha Karma Sena team cleared and channeled into nursery bio-mulch depot.
-              </p>
-            </div>
+            )}
 
             <Button
               variant="secondary"
@@ -563,19 +497,6 @@ export const OverviewPage: React.FC = () => {
             </Button>
           </section>
 
-          {/* Local Eco-Partner Recognition */}
-          <section className="bg-surface-container-low rounded-xl p-space-md border border-outline-variant/50 flex flex-col gap-2 text-left">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-[20px]">handshake</span>
-              <span className="font-heading font-semibold text-body-md text-primary">
-                Haritha Karma Sena Partner Ward
-              </span>
-            </div>
-            <p className="font-body-sm text-body-sm text-on-surface-variant">
-              Your segregated waste handovers help support 18 women micro-entrepreneurs in Ward 24's decentralized sorting unit.
-            </p>
-          </section>
-
         </div>
 
       </div>
@@ -583,4 +504,3 @@ export const OverviewPage: React.FC = () => {
     </div>
   );
 };
-

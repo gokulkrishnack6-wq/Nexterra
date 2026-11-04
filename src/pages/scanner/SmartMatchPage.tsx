@@ -1,12 +1,13 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, ArrowRight, Sparkles, Award, CheckCircle2 } from 'lucide-react';
+import { MapPin, ArrowRight, Sparkles, Award } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { calculateSmartMatches } from '../../lib/smartMatch';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
+import { EmptyState } from '../../components/ui/Skeleton';
 
 export const SmartMatchPage: React.FC = () => {
   const { listings } = useData();
@@ -15,6 +16,9 @@ export const SmartMatchPage: React.FC = () => {
   const smartMatches = useMemo(() => {
     return calculateSmartMatches(listings, currentUser);
   }, [listings, currentUser]);
+
+  const userRole = currentUser?.role || 'individual';
+  const userDistrict = currentUser?.district || 'Kerala';
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 space-y-6 text-left">
@@ -32,7 +36,7 @@ export const SmartMatchPage: React.FC = () => {
             Smart Material Matches
           </h1>
           <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
-            Materials matching your profile as <strong className="text-primary capitalize">{currentUser.role}</strong> in {currentUser.district}.
+            Materials matching your profile as <strong className="text-primary capitalize">{userRole}</strong> in {userDistrict}.
           </p>
         </div>
 
@@ -44,35 +48,29 @@ export const SmartMatchPage: React.FC = () => {
       {/* Role Matching Explanation Banner */}
       <Card variant="low" className="p-4 space-y-1">
         <span className="font-heading font-semibold text-body-md text-primary flex items-center gap-1.5">
-          <Sparkles className="w-4 h-4 text-surface-tint" />
-          <span>Active Role Matching Policy:</span>
+          <Sparkles className="w-4 h-4 text-primary" />
+          <span>Active Role Matching Logic:</span>
         </span>
         <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
-          {currentUser.role === 'farmer' && 'Prioritizing kitchen organic discards, vegetable peelings, and coconut husks for compost amendment.'}
-          {currentUser.role === 'recycler' && 'Highlighting segregated plastics, corrugated shipping cartons, e-waste, and scrap metals.'}
-          {currentUser.role === 'business' && 'Connecting local commercial food outlets to regional decentralized composting hubs.'}
-          {currentUser.role === 'ngo' && 'Surfacing bulk community batches suitable for neighborhood drives and cooperative sorting.'}
-          {currentUser.role === 'individual' && 'Surfacing neighborhood household items, free materials, and nearby collection kiosks.'}
-          {currentUser.role === 'admin' && 'Displaying multi-district proximity and circular diversion scores across all stakeholders.'}
+          {userRole === 'farmer' && 'Prioritizing organic kitchen discards, vegetable peelings, and coconut husks for compost amendment.'}
+          {userRole === 'recycler' && 'Highlighting segregated clean plastics, corrugated shipping cartons, e-waste, and scrap metals.'}
+          {userRole === 'business' && 'Connecting local commercial food outlets to regional decentralized composting hubs.'}
+          {userRole === 'ngo' && 'Surfacing bulk community batches suitable for neighborhood drives and cooperative sorting.'}
+          {userRole === 'individual' && 'Surfacing neighborhood household items, free materials, and nearby collection opportunities.'}
+          {userRole === 'admin' && 'Displaying multi-district proximity and circular diversion scores across all stakeholders.'}
         </p>
       </Card>
 
       {/* Matches List */}
       <div className="space-y-3">
         {smartMatches.length === 0 ? (
-          <Card variant="flat" className="py-16 text-center space-y-2">
-            <h3 className="font-heading font-semibold text-title-md text-primary">
-              No immediate matches in your local radius
-            </h3>
-            <p className="font-body-sm text-body-sm text-on-surface-variant max-w-sm mx-auto">
-              Explore the full marketplace or switch your test persona to view other role suggestions.
-            </p>
-            <Link to="/marketplace">
-              <Button variant="secondary" size="sm">
-                Explore All Marketplace Listings
-              </Button>
-            </Link>
-          </Card>
+          <EmptyState
+            icon={<Sparkles className="w-6 h-6" />}
+            title="No Smart Matches Found"
+            description="No active listings currently match your profile role and geographic radius. Explore the marketplace or list items yourself."
+            actionLabel="Explore Marketplace"
+            actionLink="/marketplace"
+          />
         ) : (
           smartMatches.map((match) => (
             <Card
@@ -110,7 +108,7 @@ export const SmartMatchPage: React.FC = () => {
 
               <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0">
                 <div className="text-left sm:text-right">
-                  <div className="inline-flex items-center gap-1 font-label-sm text-label-sm text-primary font-bold bg-tertiary-fixed px-2.5 py-0.5 rounded-full">
+                  <div className="inline-flex items-center gap-1 font-label-sm text-label-sm text-primary font-bold bg-secondary-container px-2.5 py-0.5 rounded-full">
                     <Sparkles className="w-3 h-3" /> {match.match_score}% Match
                   </div>
                   <span className="font-label-sm text-[10px] text-outline block mt-0.5">

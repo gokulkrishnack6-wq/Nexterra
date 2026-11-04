@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Sparkles, Upload, MapPin, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Plus, Sparkles, Navigation, AlertCircle } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { KERALA_DISTRICTS } from '../../lib/mockData';
+import { useGeolocation, KERALA_DISTRICT_COORDS } from '../../hooks/useGeolocation';
 import { ListingPricing } from '../../types';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -14,24 +14,29 @@ export const CreateListingPage: React.FC = () => {
   const navigate = useNavigate();
   const { categories, addListing } = useData();
   const { currentUser } = useAuth();
+  const { district: geoDistrict, locality: geoLocality, coords, detectLocation, loading: geoLoading } = useGeolocation();
+
+  const keralaDistricts = Object.keys(KERALA_DISTRICT_COORDS);
 
   // Form State
   const [title, setTitle] = useState('');
   const [categoryId, setCategoryId] = useState(categories[0]?.id || '');
   const [description, setDescription] = useState('');
   const [materialType, setMaterialType] = useState('');
-  const [quantity, setQuantity] = useState<number>(15);
+  const [quantity, setQuantity] = useState<number>(10);
   const [unit, setUnit] = useState('kg');
   const [listingType, setListingType] = useState<ListingPricing>('free');
   const [price, setPrice] = useState<number>(0);
   const [condition, setCondition] = useState('clean/dry');
-  const [district, setDistrict] = useState(currentUser.district || 'Ernakulam');
-  const [locality, setLocality] = useState('Panampilly Nagar');
-  const [address, setAddress] = useState('Ward 24 Hub Road');
+  const [district, setDistrict] = useState(currentUser?.district || geoDistrict || 'Ernakulam');
+  const [locality, setLocality] = useState(geoLocality || '');
+  const [address, setAddress] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [aiClassified, setAiClassified] = useState(false);
   const [aiConfidence, setAiConfidence] = useState<number | undefined>(undefined);
   const [suggestedAction, setSuggestedAction] = useState<string | undefined>(undefined);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   // Check for pre-filled scan from AI Scanner
   useEffect(() => {
@@ -57,40 +62,60 @@ export const CreateListingPage: React.FC = () => {
     }
   }, [categories]);
 
+  // Sync with detected district if not manually set
+  useEffect(() => {
+    if (geoDistrict && !locality) {
+      setDistrict(geoDistrict);
+      setLocality(geoLocality || `${geoDistrict} Central`);
+    }
+  }, [geoDistrict, geoLocality]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
 
     if (!title || !description || quantity <= 0) {
-      alert('Please fill all required fields');
+      setError('Please fill all required fields.');
       return;
     }
 
-    const newId = addListing({
-      user_id: currentUser.id,
-      category_id: categoryId,
-      title,
-      description,
-      material_type: materialType || title,
-      quantity,
-      unit,
-      listing_type: listingType,
-      price: listingType === 'sale' ? price : 0,
-      condition,
-      district,
-      locality,
-      address,
-      latitude: currentUser.latitude || 9.9816,
-      longitude: currentUser.longitude || 76.2999,
-      status: 'active',
-      ai_classified: aiClassified,
-      ai_confidence: aiConfidence,
-      suggested_action: suggestedAction,
-      images: imageUrl ? [imageUrl] : [
-        'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=800&q=80'
-      ],
-    });
+    setSubmitting(true);
 
-    navigate(`/marketplace/${newId}`);
+    try {
+      const fallbackCoords = KERALA_DISTRICT_COORDS[district] || KERALA_DISTRICT_COORDS['Ernakulam'];
+      const lat = coords ? coords.latitude : fallbackCoords.latitude;
+      const lon = coords ? coords.longitude : fallbackCoords.longitude;
+
+      const newId = addListing({
+        user_id: currentUser ? currentUser.id : 'guest-user',
+        category_id: categoryId || categories[0]?.id || 'cat-plastics',
+        title,
+        description,
+        material_type: materialType || title,
+        quantity,
+        unit,
+        listing_type: listingType,
+        price: listingType === 'sale' ? price : 0,
+        condition,
+        district,
+        locality: locality || district,
+        address: address || '',
+        latitude: lat,
+        longitude: lon,
+        status: 'active',
+        ai_classified: aiClassified,
+        ai_confidence: aiConfidence,
+        suggested_action: suggestedAction,
+        images: imageUrl ? [imageUrl] : [
+          'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=800&q=80'
+        ],
+      });
+
+      navigate(`/marketplace/${newId}`);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to create listing. Please try again.');
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -106,7 +131,7 @@ export const CreateListingPage: React.FC = () => {
         </button>
 
         <Link to="/scanner">
-          <Button variant="secondary" size="sm" icon={<Sparkles className="w-4 h-4 text-surface-tint" />}>
+          <Button variant="secondary" size="sm" icon={<Sparkles className="w-4 h-4 text-primary" />}>
             Auto-fill with AI Scanner
           </Button>
         </Link>
@@ -122,34 +147,40 @@ export const CreateListingPage: React.FC = () => {
           )}
         </div>
         <h1 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight">
-          List Unwanted Material for Circulation
+          List Material for Circular Use
         </h1>
         <p className="font-body-sm text-body-sm text-on-surface-variant">
-          Connect with nearby compost producers, terrace gardeners, or Haritha Karma Sena hubs.
+          Connect with nearby compost producers, terrace gardeners, upcyclers, or collection hubs.
         </p>
       </div>
 
       <Card variant="elevated" className="p-6 sm:p-8 space-y-6">
         <form onSubmit={handleSubmit} className="space-y-5">
-          
+          {error && (
+            <div className="p-3 bg-error-container text-on-error-container rounded-lg text-body-sm font-medium border border-error/20 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-error" />
+              <span>{error}</span>
+            </div>
+          )}
+
           {/* Material Name & Category */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="Material Title *"
               required
-              placeholder="e.g. Dry Coconut Husks, Corrugated Cartons, Clean Bottles"
+              placeholder="e.g. Dry Coconut Husks, Corrugated Cartons, Clean Glass Bottles"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
 
             <div>
-              <label className="block font-label-md text-label-md text-on-surface mb-1">
+              <label className="block font-label-md text-label-md text-on-surface mb-1 font-semibold">
                 Waste Category *
               </label>
               <select
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 py-2.5 px-3 transition-all"
+                className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-3 transition-all"
               >
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
@@ -160,10 +191,10 @@ export const CreateListingPage: React.FC = () => {
 
           {/* Description */}
           <Textarea
-            label="Detailed Description & Source *"
+            label="Detailed Description & Condition *"
             required
             rows={3}
-            placeholder="Describe quality, storage condition (dry/wet), origin (kitchen, workshop, packaging)..."
+            placeholder="Describe quality, storage condition (dry/wet, clean), origin..."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
@@ -180,13 +211,13 @@ export const CreateListingPage: React.FC = () => {
             />
 
             <div>
-              <label className="block font-label-md text-label-md text-on-surface mb-1">
+              <label className="block font-label-md text-label-md text-on-surface mb-1 font-semibold">
                 Standard Unit *
               </label>
               <select
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
-                className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 py-2.5 px-3 transition-all"
+                className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-3 transition-all"
               >
                 <option value="kg">Kilograms (kg)</option>
                 <option value="units">Units / Pieces</option>
@@ -196,13 +227,13 @@ export const CreateListingPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block font-label-md text-label-md text-on-surface mb-1">
+              <label className="block font-label-md text-label-md text-on-surface mb-1 font-semibold">
                 Pricing Mode *
               </label>
               <select
                 value={listingType}
                 onChange={(e) => setListingType(e.target.value as ListingPricing)}
-                className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 py-2.5 px-3 transition-all"
+                className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-3 transition-all"
               >
                 <option value="free">Free Donation (Recommended)</option>
                 <option value="exchange">Barter Exchange</option>
@@ -226,20 +257,32 @@ export const CreateListingPage: React.FC = () => {
 
           {/* Location Fields */}
           <div className="pt-2 border-t border-outline-variant/40 space-y-3">
-            <span className="font-heading font-semibold text-title-md text-primary block">
-              Pickup Location in Kerala
-            </span>
+            <div className="flex items-center justify-between">
+              <span className="font-heading font-semibold text-title-md text-primary block">
+                Pickup Location in Kerala
+              </span>
+              <button
+                type="button"
+                onClick={detectLocation}
+                disabled={geoLoading}
+                className="text-xs text-primary inline-flex items-center gap-1 hover:underline font-medium"
+              >
+                <Navigation className="w-3.5 h-3.5" />
+                <span>{geoLoading ? 'Detecting...' : 'Use My GPS Location'}</span>
+              </button>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block font-label-md text-label-md text-on-surface mb-1">
+                <label className="block font-label-md text-label-md text-on-surface mb-1 font-semibold">
                   District *
                 </label>
                 <select
                   value={district}
                   onChange={(e) => setDistrict(e.target.value)}
-                  className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 py-2.5 px-3 transition-all"
+                  className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-3 transition-all"
                 >
-                  {KERALA_DISTRICTS.map((d) => (
+                  {keralaDistricts.map((d) => (
                     <option key={d} value={d}>{d}</option>
                   ))}
                 </select>
@@ -247,7 +290,7 @@ export const CreateListingPage: React.FC = () => {
 
               <Input
                 label="Ward / Locality *"
-                placeholder="e.g. Kadavanthra / Panampilly Nagar"
+                placeholder="e.g. Kadavanthra, Panampilly Nagar"
                 value={locality}
                 onChange={(e) => setLocality(e.target.value)}
                 required
@@ -255,10 +298,9 @@ export const CreateListingPage: React.FC = () => {
 
               <Input
                 label="Pickup Landmark *"
-                placeholder="e.g. Near Metro Pillar 812"
+                placeholder="e.g. Near Market Road Junction"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                required
               />
             </div>
           </div>
@@ -270,7 +312,7 @@ export const CreateListingPage: React.FC = () => {
               placeholder="https://... (or leave empty for default material photo)"
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
-              helperText="Paste direct image link, or use AI scanner to capture and pre-fill."
+              helperText="Paste an image link or use the AI Waste Scanner to snap a photo directly."
             />
           </div>
 
@@ -287,9 +329,10 @@ export const CreateListingPage: React.FC = () => {
               type="submit"
               variant="primary"
               size="lg"
+              loading={submitting}
               icon={<Plus className="w-4 h-4" />}
             >
-              Publish Material Listing
+              {submitting ? 'Publishing...' : 'Publish Material Listing'}
             </Button>
           </div>
 

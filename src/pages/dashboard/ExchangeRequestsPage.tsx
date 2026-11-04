@@ -2,17 +2,9 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   CheckCircle2, 
-  XCircle, 
-  Clock, 
-  Key, 
   Check, 
   Plus,
-  Repeat,
-  ShieldCheck,
-  QrCode,
-  Calendar,
-  MessageSquare,
-  AlertCircle
+  Repeat
 } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -20,7 +12,7 @@ import { ExchangeStatus } from '../../types';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
-import { Input } from '../../components/ui/Input';
+import { EmptyState } from '../../components/ui/Skeleton';
 
 export const ExchangeRequestsPage: React.FC = () => {
   const { 
@@ -31,23 +23,25 @@ export const ExchangeRequestsPage: React.FC = () => {
     cancelExchangeRequest, 
     confirmHandover 
   } = useData();
-  const { currentUser, allDemoUsers } = useAuth();
+  const { currentUser } = useAuth();
 
   const [activeTab, setActiveTab] = useState<'incoming' | 'outgoing'>('incoming');
   const [codeInput, setCodeInput] = useState<{ [reqId: string]: string }>({});
   const [statusFeedback, setStatusFeedback] = useState<{ [reqId: string]: { success: boolean; msg: string } }>({});
 
+  const currentUserId = currentUser?.id || '';
+
   const incomingRequests = exchangeRequests.filter((req) => {
     const listing = listings.find((l) => l.id === req.listing_id);
-    return listing && listing.user_id === currentUser.id;
+    return listing && listing.user_id === currentUserId;
   });
 
-  const outgoingRequests = exchangeRequests.filter((req) => req.requester_id === currentUser.id);
+  const outgoingRequests = exchangeRequests.filter((req) => req.requester_id === currentUserId);
 
   const handleConfirmHandover = (requestId: string) => {
     const code = codeInput[requestId] || '';
     if (!code.trim()) {
-      alert('Please enter the 6-character pickup verification code.');
+      alert('Please enter the pickup verification code.');
       return;
     }
 
@@ -77,11 +71,6 @@ export const ExchangeRequestsPage: React.FC = () => {
     }
   };
 
-  const getUserName = (userId: string) => {
-    const u = allDemoUsers.find((x) => x.id === userId);
-    return u ? `${u.full_name} (${u.role})` : 'Participant';
-  };
-
   const currentList = activeTab === 'incoming' ? incomingRequests : outgoingRequests;
 
   return (
@@ -100,7 +89,7 @@ export const ExchangeRequestsPage: React.FC = () => {
             Exchange Management
           </h1>
           <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
-            Coordinate collection handovers and verify material transactions with secure 6-digit codes.
+            Coordinate collection handovers and verify material transactions with secure pickup codes.
           </p>
         </div>
 
@@ -138,24 +127,17 @@ export const ExchangeRequestsPage: React.FC = () => {
       {/* Requests Pipeline */}
       <div className="space-y-4">
         {currentList.length === 0 ? (
-          <Card variant="flat" className="py-16 text-center space-y-2">
-            <Repeat className="w-8 h-8 text-outline mx-auto" />
-            <h3 className="font-heading font-semibold text-title-md text-primary">
-              No {activeTab} exchange requests at this time
-            </h3>
-            <p className="font-body-sm text-body-sm text-on-surface-variant max-w-sm mx-auto">
-              {activeTab === 'incoming'
-                ? 'When other users request materials from your listings, they will show up here.'
-                : 'Browse the waste marketplace to find materials and propose exchanges.'}
-            </p>
-            {activeTab === 'outgoing' && (
-              <Link to="/marketplace">
-                <Button variant="secondary" size="sm">
-                  Browse Marketplace
-                </Button>
-              </Link>
-            )}
-          </Card>
+          <EmptyState
+            icon={<Repeat className="w-6 h-6" />}
+            title={`No ${activeTab} exchange requests`}
+            description={
+              activeTab === 'incoming'
+                ? 'When community members request materials from your listings, they will appear here for verification.'
+                : 'Browse the waste marketplace to find materials and propose exchanges.'
+            }
+            actionLabel={activeTab === 'outgoing' ? 'Browse Marketplace' : 'List Material'}
+            actionLink={activeTab === 'outgoing' ? '/marketplace' : '/marketplace/new'}
+          />
         ) : (
           currentList.map((req) => {
             const listing = listings.find((l) => l.id === req.listing_id);
@@ -194,15 +176,15 @@ export const ExchangeRequestsPage: React.FC = () => {
 
                   <div className="text-xs text-outline font-label-sm">
                     {activeTab === 'incoming' ? (
-                      <span>Requester: <strong>{getUserName(req.requester_id)}</strong></span>
+                      <span>Requester: <strong>{req.requester?.full_name || 'Community Requester'}</strong></span>
                     ) : (
-                      <span>Generator: <strong>{listing?.user?.full_name || 'Listing Owner'}</strong></span>
+                      <span>Generator: <strong>{listing?.user?.full_name || 'Material Generator'}</strong></span>
                     )}
                   </div>
 
                   {feedback && (
                     <div className={`p-2.5 rounded-lg text-xs font-semibold ${
-                      feedback.success ? 'bg-tertiary-fixed text-primary' : 'bg-error-container text-on-error-container'
+                      feedback.success ? 'bg-secondary-container text-primary' : 'bg-error-container text-on-error-container'
                     }`}>
                       {feedback.msg}
                     </div>
@@ -246,7 +228,7 @@ export const ExchangeRequestsPage: React.FC = () => {
                   {req.status === 'accepted' && (
                     <div className="space-y-2 w-full md:w-auto">
                       {activeTab === 'outgoing' ? (
-                        <div className="p-3 bg-tertiary-fixed rounded-lg text-center space-y-1 border border-primary/20">
+                        <div className="p-3 bg-secondary-container rounded-lg text-center space-y-1 border border-primary/20">
                           <span className="font-label-sm text-[10px] text-primary uppercase tracking-wider block font-semibold">
                             Your Handover Pass Code
                           </span>
@@ -260,16 +242,16 @@ export const ExchangeRequestsPage: React.FC = () => {
                       ) : (
                         <div className="space-y-2">
                           <span className="font-label-sm text-[11px] text-outline block">
-                            Enter Requester's 6-Digit Pass Code at Handover:
+                            Enter Requester's Pass Code at Handover:
                           </span>
                           <div className="flex items-center gap-2">
                             <input
                               type="text"
-                              maxLength={6}
-                              placeholder="e.g. 849201"
+                              maxLength={10}
+                              placeholder="Code"
                               value={codeInput[req.id] || ''}
                               onChange={(e) => setCodeInput({ ...codeInput, [req.id]: e.target.value })}
-                              className="w-28 px-2.5 py-1.5 bg-surface-container-lowest border border-outline-variant rounded-lg text-center font-mono font-bold tracking-widest text-primary focus:outline-none focus:border-primary-container"
+                              className="w-28 px-2.5 py-1.5 bg-surface-container-lowest border border-outline-variant rounded-lg text-center font-mono font-bold tracking-widest text-primary focus:outline-none focus:border-primary"
                             />
                             <Button
                               size="sm"
@@ -286,7 +268,7 @@ export const ExchangeRequestsPage: React.FC = () => {
 
                   {/* Status: Completed */}
                   {req.status === 'completed' && (
-                    <div className="flex items-center gap-1.5 text-primary font-semibold text-xs bg-tertiary-fixed px-3 py-1 rounded-full">
+                    <div className="flex items-center gap-1.5 text-primary font-semibold text-xs bg-secondary-container px-3 py-1 rounded-full">
                       <CheckCircle2 className="w-4 h-4" /> EcoPoints Credited
                     </div>
                   )}

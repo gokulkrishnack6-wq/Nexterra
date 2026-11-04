@@ -1,22 +1,27 @@
 import React, { useState, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Search, Plus, X, Sparkles, Filter, CheckCircle2 } from 'lucide-react';
+import { Search, Plus, X, Sparkles, Filter, Navigation } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
+import { useGeolocation, KERALA_DISTRICT_COORDS, calculateDistanceKm } from '../../hooks/useGeolocation';
 import { ListingCard } from '../../components/marketplace/ListingCard';
-import { KERALA_DISTRICTS } from '../../lib/mockData';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
+import { EmptyState, ListingCardSkeleton } from '../../components/ui/Skeleton';
 
 export const MarketplacePage: React.FC = () => {
-  const { listings, categories } = useData();
+  const { listings, categories, isLoading } = useData();
+  const { coords, district: detectedDistrict } = useGeolocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const selectedCategory = searchParams.get('category') || 'all';
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState('All Kerala');
   const [selectedPricing, setSelectedPricing] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'nearest' | 'newest' | 'quantity'>('nearest');
   const [onlyAiVerified, setOnlyAiVerified] = useState(false);
+
+  const keralaDistricts = Object.keys(KERALA_DISTRICT_COORDS);
 
   const handleCategoryChange = (slug: string) => {
     if (slug === 'all') {
@@ -28,7 +33,7 @@ export const MarketplacePage: React.FC = () => {
   };
 
   const filteredListings = useMemo(() => {
-    return listings.filter((listing) => {
+    const list = listings.filter((listing) => {
       // 1. Category Filter
       if (selectedCategory !== 'all') {
         const cat = categories.find((c) => c.slug === selectedCategory);
@@ -54,15 +59,29 @@ export const MarketplacePage: React.FC = () => {
       if (searchTerm.trim()) {
         const query = searchTerm.toLowerCase();
         const matchesTitle = listing.title.toLowerCase().includes(query);
-        const matchesDesc = listing.description.toLowerCase().includes(query);
-        const matchesLoc = listing.locality.toLowerCase().includes(query);
-        const matchesMaterial = listing.material_type.toLowerCase().includes(query);
+        const matchesDesc = listing.description?.toLowerCase().includes(query);
+        const matchesLoc = listing.locality?.toLowerCase().includes(query);
+        const matchesMaterial = listing.material_type?.toLowerCase().includes(query);
         if (!matchesTitle && !matchesDesc && !matchesLoc && !matchesMaterial) return false;
       }
 
       return true;
     });
-  }, [listings, categories, selectedCategory, selectedDistrict, selectedPricing, onlyAiVerified, searchTerm]);
+
+    // Sort order
+    return list.sort((a, b) => {
+      if (sortBy === 'nearest' && coords) {
+        const distA = a.latitude && a.longitude ? calculateDistanceKm(coords.latitude, coords.longitude, a.latitude, a.longitude) : 9999;
+        const distB = b.latitude && b.longitude ? calculateDistanceKm(coords.latitude, coords.longitude, b.latitude, b.longitude) : 9999;
+        return distA - distB;
+      }
+      if (sortBy === 'quantity') {
+        return b.quantity - a.quantity;
+      }
+      // default: newest
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [listings, categories, selectedCategory, selectedDistrict, selectedPricing, onlyAiVerified, searchTerm, sortBy, coords]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 space-y-6 text-left">
@@ -80,13 +99,13 @@ export const MarketplacePage: React.FC = () => {
             Waste Marketplace
           </h1>
           <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
-            Discover reusable, recyclable, and compostable resources available across Kerala's wards.
+            Discover reusable, recyclable, and compostable resources available across Kerala.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <Link to="/smart-match">
-            <Button variant="secondary" size="md" icon={<Sparkles className="w-4 h-4 text-surface-tint" />}>
+            <Button variant="secondary" size="md" icon={<Sparkles className="w-4 h-4 text-primary" />}>
               Smart Match
             </Button>
           </Link>
@@ -100,17 +119,17 @@ export const MarketplacePage: React.FC = () => {
       </div>
 
       {/* Filter Toolbar */}
-      <Card variant="elevated" className="space-y-3">
+      <Card variant="elevated" className="space-y-3 p-4">
         <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 text-xs">
           {/* Keyword Search */}
-          <div className="sm:col-span-5 relative">
+          <div className="sm:col-span-4 relative">
             <Search className="w-4 h-4 absolute left-3 top-2.5 text-outline" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by material (e.g. coconut husk, cartons, glass bottles)..."
-              className="w-full pl-9 pr-8 py-2 bg-surface-container-lowest border border-outline-variant hover:border-outline focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 rounded-lg text-body-sm text-on-surface focus:outline-none transition-all placeholder:text-outline"
+              placeholder="Search materials (e.g. coconut husk, cartons, glass)..."
+              className="w-full pl-9 pr-8 py-2 bg-surface-container-lowest border border-outline-variant hover:border-outline focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg text-body-sm text-on-surface focus:outline-none transition-all placeholder:text-outline"
             />
             {searchTerm && (
               <button
@@ -127,11 +146,13 @@ export const MarketplacePage: React.FC = () => {
             <select
               value={selectedDistrict}
               onChange={(e) => setSelectedDistrict(e.target.value)}
-              className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant hover:border-outline focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 rounded-lg text-body-sm text-on-surface focus:outline-none transition-all"
+              className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant hover:border-outline focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg text-body-sm text-on-surface focus:outline-none transition-all"
             >
               <option value="All Kerala">All Kerala (14 Districts)</option>
-              {KERALA_DISTRICTS.map((d) => (
-                <option key={d} value={d}>{d}</option>
+              {keralaDistricts.map((d) => (
+                <option key={d} value={d}>
+                  {d} {d === detectedDistrict ? '(Near You)' : ''}
+                </option>
               ))}
             </select>
           </div>
@@ -141,7 +162,7 @@ export const MarketplacePage: React.FC = () => {
             <select
               value={selectedPricing}
               onChange={(e) => setSelectedPricing(e.target.value)}
-              className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant hover:border-outline focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 rounded-lg text-body-sm text-on-surface focus:outline-none transition-all"
+              className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant hover:border-outline focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg text-body-sm text-on-surface focus:outline-none transition-all"
             >
               <option value="all">All Pricing</option>
               <option value="free">Free Only</option>
@@ -150,17 +171,17 @@ export const MarketplacePage: React.FC = () => {
             </select>
           </div>
 
-          {/* AI Verified Toggle */}
-          <div className="sm:col-span-2 flex items-center">
-            <label className="flex items-center gap-2 cursor-pointer select-none text-body-sm text-on-surface-variant font-medium">
-              <input
-                type="checkbox"
-                checked={onlyAiVerified}
-                onChange={(e) => setOnlyAiVerified(e.target.checked)}
-                className="w-4 h-4 rounded border-outline text-primary-container focus:ring-primary-container accent-primary-container"
-              />
-              <span className="truncate">AI Verified Only</span>
-            </label>
+          {/* Sort By */}
+          <div className="sm:col-span-3">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant hover:border-outline focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg text-body-sm text-on-surface focus:outline-none transition-all"
+            >
+              <option value="nearest">Distance (Nearest to Me)</option>
+              <option value="newest">Newest First</option>
+              <option value="quantity">Quantity (High to Low)</option>
+            </select>
           </div>
         </div>
 
@@ -197,32 +218,22 @@ export const MarketplacePage: React.FC = () => {
         </div>
       </Card>
 
-      {/* Material Grid */}
-      {filteredListings.length === 0 ? (
-        <Card variant="flat" className="py-16 text-center space-y-3">
-          <div className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center mx-auto text-outline">
-            <Filter className="w-5 h-5" />
-          </div>
-          <h3 className="font-heading font-semibold text-title-md text-primary">
-            No materials match your current criteria
-          </h3>
-          <p className="font-body-sm text-body-sm text-on-surface-variant max-w-sm mx-auto">
-            Try clearing search keywords, resetting district filters, or post the first listing for this material category.
-          </p>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => {
-              setSearchTerm('');
-              setSelectedDistrict('All Kerala');
-              setSelectedPricing('all');
-              setOnlyAiVerified(false);
-              handleCategoryChange('all');
-            }}
-          >
-            Reset All Filters
-          </Button>
-        </Card>
+      {/* Loading Skeletons */}
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <ListingCardSkeleton />
+          <ListingCardSkeleton />
+          <ListingCardSkeleton />
+          <ListingCardSkeleton />
+        </div>
+      ) : filteredListings.length === 0 ? (
+        <EmptyState
+          icon={<Filter className="w-6 h-6" />}
+          title="No Materials Found"
+          description="There are currently no listings matching your criteria. Be the first to list reusable materials in your district!"
+          actionLabel="+ List Material Now"
+          actionLink="/marketplace/new"
+        />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {filteredListings.map((listing) => (

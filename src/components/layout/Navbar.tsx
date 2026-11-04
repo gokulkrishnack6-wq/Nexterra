@@ -5,18 +5,16 @@ import {
   Bell, 
   Menu, 
   X,
-  ScanLine,
-  LayoutDashboard,
-  MapPin,
-  AlertTriangle
+  LogIn,
+  LogOut,
+  User
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
-import { RoleSwitcher } from '../common/RoleSwitcher';
 import { Button } from '../ui/Button';
 
 export const Navbar: React.FC = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, signOut } = useAuth();
   const { notifications, markAllNotificationsAsRead, markNotificationAsRead } = useData();
   const location = useLocation();
 
@@ -35,7 +33,7 @@ export const Navbar: React.FC = () => {
     { name: 'Community', path: '/community' },
   ];
 
-  if (currentUser.role === 'admin') {
+  if (currentUser && currentUser.role === 'admin') {
     navLinks.push({ name: 'Admin', path: '/admin' });
   }
 
@@ -45,11 +43,12 @@ export const Navbar: React.FC = () => {
     return false;
   };
 
+  const getInitial = (name: string) => {
+    return name ? name.trim().charAt(0).toUpperCase() : 'U';
+  };
+
   return (
     <header className="sticky top-0 z-50 bg-surface/95 backdrop-blur-md border-b border-outline-variant/60 shadow-subtle">
-      {/* Discreet Demo Switcher */}
-      <RoleSwitcher />
-
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
           
@@ -91,67 +90,69 @@ export const Navbar: React.FC = () => {
           {/* Right Action Bar */}
           <div className="hidden sm:flex items-center gap-3">
             {/* Notifications */}
-            <div className="relative">
-              <button
-                onClick={() => setNotifDropdownOpen(!notifDropdownOpen)}
-                className="relative p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-lg transition-colors"
-                title="Activity Notifications"
-              >
-                <Bell className="w-4 h-4" />
-                {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-error ring-2 ring-surface"></span>
-                )}
-              </button>
+            {currentUser && (
+              <div className="relative">
+                <button
+                  onClick={() => setNotifDropdownOpen(!notifDropdownOpen)}
+                  className="relative p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-lg transition-colors"
+                  title="Activity Notifications"
+                >
+                  <Bell className="w-4 h-4" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-error ring-2 ring-surface"></span>
+                  )}
+                </button>
 
-              {/* Notification Drawer */}
-              {notifDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-surface-container-lowest rounded-xl shadow-dropdown border border-outline-variant py-2 z-50">
-                  <div className="px-3 py-1.5 border-b border-outline-variant/50 flex items-center justify-between">
-                    <span className="font-label-md text-xs text-primary font-semibold">
-                      Notifications ({unreadCount})
-                    </span>
-                    {unreadCount > 0 && (
-                      <button
-                        onClick={markAllNotificationsAsRead}
-                        className="text-[11px] text-primary hover:underline font-medium"
-                      >
-                        Mark all as read
-                      </button>
-                    )}
-                  </div>
-                  <div className="max-h-64 overflow-y-auto divide-y divide-outline-variant/30">
-                    {notifications.length === 0 ? (
-                      <p className="p-4 text-center text-xs text-outline">
-                        No notifications yet.
-                      </p>
-                    ) : (
-                      notifications.slice(0, 5).map((n) => (
-                        <div
-                          key={n.id}
-                          onClick={() => {
-                            markNotificationAsRead(n.id);
-                            setNotifDropdownOpen(false);
-                          }}
-                          className={`p-3 text-xs hover:bg-surface-container-low cursor-pointer transition-colors ${
-                            !n.is_read ? 'bg-surface-container/40' : ''
-                          }`}
+                {/* Notification Drawer */}
+                {notifDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-80 bg-surface-container-lowest rounded-xl shadow-dropdown border border-outline-variant py-2 z-50">
+                    <div className="px-3 py-1.5 border-b border-outline-variant/50 flex items-center justify-between">
+                      <span className="font-label-md text-xs text-primary font-semibold">
+                        Notifications ({unreadCount})
+                      </span>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={markAllNotificationsAsRead}
+                          className="text-[11px] text-primary hover:underline font-medium"
                         >
-                          <div className="flex items-center justify-between">
-                            <span className="font-semibold text-on-surface">{n.title}</span>
-                            <span className="text-[10px] text-outline">
-                              {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
+                          Mark all as read
+                        </button>
+                      )}
+                    </div>
+                    <div className="max-h-64 overflow-y-auto divide-y divide-outline-variant/30">
+                      {notifications.length === 0 ? (
+                        <p className="p-4 text-center text-xs text-outline">
+                          No notifications yet.
+                        </p>
+                      ) : (
+                        notifications.slice(0, 5).map((n) => (
+                          <div
+                            key={n.id}
+                            onClick={() => {
+                              markNotificationAsRead(n.id);
+                              setNotifDropdownOpen(false);
+                            }}
+                            className={`p-3 text-xs hover:bg-surface-container-low cursor-pointer transition-colors ${
+                              !n.is_read ? 'bg-surface-container/40' : ''
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold text-on-surface">{n.title}</span>
+                              <span className="text-[10px] text-outline">
+                                {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                            <p className="text-on-surface-variant text-[11px] mt-0.5 line-clamp-2">
+                              {n.message}
+                            </p>
                           </div>
-                          <p className="text-on-surface-variant text-[11px] mt-0.5 line-clamp-2">
-                            {n.message}
-                          </p>
-                        </div>
-                      ))
-                    )}
+                        ))
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
             {/* List Waste Button */}
             <Link to="/marketplace/new">
@@ -160,17 +161,43 @@ export const Navbar: React.FC = () => {
               </Button>
             </Link>
 
-            {/* User Avatar & Dashboard Link */}
-            <Link to="/dashboard" className="flex items-center gap-2 pl-2 border-l border-outline-variant/60">
-              <img
-                src={currentUser.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'}
-                alt={currentUser.full_name}
-                className="w-7 h-7 rounded-full object-cover ring-1 ring-outline-variant"
-              />
-              <span className="text-xs font-semibold text-primary truncate max-w-[100px]">
-                {currentUser.full_name.split(' ')[0]}
-              </span>
-            </Link>
+            {/* User Profile / Auth Button */}
+            {currentUser ? (
+              <div className="flex items-center gap-2 pl-2 border-l border-outline-variant/60">
+                <Link to="/dashboard" className="flex items-center gap-2">
+                  {currentUser.avatar_url ? (
+                    <img
+                      src={currentUser.avatar_url}
+                      alt={currentUser.full_name}
+                      className="w-7 h-7 rounded-full object-cover ring-1 ring-outline-variant"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-primary-container text-on-primary font-bold text-[11px] flex items-center justify-center ring-1 ring-outline-variant">
+                      {getInitial(currentUser.full_name)}
+                    </div>
+                  )}
+                  <span className="text-xs font-semibold text-primary truncate max-w-[100px]">
+                    {currentUser.full_name.split(' ')[0]}
+                  </span>
+                </Link>
+                <button
+                  onClick={() => signOut()}
+                  className="p-1 text-outline hover:text-error transition-colors"
+                  title="Sign Out"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 pl-2 border-l border-outline-variant/60">
+                <Link
+                  to="/login"
+                  className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
+                >
+                  Sign In
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -206,13 +233,25 @@ export const Navbar: React.FC = () => {
               >
                 + List Waste
               </Link>
-              <Link
-                to="/dashboard"
-                onClick={() => setMobileMenuOpen(false)}
-                className="text-xs text-outline"
-              >
-                Dashboard
-              </Link>
+              {currentUser ? (
+                <button
+                  onClick={() => {
+                    signOut();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="text-xs text-error font-medium"
+                >
+                  Sign Out
+                </button>
+              ) : (
+                <Link
+                  to="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-xs text-primary font-medium"
+                >
+                  Sign In
+                </Link>
+              )}
             </div>
           </div>
         )}

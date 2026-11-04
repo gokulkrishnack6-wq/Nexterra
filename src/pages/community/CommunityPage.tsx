@@ -5,13 +5,13 @@ import {
   BookOpen, 
   ArrowRight,
   Award,
-  Calendar,
-  Sparkles
+  Calendar
 } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
+import { EmptyState } from '../../components/ui/Skeleton';
 
 export const CommunityPage: React.FC = () => {
   const { challenges, joinChallenge } = useData();
@@ -45,7 +45,7 @@ export const CommunityPage: React.FC = () => {
           <Badge variant="brand">Collective Drives</Badge>
           <span className="text-outline text-xs">•</span>
           <span className="font-label-sm text-label-sm text-secondary">
-            Kudumbashree & Haritha Karma Sena Co-operatives
+            Community Circular Initiatives
           </span>
         </div>
         <h1 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight">
@@ -65,82 +65,90 @@ export const CommunityPage: React.FC = () => {
           <span className="font-label-sm text-label-sm text-outline">Real-time kg Tracking</span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {challenges.map((challenge) => {
-            const percentage = Math.min(
-              Math.round((challenge.current_kg / challenge.target_kg) * 100),
-              100
-            );
+        {challenges.length === 0 ? (
+          <EmptyState
+            icon={<Users className="w-6 h-6" />}
+            title="No Active Community Challenges"
+            description="There are currently no active community challenges in this area. Check back soon or propose a community collection drive with your local group."
+          />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {challenges.map((challenge) => {
+              const percentage = Math.min(
+                Math.round((challenge.current_kg / challenge.target_kg) * 100),
+                100
+              );
 
-            return (
-              <Card
-                key={challenge.id}
-                variant="elevated"
-                className="flex flex-col justify-between overflow-hidden p-0"
-              >
-                <div>
-                  <div className="aspect-[16/9] w-full bg-surface-container relative">
-                    <img
-                      src={challenge.banner_url || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80'}
-                      alt={challenge.title}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute top-2.5 right-2.5 bg-surface-container-lowest/90 backdrop-blur-sm px-2.5 py-0.5 rounded-full font-label-sm text-label-sm text-primary font-bold shadow-sm">
-                      +{challenge.reward_points} PTS
+              return (
+                <Card
+                  key={challenge.id}
+                  variant="elevated"
+                  className="flex flex-col justify-between overflow-hidden p-0"
+                >
+                  <div>
+                    <div className="aspect-[16/9] w-full bg-surface-container relative">
+                      <img
+                        src={challenge.banner_url || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80'}
+                        alt={challenge.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute top-2.5 right-2.5 bg-surface-container-lowest/90 backdrop-blur-sm px-2.5 py-0.5 rounded-full font-label-sm text-label-sm text-primary font-bold shadow-sm">
+                        +{challenge.reward_points} PTS
+                      </div>
+                    </div>
+
+                    <div className="p-4 space-y-3">
+                      <div className="flex items-center justify-between text-body-sm text-on-surface-variant">
+                        <span className="font-label-sm text-xs text-secondary font-semibold uppercase">{challenge.district} Drive</span>
+                        <span className="text-outline text-xs">Ends {new Date(challenge.end_date).toLocaleDateString()}</span>
+                      </div>
+
+                      <h3 className="font-heading font-semibold text-title-md text-on-surface leading-snug">
+                        {challenge.title}
+                      </h3>
+
+                      <p className="font-body-sm text-body-sm text-on-surface-variant line-clamp-3 leading-relaxed">
+                        {challenge.description}
+                      </p>
+
+                      {/* Progress Bar */}
+                      <div className="space-y-1.5 pt-1">
+                        <div className="flex items-center justify-between font-label-sm text-xs">
+                          <span className="font-semibold text-primary">{challenge.current_kg} kg collected</span>
+                          <span className="text-outline">Target: {challenge.target_kg} kg</span>
+                        </div>
+                        <div className="w-full bg-surface-container rounded-full h-2 overflow-hidden">
+                          <div
+                            className="bg-primary-container h-2 rounded-full transition-all duration-500"
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="p-4 space-y-3">
-                    <div className="flex items-center justify-between text-body-sm text-on-surface-variant">
-                      <span className="font-label-sm text-xs text-secondary font-semibold uppercase">{challenge.district} Ward Drive</span>
-                      <span className="text-outline text-xs">Ends {new Date(challenge.end_date).toLocaleDateString()}</span>
-                    </div>
-
-                    <h3 className="font-heading font-semibold text-title-md text-on-surface leading-snug">
-                      {challenge.title}
-                    </h3>
-
-                    <p className="font-body-sm text-body-sm text-on-surface-variant line-clamp-3 leading-relaxed">
-                      {challenge.description}
-                    </p>
-
-                    {/* Progress Bar */}
-                    <div className="space-y-1.5 pt-1">
-                      <div className="flex items-center justify-between font-label-sm text-xs">
-                        <span className="font-semibold text-primary">{challenge.current_kg} kg collected</span>
-                        <span className="text-outline">Target: {challenge.target_kg} kg</span>
+                  <div className="p-4 pt-0">
+                    {challenge.is_participating ? (
+                      <div className="py-2 px-3 bg-secondary-container text-primary rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 border border-primary/20">
+                        <Check className="w-4 h-4" />
+                        <span>Participating</span>
                       </div>
-                      <div className="w-full bg-surface-container rounded-full h-2 overflow-hidden">
-                        <div
-                          className="bg-primary-container h-2 rounded-full transition-all duration-500"
-                          style={{ width: `${percentage}%` }}
-                        />
-                      </div>
-                    </div>
+                    ) : (
+                      <Button
+                        variant="primary"
+                        fullWidth
+                        size="sm"
+                        onClick={() => joinChallenge(challenge.id)}
+                      >
+                        Join Challenge
+                      </Button>
+                    )}
                   </div>
-                </div>
-
-                <div className="p-4 pt-0">
-                  {challenge.is_participating ? (
-                    <div className="py-2 px-3 bg-tertiary-fixed text-primary rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 border border-primary/20">
-                      <Check className="w-4 h-4" />
-                      <span>Participating</span>
-                    </div>
-                  ) : (
-                    <Button
-                      variant="primary"
-                      fullWidth
-                      size="sm"
-                      onClick={() => joinChallenge(challenge.id)}
-                    >
-                      Join Challenge
-                    </Button>
-                  )}
-                </div>
-              </Card>
-            );
-          })}
-        </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Practical Circular Guides */}
@@ -169,7 +177,7 @@ export const CommunityPage: React.FC = () => {
 
               <div className="pt-2 border-t border-outline-variant/40">
                 <span className="font-label-md text-xs font-semibold text-primary inline-flex items-center gap-1 hover:underline cursor-pointer">
-                  <span>Read Full Field Guide</span>
+                  <span>Read Field Guide</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </span>
               </div>

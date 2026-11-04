@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import { RecyclingCentre, WasteListing, PublicWasteBin } from '../../types';
-import { Phone, Clock, ArrowRight, MapPin, Trash2, BatteryCharging, ShieldCheck } from 'lucide-react';
+import { useGeolocation } from '../../hooks/useGeolocation';
+import { Phone, Clock, ArrowRight, ShieldCheck, Navigation } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface KeralaCircularMapProps {
@@ -19,8 +20,24 @@ export const KeralaCircularMap: React.FC<KeralaCircularMapProps> = ({
   initialFilter = 'all'
 }) => {
   const [filterType, setFilterType] = useState<'all' | 'centres' | 'bins' | 'listings'>(initialFilter);
+  const { coords, locality, district } = useGeolocation();
 
-  // Clean custom pin for Facilities / MCFs
+  // Pin for User's Current Location
+  const userLocationIcon = L.divIcon({
+    className: 'custom-user-pin',
+    html: `
+      <div style="background-color: #174D36; color: #FFFFFF; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 6px rgba(23, 77, 54, 0.25); border: 2.5px solid #FFFFFF;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+        </svg>
+      </div>
+    `,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    popupAnchor: [0, -16],
+  });
+
+  // Pin for Facilities / MCFs
   const centreIcon = L.divIcon({
     className: 'custom-centre-pin',
     html: `
@@ -37,7 +54,7 @@ export const KeralaCircularMap: React.FC<KeralaCircularMapProps> = ({
     popupAnchor: [0, -15],
   });
 
-  // Clean custom pin for Public Waste Bins
+  // Pin for Public Waste Bins
   const binIcon = L.divIcon({
     className: 'custom-bin-pin',
     html: `
@@ -54,7 +71,7 @@ export const KeralaCircularMap: React.FC<KeralaCircularMapProps> = ({
     popupAnchor: [0, -14],
   });
 
-  // Clean custom pin for Material Listings
+  // Pin for Material Listings
   const listingIcon = L.divIcon({
     className: 'custom-listing-pin',
     html: `
@@ -69,8 +86,9 @@ export const KeralaCircularMap: React.FC<KeralaCircularMapProps> = ({
     popupAnchor: [0, -13],
   });
 
-  const centerLat = 10.2500;
-  const centerLng = 76.3500;
+  const centerLat = coords ? coords.latitude : 10.2500;
+  const centerLng = coords ? coords.longitude : 76.3500;
+  const mapZoom = coords ? 11 : 8;
 
   return (
     <div className="relative w-full h-[520px] rounded-xl overflow-hidden border border-outline-variant/70 shadow-sm">
@@ -95,7 +113,7 @@ export const KeralaCircularMap: React.FC<KeralaCircularMapProps> = ({
               : 'text-on-surface hover:bg-surface-container'
           }`}
         >
-          <span className="w-2 h-2 rounded-full bg-surface-tint"></span>
+          <span className="w-2 h-2 rounded-full bg-primary"></span>
           <span>Public Bins ({wasteBins.length})</span>
         </button>
 
@@ -107,8 +125,8 @@ export const KeralaCircularMap: React.FC<KeralaCircularMapProps> = ({
               : 'text-on-surface hover:bg-surface-container'
           }`}
         >
-          <span className="w-2 h-2 rounded-full bg-primary-container"></span>
-          <span>MCF Centres ({centres.length})</span>
+          <span className="w-2 h-2 rounded-full bg-secondary"></span>
+          <span>Centres ({centres.length})</span>
         </button>
 
         <button
@@ -119,14 +137,14 @@ export const KeralaCircularMap: React.FC<KeralaCircularMapProps> = ({
               : 'text-on-surface hover:bg-surface-container'
           }`}
         >
-          <span className="w-2 h-2 rounded-full bg-secondary-container"></span>
-          <span>Active Materials ({listings.length})</span>
+          <span className="w-2 h-2 rounded-full bg-outline"></span>
+          <span>Materials ({listings.length})</span>
         </button>
       </div>
 
       <MapContainer
         center={[centerLat, centerLng]}
-        zoom={8}
+        zoom={mapZoom}
         scrollWheelZoom={false}
         className="w-full h-full"
       >
@@ -134,6 +152,18 @@ export const KeralaCircularMap: React.FC<KeralaCircularMapProps> = ({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+
+        {/* User's Detected Location Marker */}
+        {coords && (
+          <Marker position={[coords.latitude, coords.longitude]} icon={userLocationIcon}>
+            <Popup>
+              <div className="p-1 space-y-1 text-left max-w-xs font-sans">
+                <span className="text-[10px] uppercase font-bold text-primary">Your Location</span>
+                <p className="text-xs font-semibold">{locality || district || 'You are here'}</p>
+              </div>
+            </Popup>
+          </Marker>
+        )}
 
         {/* Public Segregated Waste Bins */}
         {(filterType === 'all' || filterType === 'bins') &&
@@ -149,9 +179,7 @@ export const KeralaCircularMap: React.FC<KeralaCircularMapProps> = ({
                     <span className="text-[10px] font-bold text-on-primary bg-primary px-2 py-0.5 rounded-full uppercase">
                       Public Waste Bin
                     </span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                      bin.fill_percentage > 80 ? 'bg-error-container text-on-error-container' : 'bg-tertiary-fixed text-primary'
-                    }`}>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-secondary-container text-primary">
                       {bin.fill_percentage}% Full
                     </span>
                   </div>
@@ -160,7 +188,7 @@ export const KeralaCircularMap: React.FC<KeralaCircularMapProps> = ({
                     {bin.name}
                   </h4>
 
-                  <p className="text-[11px] text-charcoal">
+                  <p className="text-[11px] text-on-surface">
                     {bin.address}
                   </p>
 
@@ -184,42 +212,42 @@ export const KeralaCircularMap: React.FC<KeralaCircularMapProps> = ({
               <Popup>
                 <div className="p-1 space-y-2 text-left max-w-xs font-sans">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] uppercase tracking-wider font-semibold bg-olive/60 text-forest px-1.5 py-0.5 rounded">
+                    <span className="text-[10px] uppercase tracking-wider font-semibold bg-secondary-container text-primary px-1.5 py-0.5 rounded">
                       {centre.operator_type.replace(/_/g, ' ')}
                     </span>
                     {centre.is_verified && (
-                      <span className="text-[10px] text-forest font-medium flex items-center gap-0.5">
+                      <span className="text-[10px] text-primary font-medium flex items-center gap-0.5">
                         <ShieldCheck className="w-3 h-3" /> Verified Hub
                       </span>
                     )}
                   </div>
 
-                  <h4 className="font-heading font-semibold text-xs text-forest leading-tight">
+                  <h4 className="font-heading font-semibold text-xs text-primary leading-tight">
                     {centre.name}
                   </h4>
 
-                  <p className="text-[11px] text-charcoal">
+                  <p className="text-[11px] text-on-surface">
                     {centre.address}
                   </p>
 
-                  <div className="pt-1 border-t border-gray-200 text-[10px] text-charcoal-muted space-y-0.5">
+                  <div className="pt-1 border-t border-gray-200 text-[10px] text-outline space-y-0.5">
                     <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-forest" />
+                      <Clock className="w-3 h-3 text-primary" />
                       <span>{centre.operating_hours}</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Phone className="w-3 h-3 text-forest" />
+                      <Phone className="w-3 h-3 text-primary" />
                       <span>{centre.phone}</span>
                     </div>
                   </div>
 
                   <div className="pt-1">
-                    <span className="text-[10px] text-charcoal font-medium block mb-1">
+                    <span className="text-[10px] text-on-surface font-medium block mb-1">
                       Accepted Segregations:
                     </span>
                     <div className="flex flex-wrap gap-1">
                       {centre.accepted_categories.map((c) => (
-                        <span key={c} className="text-[9px] bg-gray-100 text-charcoal px-1.5 py-0.5 rounded">
+                        <span key={c} className="text-[9px] bg-gray-100 text-on-surface px-1.5 py-0.5 rounded">
                           {c}
                         </span>
                       ))}
@@ -241,25 +269,25 @@ export const KeralaCircularMap: React.FC<KeralaCircularMapProps> = ({
               <Popup>
                 <div className="p-1 space-y-1.5 text-left max-w-xs font-sans">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] uppercase font-semibold text-forest">
+                    <span className="text-[10px] uppercase font-semibold text-primary">
                       {listing.category?.name || 'Material'}
                     </span>
-                    <span className="text-[10px] font-bold text-forest">
+                    <span className="text-[10px] font-bold text-primary">
                       {listing.quantity} {listing.unit}
                     </span>
                   </div>
 
-                  <h4 className="font-heading font-semibold text-xs text-charcoal">
+                  <h4 className="font-heading font-semibold text-xs text-on-surface">
                     {listing.title}
                   </h4>
 
-                  <p className="text-[11px] text-charcoal-muted">
+                  <p className="text-[11px] text-outline">
                     {listing.locality}, {listing.district}
                   </p>
 
                   <Link
                     to={`/marketplace/${listing.id}`}
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-forest hover:underline pt-1"
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline pt-1"
                   >
                     <span>View Listing Details</span>
                     <ArrowRight className="w-3 h-3" />
