@@ -1,34 +1,26 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  ScanLine, 
-  UploadCloud, 
-  Sparkles, 
-  CheckCircle2, 
-  AlertTriangle, 
-  ArrowRight, 
-  RefreshCw, 
-  ShieldCheck, 
   Camera, 
-  Recycle,
-  Lightbulb,
+  Upload, 
+  Check, 
+  ArrowRight, 
+  ShieldCheck, 
+  RotateCw,
   FileCheck
 } from 'lucide-react';
 import { analyzeWasteImage } from '../../lib/gemini';
 import { AIScanResult } from '../../types';
-import { useData } from '../../contexts/DataContext';
 
 export const WasteScannerPage: React.FC = () => {
   const navigate = useNavigate();
-  const { categories } = useData();
 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [scanResult, setScanResult] = useState<AIScanResult | null>(null);
-  const [fileName, setFileName] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Preset demo test images to make testing instantaneous for judges
+  // Realistic test samples for demonstration
   const demoImages = [
     {
       title: 'Vegetable Peels',
@@ -46,7 +38,7 @@ export const WasteScannerPage: React.FC = () => {
       url: 'https://images.unsplash.com/photo-1628352081506-83c43123ed6d?auto=format&fit=crop&w=600&q=80',
     },
     {
-      title: 'E-Waste & Cables',
+      title: 'Secondary Cables',
       hint: 'electronic cables wiring circuits',
       url: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?auto=format&fit=crop&w=600&q=80',
     },
@@ -56,7 +48,6 @@ export const WasteScannerPage: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setFileName(file.name);
     const reader = new FileReader();
     reader.onload = (event) => {
       const base64 = event.target?.result as string;
@@ -68,7 +59,6 @@ export const WasteScannerPage: React.FC = () => {
 
   const handleSelectDemoImage = (item: { title: string; hint: string; url: string }) => {
     setImagePreview(item.url);
-    setFileName(item.hint);
     triggerAnalysis(item.url, 'image/jpeg', item.hint);
   };
 
@@ -90,7 +80,6 @@ export const WasteScannerPage: React.FC = () => {
   const handleConvertToListing = () => {
     if (!scanResult) return;
 
-    // Save scan context into sessionStorage so CreateListingPage can auto-populate
     sessionStorage.setItem('greenloop_prefill_scan', JSON.stringify({
       title: scanResult.detected_material,
       category_slug: scanResult.category_slug,
@@ -105,42 +94,34 @@ export const WasteScannerPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Page Title */}
-      <div className="text-center max-w-2xl mx-auto space-y-2">
-        <div className="inline-flex items-center gap-1.5 bg-lime/30 text-forest-dark border border-lime/50 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-          <Sparkles className="w-3.5 h-3.5 text-forest" /> Powered by Google Gemini Vision
-        </div>
-        <h1 className="font-heading font-extrabold text-3xl sm:text-4xl text-forest-dark">
-          AI Waste Diagnostic Scanner
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+      {/* Page Header */}
+      <div className="max-w-xl space-y-1">
+        <h1 className="font-heading font-bold text-2xl sm:text-3xl text-forest">
+          Material Scanner
         </h1>
-        <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-          Upload or snap a photograph of your discards. GreenLoop's multimodal AI classifies the material, 
-          evaluates its circular value, provides safety tips, and converts it into a verified listing.
+        <p className="text-xs sm:text-sm text-charcoal-muted leading-relaxed">
+          Not sure how to categorise your waste? Take a photo and let GreenLoop help identify it.
         </p>
       </div>
 
-      {/* Upload & Scanner Zone */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
         {/* Left Column: Upload / Camera */}
-        <div className="lg:col-span-5 space-y-4">
-          <div className="bg-white p-6 rounded-3xl border-2 border-dashed border-sage/60 hover:border-forest transition-colors shadow-soft text-center">
+        <div className="md:col-span-5 space-y-4">
+          <div className="bg-white p-5 rounded-lg border border-[#E2E2D8] text-center space-y-4">
             {imagePreview ? (
-              <div className="space-y-4">
-                <div className="relative h-64 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200">
+              <div className="space-y-3">
+                <div className="relative aspect-[4/3] rounded-md overflow-hidden bg-cream border border-[#E2E2D8]">
                   <img
                     src={imagePreview}
                     alt="Scanned item"
                     className="w-full h-full object-cover"
                   />
                   {analyzing && (
-                    <div className="absolute inset-0 bg-forest/80 backdrop-blur-sm flex flex-col items-center justify-center text-white p-4 space-y-3">
-                      <RefreshCw className="w-8 h-8 text-lime animate-spin" />
-                      <p className="text-xs font-bold text-lime tracking-wide">
-                        Gemini Neural Classification in Progress...
-                      </p>
-                      <p className="text-[11px] text-sage-light/80 text-center">
-                        Analyzing polymer composition, moisture content, and optimal circular pathways...
+                    <div className="absolute inset-0 bg-white/85 flex flex-col items-center justify-center p-4 space-y-2">
+                      <RotateCw className="w-5 h-5 text-forest animate-spin" />
+                      <p className="text-xs font-medium text-charcoal">
+                        Identifying material...
                       </p>
                     </div>
                   )}
@@ -150,10 +131,9 @@ export const WasteScannerPage: React.FC = () => {
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={analyzing}
-                    className="flex-1 py-2 bg-offwhite hover:bg-slate-100 text-forest font-semibold text-xs rounded-xl border border-slate-200 flex items-center justify-center gap-1.5"
+                    className="flex-1 py-1.5 bg-cream hover:bg-[#EBEBE0] text-charcoal font-medium text-xs rounded border border-[#D5D5CA] transition-colors"
                   >
-                    <UploadCloud className="w-4 h-4" />
-                    <span>Upload Another</span>
+                    Replace Photo
                   </button>
                   <button
                     onClick={() => {
@@ -161,7 +141,7 @@ export const WasteScannerPage: React.FC = () => {
                       setScanResult(null);
                     }}
                     disabled={analyzing}
-                    className="px-3 py-2 text-slate-500 hover:text-red-500 text-xs font-medium"
+                    className="px-3 py-1.5 text-xs text-charcoal-muted hover:text-charcoal"
                   >
                     Clear
                   </button>
@@ -170,21 +150,21 @@ export const WasteScannerPage: React.FC = () => {
             ) : (
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="py-12 cursor-pointer space-y-3"
+                className="py-10 cursor-pointer space-y-2 border-2 border-dashed border-[#D5D5CA] rounded-md hover:border-forest/50 transition-colors"
               >
-                <div className="w-16 h-16 rounded-2xl bg-sage-light text-forest flex items-center justify-center mx-auto shadow-sm">
-                  <Camera className="w-8 h-8" />
+                <div className="w-10 h-10 rounded-md bg-cream border border-[#E2E2D8] flex items-center justify-center text-forest mx-auto">
+                  <Camera className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="font-heading font-bold text-sm text-forest-dark">
-                    Click to upload waste photo
+                  <p className="font-heading font-semibold text-xs text-charcoal">
+                    Click to select or drop photo
                   </p>
-                  <p className="text-xs text-slate-400 mt-1">
-                    JPEG, PNG, WEBP (Max 10MB)
+                  <p className="text-[11px] text-charcoal-muted mt-0.5">
+                    JPEG, PNG, WEBP (under 10MB)
                   </p>
                 </div>
-                <span className="inline-block bg-forest text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-sm">
-                  Browse Device Files
+                <span className="inline-block bg-cream border border-[#D5D5CA] text-charcoal text-[11px] font-medium px-3 py-1 rounded">
+                  Browse Files
                 </span>
               </div>
             )}
@@ -198,20 +178,18 @@ export const WasteScannerPage: React.FC = () => {
             />
           </div>
 
-          {/* Quick Demo Samples for instant evaluation */}
-          <div className="bg-white p-4 rounded-2xl border border-sage/40 shadow-soft space-y-2">
-            <p className="text-xs font-bold text-forest-dark flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-forest" /> Quick Test Samples (TERRACODE Demo):
-            </p>
+          {/* Sample quick tests */}
+          <div className="bg-white p-4 rounded-lg border border-[#E2E2D8] space-y-2 text-xs">
+            <span className="font-medium text-charcoal block">Sample Test Materials:</span>
             <div className="grid grid-cols-2 gap-2">
               {demoImages.map((demo, idx) => (
                 <button
                   key={idx}
                   onClick={() => handleSelectDemoImage(demo)}
-                  className="flex items-center gap-2 p-1.5 bg-offwhite hover:bg-sage-light/60 rounded-xl border border-slate-200 text-left transition-colors"
+                  className="flex items-center gap-2 p-1.5 bg-cream hover:bg-[#EBEBE0] rounded border border-[#E2E2D8] text-left transition-colors"
                 >
-                  <img src={demo.url} alt="" className="w-8 h-8 rounded-lg object-cover" />
-                  <span className="text-[11px] font-medium text-slate-700 truncate">
+                  <img src={demo.url} alt="" className="w-7 h-7 rounded object-cover" />
+                  <span className="text-[11px] font-medium text-charcoal truncate">
                     {demo.title}
                   </span>
                 </button>
@@ -220,128 +198,76 @@ export const WasteScannerPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column: AI Scan Diagnostic Result */}
-        <div className="lg:col-span-7">
+        {/* Right Column: Diagnostic Output */}
+        <div className="md:col-span-7">
           {scanResult ? (
-            <div className="bg-white rounded-3xl border border-sage/50 shadow-elevated p-6 space-y-6">
-              {/* Header Badges */}
-              <div className="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-slate-100">
-                <div>
-                  <span className="text-xs font-bold text-forest uppercase tracking-wider block">
+            <div className="bg-white rounded-lg border border-[#E2E2D8] p-6 space-y-5">
+              <div className="pb-3 border-b border-[#F0F0E6]">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-forest uppercase tracking-wider">
                     {scanResult.category_name}
                   </span>
-                  <h3 className="font-heading font-extrabold text-2xl text-forest-dark mt-0.5">
-                    {scanResult.detected_material}
-                  </h3>
+                  <span className="text-xs text-charcoal-muted">
+                    {scanResult.confidence}% confidence
+                  </span>
                 </div>
+                <h3 className="font-heading font-bold text-lg text-charcoal mt-0.5">
+                  {scanResult.detected_material}
+                </h3>
+              </div>
 
+              {/* Recommendation */}
+              <div className="p-3.5 bg-cream rounded-md border border-[#E2E2D8] space-y-1 text-xs">
                 <div className="flex items-center gap-2">
-                  <div className="bg-forest text-lime font-black px-3 py-1 rounded-xl text-xs flex items-center gap-1 shadow-sm">
-                    <Sparkles className="w-3.5 h-3.5 text-lime" />
-                    <span>{scanResult.confidence}% Confidence</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Recommended Action Card */}
-              <div className="p-4 bg-lime/20 border border-lime/40 rounded-2xl flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-forest text-lime flex items-center justify-center shrink-0 shadow-sm">
-                  <Recycle className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-black uppercase text-forest-dark tracking-wide">
-                      Recommended Circular Action:
-                    </span>
-                    <span className="bg-forest text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
-                      {scanResult.suggested_action}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-700 mt-1 leading-relaxed">
-                    {scanResult.reasoning}
-                  </p>
-                </div>
-              </div>
-
-              {/* Metrics Grid */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 bg-offwhite rounded-xl border border-slate-200">
-                  <span className="text-[11px] text-slate-400 block font-medium">Recyclability Index</span>
-                  <span className="font-heading font-black text-xl text-forest-dark">
-                    {scanResult.recyclability_score} / 100
+                  <span className="font-semibold text-charcoal">Recommended Purpose:</span>
+                  <span className="text-forest font-semibold capitalize">
+                    {scanResult.suggested_action}
                   </span>
                 </div>
-                <div className="p-3 bg-offwhite rounded-xl border border-slate-200">
-                  <span className="text-[11px] text-slate-400 block font-medium">Estimated Weight Range</span>
-                  <span className="font-heading font-black text-xl text-forest-dark">
-                    {scanResult.estimated_weight_range}
-                  </span>
-                </div>
+                <p className="text-charcoal leading-relaxed pt-0.5">
+                  {scanResult.reasoning}
+                </p>
               </div>
 
-              {/* Safety Guidance */}
-              <div>
-                <h4 className="text-xs font-bold text-forest-dark flex items-center gap-1.5 mb-2">
-                  <ShieldCheck className="w-4 h-4 text-forest" />
-                  <span>Mandatory Handling & Safety Guidance</span>
-                </h4>
-                <ul className="space-y-1.5 text-xs text-slate-600 bg-offwhite p-3.5 rounded-xl border border-slate-200">
+              {/* Safety */}
+              <div className="space-y-1.5 text-xs">
+                <span className="font-medium text-charcoal flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-forest" />
+                  <span>Handling & Safety Considerations:</span>
+                </span>
+                <ul className="space-y-1 text-charcoal-muted pl-5 list-disc">
                   {scanResult.safety_guidance.map((tip, idx) => (
-                    <li key={idx} className="flex items-start gap-2">
-                      <span className="text-forest font-bold shrink-0">•</span>
-                      <span>{tip}</span>
-                    </li>
+                    <li key={idx} className="leading-relaxed">{tip}</li>
                   ))}
                 </ul>
               </div>
 
-              {/* Environmental Tips */}
-              <div>
-                <h4 className="text-xs font-bold text-forest-dark flex items-center gap-1.5 mb-2">
-                  <Lightbulb className="w-4 h-4 text-amber-500" />
-                  <span>Circular Value & Ecological Dividend</span>
-                </h4>
-                <ul className="space-y-1.5 text-xs text-slate-600 bg-amber-50/50 p-3.5 rounded-xl border border-amber-200/50">
-                  {scanResult.circular_value_tips.map((tip, idx) => (
-                    <li key={idx} className="flex items-start gap-2">
-                      <span className="text-amber-700 font-bold shrink-0">✓</span>
-                      <span>{tip}</span>
-                    </li>
-                  ))}
-                </ul>
+              {/* Potential Recipients */}
+              <div className="text-xs text-charcoal p-3 bg-cream rounded-md border border-[#E2E2D8]">
+                <span className="font-medium">Potential Users: </span>
+                <span className="text-charcoal-muted">{scanResult.potential_matches_summary}</span>
               </div>
 
-              {/* Potential Recipients Preview */}
-              <div className="text-xs text-slate-600 flex items-center gap-2 p-3 bg-sage-light/30 rounded-xl border border-sage/50">
-                <CheckCircle2 className="w-4 h-4 text-forest shrink-0" />
-                <span><strong>Target Recipients:</strong> {scanResult.potential_matches_summary}</span>
-              </div>
-
-              {/* Primary 1-Click Convert to Listing Button */}
+              {/* Convert Action */}
               <div className="pt-2">
                 <button
                   onClick={handleConvertToListing}
-                  className="w-full py-3.5 bg-forest hover:bg-forest-dark text-white rounded-xl text-xs sm:text-sm font-bold shadow-md hover:shadow-elevated transition-all flex items-center justify-center gap-2 group"
+                  className="w-full py-2.5 bg-forest hover:bg-forest-dark text-white rounded-md text-xs font-semibold transition-colors flex items-center justify-center gap-2"
                 >
-                  <FileCheck className="w-4 h-4 text-lime" />
-                  <span>Convert Scan Results into Marketplace Listing</span>
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  <FileCheck className="w-4 h-4" />
+                  <span>Create Listing from this Scan</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </button>
-                <p className="text-[11px] text-center text-slate-400 mt-2">
-                  Pre-fills all AI parameters and redirects to the creation form.
-                </p>
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-3xl border border-sage/40 p-12 text-center shadow-soft flex flex-col items-center justify-center min-h-[420px] space-y-3">
-              <div className="w-14 h-14 rounded-2xl bg-sage-light text-forest flex items-center justify-center">
-                <ScanLine className="w-7 h-7" />
-              </div>
-              <h3 className="font-heading font-bold text-base text-forest-dark">
-                Awaiting Image Input
+            <div className="bg-white rounded-lg border border-[#E2E2D8] p-12 text-center text-xs space-y-2">
+              <Camera className="w-8 h-8 text-charcoal-muted mx-auto" />
+              <h3 className="font-heading font-semibold text-sm text-charcoal">
+                Awaiting Material Photo
               </h3>
-              <p className="text-xs text-slate-500 max-w-sm leading-relaxed">
-                Upload a photograph from your device or pick one of the sample batches on the left to see Gemini AI classify materials and generate circular matches.
+              <p className="text-charcoal-muted max-w-sm mx-auto leading-relaxed">
+                Take a photograph or pick a sample on the left to see material classification and circular recommendations.
               </p>
             </div>
           )}
@@ -350,4 +276,3 @@ export const WasteScannerPage: React.FC = () => {
     </div>
   );
 };
-

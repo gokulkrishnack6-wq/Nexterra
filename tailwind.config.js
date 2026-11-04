@@ -8,33 +8,42 @@ export default {
     extend: {
       colors: {
         forest: {
-          DEFAULT: '#174D36',
-          dark: '#103B2A',
-          light: '#216347',
+          DEFAULT: '#234B35', // Deep forest green
+          dark: '#183B2A',    // Dark green
+          light: '#2E5D43',
         },
-        deep: '#103B2A',
         sage: {
-          DEFAULT: '#A8C5A2',
-          light: '#E8F0E5',
-          dark: '#7A9E73',
+          DEFAULT: '#A8B89F', // Muted sage
+          light: '#DCE5D4',   // Light olive
+          subtle: '#EBF0E6',
         },
-        lime: {
-          DEFAULT: '#B6D96B',
-          hover: '#A5C95A',
+        olive: '#DCE5D4',
+        cream: '#F7F7F0',     // Soft natural cream
+        charcoal: {
+          DEFAULT: '#292F2A', // Primary body text
+          muted: '#777E77',   // Secondary grey text
+          light: '#535A54',
         },
-        offwhite: '#F7F9F5',
+        sand: '#EFEFE5',
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
-        heading: ['Manrope', 'sans-serif'],
+        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        heading: ['Manrope', 'Inter', 'sans-serif'],
+      },
+      borderRadius: {
+        'sm': '4px',
+        'DEFAULT': '8px',
+        'md': '8px',
+        'lg': '10px',
+        'xl': '12px',
+        '2xl': '14px',
       },
       boxShadow: {
-        'soft': '0 4px 20px -2px rgba(23, 77, 54, 0.08)',
-        'card': '0 2px 12px rgba(16, 59, 42, 0.06)',
-        'elevated': '0 10px 30px -4px rgba(16, 59, 42, 0.12)',
+        'subtle': '0 1px 3px rgba(41, 47, 42, 0.05), 0 1px 2px rgba(41, 47, 42, 0.03)',
+        'card': '0 1px 3px rgba(41, 47, 42, 0.06)',
+        'dropdown': '0 4px 16px rgba(41, 47, 42, 0.08)',
       }
     },
   },
   plugins: [],
 }
-

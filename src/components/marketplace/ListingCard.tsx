@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Sparkles, Heart, ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { MapPin, Heart } from 'lucide-react';
 import { WasteListing } from '../../types';
 import { useData } from '../../contexts/DataContext';
 
@@ -12,114 +12,92 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
   const { favourites, toggleFavourite } = useData();
   const isFav = favourites.includes(listing.id);
 
-  const getPricingBadge = () => {
+  const primaryImage = listing.images && listing.images.length > 0 
+    ? listing.images[0] 
+    : 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=600&q=80';
+
+  const getPricingLabel = () => {
     switch (listing.listing_type) {
       case 'free':
-        return <span className="bg-lime text-forest-dark font-extrabold px-2.5 py-0.5 rounded-full text-xs">FREE</span>;
+        return <span className="text-[11px] font-semibold text-forest bg-olive/50 px-2 py-0.5 rounded">Free</span>;
       case 'exchange':
-        return <span className="bg-sage-light text-forest-dark font-bold px-2.5 py-0.5 rounded-full text-xs">EXCHANGE</span>;
+        return <span className="text-[11px] font-medium text-charcoal bg-[#EBEBE0] px-2 py-0.5 rounded">Exchange</span>;
       case 'sale':
-        return <span className="bg-emerald-100 text-forest font-bold px-2.5 py-0.5 rounded-full text-xs">₹{listing.price}</span>;
+        return <span className="text-[11px] font-semibold text-charcoal bg-white border border-[#D5D5CA] px-2 py-0.5 rounded">₹{listing.price}</span>;
       default:
         return null;
     }
   };
 
-  const primaryImage = listing.images && listing.images.length > 0 
-    ? listing.images[0] 
-    : 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=600&q=80';
-
   return (
-    <div className="bg-white rounded-2xl border border-sage/40 shadow-soft hover:shadow-elevated transition-all duration-300 overflow-hidden flex flex-col group">
-      {/* Thumbnail & Badges */}
-      <div className="relative h-48 w-full overflow-hidden bg-slate-100">
+    <div className="bg-white rounded-lg border border-[#E2E2D8] hover:border-forest/40 transition-colors flex flex-col justify-between overflow-hidden group">
+      {/* Thumbnail */}
+      <div className="relative aspect-[4/3] w-full bg-[#EFEFE6] overflow-hidden">
         <img
           src={primaryImage}
           alt={listing.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
           loading="lazy"
         />
 
-        {/* Pricing Badge */}
-        <div className="absolute top-3 left-3 flex items-center gap-1.5">
-          {getPricingBadge()}
-          {listing.ai_classified && (
-            <span className="bg-forest-dark/90 backdrop-blur text-lime border border-lime/30 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
-              <Sparkles className="w-3 h-3 text-lime" /> AI Verified
-            </span>
-          )}
+        {/* Pricing tag */}
+        <div className="absolute top-2.5 left-2.5">
+          {getPricingLabel()}
         </div>
 
-        {/* Favourite Button */}
+        {/* Save button */}
         <button
           onClick={(e) => {
             e.preventDefault();
             toggleFavourite(listing.id);
           }}
-          className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur transition-all ${
-            isFav 
-              ? 'bg-red-500 text-white shadow-md' 
-              : 'bg-white/80 text-slate-600 hover:bg-white hover:text-red-500'
+          className={`absolute top-2.5 right-2.5 p-1.5 rounded bg-white/90 text-charcoal hover:text-red-600 transition-colors ${
+            isFav ? 'text-red-600' : 'text-charcoal-muted'
           }`}
-          title="Save to favourites"
+          title="Save material"
         >
-          <Heart className={`w-4 h-4 ${isFav ? 'fill-white' : ''}`} />
+          <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-red-600' : ''}`} />
         </button>
 
-        {/* Category Pill at bottom of image */}
-        <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur text-forest-dark text-[11px] font-semibold px-2.5 py-1 rounded-md shadow-sm">
-          {listing.category?.name || 'Recyclable'}
-        </div>
+        {/* Status pill if completed/pending */}
+        {listing.status !== 'active' && (
+          <div className="absolute bottom-2.5 left-2.5 bg-charcoal/80 text-white text-[10px] uppercase font-medium px-2 py-0.5 rounded">
+            {listing.status}
+          </div>
+        )}
       </div>
 
-      {/* Body Content */}
-      <div className="p-4 flex-1 flex flex-col justify-between">
+      {/* Info Body */}
+      <div className="p-3.5 flex-1 flex flex-col justify-between">
         <div>
-          {/* Title & Quantity */}
-          <div className="flex items-start justify-between gap-2 mb-1.5">
-            <h3 className="font-heading font-bold text-base text-forest-dark group-hover:text-forest transition-colors line-clamp-1">
-              {listing.title}
-            </h3>
+          <div className="flex items-center justify-between text-[11px] text-charcoal-muted mb-1">
+            <span>{listing.category?.name || 'Recyclable'}</span>
+            <span className="font-medium text-charcoal">{listing.quantity} {listing.unit}</span>
           </div>
 
-          <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed mb-3">
+          <h3 className="font-heading font-semibold text-sm text-charcoal group-hover:text-forest transition-colors line-clamp-1">
+            {listing.title}
+          </h3>
+
+          <p className="text-[12px] text-charcoal-muted mt-1 line-clamp-2 leading-relaxed">
             {listing.description}
           </p>
-
-          <div className="flex items-center gap-2 mb-3">
-            <span className="bg-sage-light/60 text-forest-dark font-bold text-xs px-2.5 py-1 rounded">
-              {listing.quantity} {listing.unit}
-            </span>
-            <span className="text-[11px] text-slate-500 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded capitalize">
-              {listing.condition}
-            </span>
-          </div>
         </div>
 
-        <div>
-          {/* Location & Metadata */}
-          <div className="flex items-center justify-between text-xs text-slate-500 border-t border-slate-100 pt-3">
-            <div className="flex items-center gap-1 text-slate-600 truncate">
-              <MapPin className="w-3.5 h-3.5 text-forest shrink-0" />
-              <span className="truncate">{listing.locality}, {listing.district}</span>
-            </div>
-
-            <span className="text-[11px] text-slate-400 shrink-0">
-              {new Date(listing.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-            </span>
+        <div className="mt-3 pt-2.5 border-t border-[#F0F0E6] flex items-center justify-between text-[11px]">
+          <div className="flex items-center gap-1 text-charcoal-muted truncate">
+            <MapPin className="w-3 h-3 text-forest shrink-0" />
+            <span className="truncate">{listing.locality}, {listing.district}</span>
           </div>
 
-          {/* Action Link */}
           <Link
             to={`/marketplace/${listing.id}`}
-            className="mt-3.5 w-full flex items-center justify-center gap-1.5 bg-offwhite hover:bg-forest text-forest hover:text-white border border-sage/60 font-semibold text-xs py-2 rounded-xl transition-all duration-200 group-hover:border-forest"
+            className="text-forest hover:text-forest-dark font-medium underline-offset-2 hover:underline ml-2 shrink-0"
           >
-            <span>View & Request</span>
-            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+            Details
           </Link>
         </div>
       </div>
     </div>
   );
 };
-

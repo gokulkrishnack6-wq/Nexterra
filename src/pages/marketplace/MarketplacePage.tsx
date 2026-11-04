@@ -1,10 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Search, Filter, PlusCircle, Sparkles, MapPin, SlidersHorizontal, X } from 'lucide-react';
+import { Search, Plus, X, Sparkles } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { ListingCard } from '../../components/marketplace/ListingCard';
 import { KERALA_DISTRICTS } from '../../lib/mockData';
-import { ListingPricing } from '../../types';
 
 export const MarketplacePage: React.FC = () => {
   const { listings, categories } = useData();
@@ -63,116 +62,101 @@ export const MarketplacePage: React.FC = () => {
   }, [listings, categories, selectedCategory, selectedDistrict, selectedPricing, onlyAiVerified, searchTerm]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="font-heading font-extrabold text-3xl text-forest-dark">
-            Circular Waste Marketplace
+          <h1 className="font-heading font-bold text-2xl sm:text-3xl text-forest">
+            Explore Materials
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Discover reusable biomass, post-consumer plastics, cardboard, and clean secondary resources in Kerala.
+          <p className="text-xs sm:text-sm text-charcoal-muted mt-0.5">
+            Discover reusable, recyclable, and compostable resources available across Kerala.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Link
             to="/smart-match"
-            className="flex items-center gap-1.5 bg-lime hover:bg-lime-hover text-forest-dark font-bold text-xs px-4 py-2.5 rounded-xl shadow-sm transition-all"
+            className="inline-flex items-center gap-1.5 bg-cream hover:bg-[#EFEFE6] text-charcoal border border-[#D5D5CA] text-xs font-medium px-3.5 py-2 rounded-md transition-colors"
           >
-            <Sparkles className="w-4 h-4 text-forest" />
-            <span>Smart Match For Me</span>
+            <Sparkles className="w-3.5 h-3.5 text-forest" />
+            <span>Smart Match</span>
           </Link>
 
           <Link
             to="/marketplace/new"
-            className="flex items-center gap-1.5 bg-forest hover:bg-forest-dark text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-sm transition-all"
+            className="inline-flex items-center gap-1.5 bg-forest hover:bg-forest-dark text-white text-xs font-semibold px-4 py-2 rounded-md transition-colors"
           >
-            <PlusCircle className="w-4 h-4 text-lime" />
-            <span>List Materials</span>
+            <Plus className="w-3.5 h-3.5" />
+            <span>List Material</span>
           </Link>
         </div>
       </div>
 
-      {/* Search and Filter Panel */}
-      <div className="bg-white p-4 rounded-2xl border border-sage/40 shadow-soft space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+      {/* Filter Toolbar */}
+      <div className="bg-white p-4 rounded-lg border border-[#E2E2D8] space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 text-xs">
           {/* Keyword Search */}
-          <div className="md:col-span-5 relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+          <div className="sm:col-span-5 relative">
+            <Search className="w-4 h-4 text-charcoal-muted absolute left-3 top-2.5" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search vegetable scraps, cardboard, HDPE, e-waste..."
-              className="w-full pl-10 pr-4 py-2 bg-offwhite border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-forest text-slate-800"
+              placeholder="Search cardboard, coconut husk, vegetable scraps, books..."
+              className="w-full pl-9 pr-7 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal placeholder:text-charcoal-muted focus:outline-none focus:ring-1 focus:ring-forest"
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
+                className="absolute right-2.5 top-2.5 text-charcoal-muted hover:text-charcoal"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
 
-          {/* District Selector */}
-          <div className="md:col-span-3">
+          {/* District */}
+          <div className="sm:col-span-4">
             <select
               value={selectedDistrict}
               onChange={(e) => setSelectedDistrict(e.target.value)}
-              className="w-full py-2 px-3 bg-offwhite border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-forest text-slate-800 font-medium"
+              className="w-full py-2 px-3 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
             >
               {KERALA_DISTRICTS.map((district) => (
                 <option key={district} value={district}>
-                  {district === 'All Kerala' ? '📍 All Kerala Districts' : `📍 ${district}`}
+                  {district === 'All Kerala' ? 'All Kerala Districts' : district}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Pricing Type Filter */}
-          <div className="md:col-span-2">
+          {/* Pricing */}
+          <div className="sm:col-span-3">
             <select
               value={selectedPricing}
               onChange={(e) => setSelectedPricing(e.target.value)}
-              className="w-full py-2 px-3 bg-offwhite border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-forest text-slate-800 font-medium"
+              className="w-full py-2 px-3 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
             >
-              <option value="all">All Types</option>
+              <option value="all">All Pricing Types</option>
               <option value="free">Free Only</option>
               <option value="exchange">Exchange</option>
-              <option value="sale">Sale</option>
+              <option value="sale">Scrap Sale</option>
             </select>
-          </div>
-
-          {/* AI Verified Toggle */}
-          <div className="md:col-span-2 flex items-center justify-center">
-            <button
-              onClick={() => setOnlyAiVerified(!onlyAiVerified)}
-              className={`w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all border ${
-                onlyAiVerified
-                  ? 'bg-forest text-lime border-forest'
-                  : 'bg-offwhite text-slate-600 border-slate-200 hover:border-slate-300'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>AI Verified</span>
-            </button>
           </div>
         </div>
 
-        {/* Category Pills Slider */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 scrollbar-none">
+        {/* Category Filter Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 text-xs">
           <button
             onClick={() => handleCategoryChange('all')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+            className={`px-3 py-1 rounded-md text-[11px] font-medium whitespace-nowrap transition-colors ${
               selectedCategory === 'all'
-                ? 'bg-forest text-white shadow-sm'
-                : 'bg-offwhite text-slate-600 hover:bg-slate-100'
+                ? 'bg-forest text-white'
+                : 'bg-cream text-charcoal hover:bg-[#EBEBE0]'
             }`}
           >
-            All Categories ({listings.length})
+            All Categories
           </button>
           {categories.map((cat) => {
             const isSelected = selectedCategory === cat.slug;
@@ -180,10 +164,10 @@ export const MarketplacePage: React.FC = () => {
               <button
                 key={cat.id}
                 onClick={() => handleCategoryChange(cat.slug)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                className={`px-3 py-1 rounded-md text-[11px] font-medium whitespace-nowrap transition-colors ${
                   isSelected
-                    ? 'bg-forest text-white shadow-sm'
-                    : 'bg-offwhite text-slate-600 hover:bg-slate-100'
+                    ? 'bg-forest text-white'
+                    : 'bg-cream text-charcoal hover:bg-[#EBEBE0]'
                 }`}
               >
                 {cat.name}
@@ -193,29 +177,22 @@ export const MarketplacePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Listings Grid */}
-      <div>
-        <div className="flex items-center justify-between text-xs text-slate-500 mb-4 px-1">
-          <span>
-            Showing <strong className="text-forest-dark">{filteredListings.length}</strong> available batches
-          </span>
+      {/* Results Count & Listings Grid */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between text-xs text-charcoal-muted px-0.5">
+          <span>Showing <strong className="text-charcoal">{filteredListings.length}</strong> available materials</span>
           {selectedDistrict !== 'All Kerala' && (
-            <span className="bg-sage-light text-forest px-2 py-0.5 rounded font-medium">
-              Filtered by: {selectedDistrict}
-            </span>
+            <span>Filtered: {selectedDistrict}</span>
           )}
         </div>
 
         {filteredListings.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-sage/40 p-12 text-center max-w-lg mx-auto shadow-soft space-y-3">
-            <div className="w-12 h-12 rounded-full bg-sage-light text-forest flex items-center justify-center mx-auto">
-              <Search className="w-6 h-6" />
-            </div>
-            <h3 className="font-heading font-bold text-base text-forest-dark">
+          <div className="bg-white rounded-lg border border-[#E2E2D8] p-12 text-center max-w-md mx-auto space-y-3">
+            <h3 className="font-heading font-semibold text-base text-charcoal">
               No matching listings found
             </h3>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              We couldn't find any listings matching your active filters. Try broadening your district or search keywords.
+            <p className="text-xs text-charcoal-muted leading-relaxed">
+              We couldn't find any materials matching your active filters. Try resetting filters or choosing All Kerala.
             </p>
             <button
               onClick={() => {
@@ -225,13 +202,13 @@ export const MarketplacePage: React.FC = () => {
                 setOnlyAiVerified(false);
                 handleCategoryChange('all');
               }}
-              className="mt-2 inline-flex items-center text-xs font-bold text-forest hover:underline"
+              className="text-xs font-semibold text-forest underline hover:text-forest-dark"
             >
-              Reset all filters
+              Reset filters
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {filteredListings.map((listing) => (
               <ListingCard key={listing.id} listing={listing} />
             ))}
@@ -241,4 +218,3 @@ export const MarketplacePage: React.FC = () => {
     </div>
   );
 };
-

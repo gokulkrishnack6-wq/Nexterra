@@ -18,28 +18,23 @@ interface ImpactChartsProps {
   metrics: SustainabilityMetrics;
 }
 
-const PALETTE = ['#174D36', '#B6D96B', '#A8C5A2', '#216347', '#D4E7C5', '#F1B24A', '#4A90E2'];
+const PALETTE = ['#234B35', '#A8B89F', '#526955', '#777E77', '#8EA385', '#3A5C47', '#A0AF99'];
 
 export const ImpactCharts: React.FC<ImpactChartsProps> = ({ metrics }) => {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Category Diversion Breakdown */}
-      <div className="bg-white p-6 rounded-2xl border border-sage/40 shadow-soft flex flex-col justify-between">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      {/* Category Breakdown */}
+      <div className="bg-white p-5 rounded-lg border border-[#E2E2D8] flex flex-col justify-between space-y-4">
         <div>
-          <div className="flex items-center justify-between mb-1">
-            <h3 className="font-heading font-bold text-base text-forest-dark">
-              Material Diversion by Category
-            </h3>
-            <span className="text-xs bg-sage-light text-forest px-2.5 py-0.5 rounded-full font-bold">
-              {metrics.total_waste_diverted_kg} kg Total
-            </span>
-          </div>
-          <p className="text-xs text-slate-500 mb-4">
-            Percentage share of waste streams diverted from landfills into circular reuse.
+          <h3 className="font-heading font-semibold text-sm text-charcoal">
+            Materials Diverted by Category
+          </h3>
+          <p className="text-xs text-charcoal-muted mt-0.5">
+            Share of waste streams diverted from landfills into secondary reuse.
           </p>
         </div>
 
-        <div className="h-64 w-full">
+        <div className="h-60 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -48,9 +43,9 @@ export const ImpactCharts: React.FC<ImpactChartsProps> = ({ metrics }) => {
                 nameKey="category_name"
                 cx="50%"
                 cy="50%"
-                innerRadius={55}
-                outerRadius={85}
-                paddingAngle={3}
+                innerRadius={50}
+                outerRadius={80}
+                paddingAngle={2}
               >
                 {metrics.category_breakdown.map((_, index) => (
                   <Cell key={`cell-${index}`} fill={PALETTE[index % PALETTE.length]} />
@@ -58,11 +53,11 @@ export const ImpactCharts: React.FC<ImpactChartsProps> = ({ metrics }) => {
               </Pie>
               <Tooltip
                 formatter={(value: any) => [`${value} kg`, 'Diverted']}
-                contentStyle={{ borderRadius: '0.75rem', border: '1px solid #A8C5A2', fontSize: '12px' }}
+                contentStyle={{ borderRadius: '6px', border: '1px solid #D5D5CA', fontSize: '11px', backgroundColor: '#FFFFFF' }}
               />
               <Legend
                 verticalAlign="bottom"
-                wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
+                wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }}
               />
             </PieChart>
           </ResponsiveContainer>
@@ -70,36 +65,31 @@ export const ImpactCharts: React.FC<ImpactChartsProps> = ({ metrics }) => {
       </div>
 
       {/* Monthly Trend Growth */}
-      <div className="bg-white p-6 rounded-2xl border border-sage/40 shadow-soft flex flex-col justify-between">
+      <div className="bg-white p-5 rounded-lg border border-[#E2E2D8] flex flex-col justify-between space-y-4">
         <div>
-          <div className="flex items-center justify-between mb-1">
-            <h3 className="font-heading font-bold text-base text-forest-dark">
-              Monthly Waste & Carbon Savings (kg)
-            </h3>
-            <span className="text-xs bg-lime/40 text-forest-dark px-2.5 py-0.5 rounded-full font-bold">
-              Cumulative Growth
-            </span>
-          </div>
-          <p className="text-xs text-slate-500 mb-4">
+          <h3 className="font-heading font-semibold text-sm text-charcoal">
+            Monthly Progress (kg)
+          </h3>
+          <p className="text-xs text-charcoal-muted mt-0.5">
             Verified monthly progression of diverted waste and avoided greenhouse gas emissions.
           </p>
         </div>
 
-        <div className="h-64 w-full">
+        <div className="h-60 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={metrics.monthly_trend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8F0E5" />
-              <XAxis dataKey="month" stroke="#7A9E73" fontSize={11} tickLine={false} />
-              <YAxis stroke="#7A9E73" fontSize={11} tickLine={false} />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EFEFE6" />
+              <XAxis dataKey="month" stroke="#777E77" fontSize={11} tickLine={false} />
+              <YAxis stroke="#777E77" fontSize={11} tickLine={false} />
               <Tooltip
-                contentStyle={{ borderRadius: '0.75rem', border: '1px solid #A8C5A2', fontSize: '12px' }}
+                contentStyle={{ borderRadius: '6px', border: '1px solid #D5D5CA', fontSize: '11px', backgroundColor: '#FFFFFF' }}
               />
               <Legend
                 verticalAlign="bottom"
-                wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
+                wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }}
               />
-              <Bar dataKey="diverted_kg" name="Waste Diverted (kg)" fill="#174D36" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="co2e_saved_kg" name="CO₂e Avoided (kg)" fill="#B6D96B" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="diverted_kg" name="Diverted (kg)" fill="#234B35" radius={[2, 2, 0, 0]} />
+              <Bar dataKey="co2e_saved_kg" name="CO₂e Avoided (kg)" fill="#A8B89F" radius={[2, 2, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -107,4 +97,3 @@ export const ImpactCharts: React.FC<ImpactChartsProps> = ({ metrics }) => {
     </div>
   );
 };
-

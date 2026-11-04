@@ -2,18 +2,12 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   Leaf, 
-  ScanLine, 
-  Store, 
-  MapPin, 
-  BarChart3, 
-  Users, 
-  PlusCircle, 
+  Plus, 
   Bell, 
-  ShieldCheck, 
-  Sparkles, 
   Menu, 
   X,
-  CheckCircle2
+  ScanLine,
+  Compass
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
@@ -30,16 +24,16 @@ export const Navbar: React.FC = () => {
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   const navLinks = [
-    { name: 'Marketplace', path: '/marketplace', icon: Store },
-    { name: 'AI Scanner', path: '/scanner', icon: ScanLine, highlight: true },
-    { name: 'Smart Match', path: '/smart-match', icon: Sparkles },
-    { name: 'Circular Map', path: '/map', icon: MapPin },
-    { name: 'Impact', path: '/impact', icon: BarChart3 },
-    { name: 'Community', path: '/community', icon: Users },
+    { name: 'Explore Materials', path: '/marketplace' },
+    { name: 'AI Scanner', path: '/scanner' },
+    { name: 'Smart Match', path: '/smart-match' },
+    { name: 'Impact', path: '/impact' },
+    { name: 'Directory Map', path: '/map' },
+    { name: 'Community', path: '/community' },
   ];
 
   if (currentUser.role === 'admin') {
-    navLinks.push({ name: 'Admin Console', path: '/admin', icon: ShieldCheck });
+    navLinks.push({ name: 'Admin', path: '/admin' });
   }
 
   const isActive = (path: string) => {
@@ -49,50 +43,42 @@ export const Navbar: React.FC = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-sage/30 shadow-soft">
-      {/* Role Switcher Banner for live evaluation */}
+    <header className="sticky top-0 z-50 bg-white border-b border-[#E8E8DE]">
+      {/* Discreet Demo Switcher */}
       <RoleSwitcher />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo Identity */}
-          <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-xl bg-forest flex items-center justify-center text-lime shadow-md group-hover:scale-105 transition-transform">
-              <Leaf className="w-6 h-6 stroke-[2.2]" />
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <div className="flex items-center justify-between h-15 py-3">
+          
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-md bg-forest flex items-center justify-center text-white">
+              <Leaf className="w-4 h-4" />
             </div>
             <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-heading font-extrabold text-xl tracking-tight text-forest-dark">
-                  GREEN<span className="text-forest">LOOP</span>
-                </span>
-                <span className="bg-lime/30 text-forest-dark text-[10px] font-bold px-1.5 py-0.5 rounded uppercase">
-                  Kerala
-                </span>
-              </div>
-              <p className="text-[10px] font-medium text-slate-500 tracking-wide uppercase">
+              <span className="font-heading font-bold text-lg tracking-tight text-forest block leading-none">
+                GreenLoop
+              </span>
+              <span className="text-[10px] text-charcoal-muted tracking-tight font-medium">
                 Waste Has a Second Life
-              </p>
+              </span>
             </div>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-1">
+          <nav className="hidden md:flex items-center gap-6">
             {navLinks.map((link) => {
-              const Icon = link.icon;
               const active = isActive(link.path);
               return (
                 <Link
                   key={link.path}
                   to={link.path}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                  className={`text-xs font-medium transition-colors ${
                     active
-                      ? 'bg-forest text-white shadow-sm'
-                      : link.highlight
-                      ? 'text-forest bg-sage-light hover:bg-sage/40 font-semibold'
-                      : 'text-slate-600 hover:text-forest-dark hover:bg-offwhite'
+                      ? 'text-forest font-semibold border-b-2 border-forest pb-0.5'
+                      : 'text-charcoal hover:text-forest'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${link.highlight && !active ? 'text-forest animate-pulse' : ''}`} />
                   {link.name}
                 </Link>
               );
@@ -101,48 +87,37 @@ export const Navbar: React.FC = () => {
 
           {/* Right Action Bar */}
           <div className="hidden sm:flex items-center gap-3">
-            {/* Create Listing Button */}
-            <Link
-              to="/marketplace/new"
-              className="flex items-center gap-1.5 bg-forest hover:bg-forest-light text-white text-xs font-semibold px-3.5 py-2 rounded-lg shadow-sm transition-all transform active:scale-95"
-            >
-              <PlusCircle className="w-4 h-4 text-lime" />
-              <span>List Waste</span>
-            </Link>
-
-            {/* Notifications Popover */}
+            {/* Notifications */}
             <div className="relative">
               <button
                 onClick={() => setNotifDropdownOpen(!notifDropdownOpen)}
-                className="relative p-2 text-slate-600 hover:text-forest hover:bg-offwhite rounded-lg transition-colors"
-                title="Notifications"
+                className="relative p-2 text-charcoal-muted hover:text-charcoal hover:bg-cream rounded-md transition-colors"
+                title="Activity Notifications"
               >
-                <Bell className="w-5 h-5" />
+                <Bell className="w-4 h-4" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white">
-                    {unreadCount}
-                  </span>
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-forest"></span>
                 )}
               </button>
 
               {notifDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-elevated border border-sage/40 py-2 z-50">
-                  <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100">
-                    <span className="font-heading font-semibold text-xs text-forest-dark">
-                      Activity Alerts
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-dropdown border border-[#E2E2D8] py-2 z-50">
+                  <div className="flex items-center justify-between px-3.5 py-1.5 border-b border-[#EFEFE6]">
+                    <span className="font-heading font-semibold text-xs text-charcoal">
+                      Activity
                     </span>
                     {unreadCount > 0 && (
                       <button
                         onClick={markAllNotificationsAsRead}
-                        className="text-[11px] text-forest hover:underline font-medium"
+                        className="text-[11px] text-forest hover:underline"
                       >
                         Mark all read
                       </button>
                     )}
                   </div>
-                  <div className="max-h-72 overflow-y-auto divide-y divide-slate-50">
+                  <div className="max-h-72 overflow-y-auto divide-y divide-[#F7F7F0]">
                     {notifications.length === 0 ? (
-                      <p className="text-center py-6 text-xs text-slate-400">No new notifications</p>
+                      <p className="text-center py-6 text-xs text-charcoal-muted">No notifications</p>
                     ) : (
                       notifications.slice(0, 5).map((n) => (
                         <div
@@ -151,68 +126,62 @@ export const Navbar: React.FC = () => {
                             markNotificationAsRead(n.id);
                             setNotifDropdownOpen(false);
                           }}
-                          className={`p-3 text-xs transition-colors cursor-pointer hover:bg-offwhite ${
-                            !n.is_read ? 'bg-sage-light/30' : ''
+                          className={`p-3 text-xs cursor-pointer hover:bg-cream transition-colors ${
+                            !n.is_read ? 'bg-[#FAFBF8]' : ''
                           }`}
                         >
-                          <div className="flex items-start justify-between gap-1">
-                            <p className="font-semibold text-forest-dark">{n.title}</p>
-                            {!n.is_read && (
-                              <span className="h-1.5 w-1.5 rounded-full bg-forest mt-1"></span>
-                            )}
-                          </div>
-                          <p className="text-slate-600 mt-0.5 text-[11px] leading-relaxed">
-                            {n.message}
-                          </p>
-                          <span className="text-[10px] text-slate-400 mt-1 block">
-                            {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
+                          <p className="font-semibold text-charcoal text-[11px]">{n.title}</p>
+                          <p className="text-charcoal-muted mt-0.5 text-[11px] leading-relaxed">{n.message}</p>
                         </div>
                       ))
                     )}
                   </div>
-                  <div className="px-4 py-2 border-t border-slate-100 text-center bg-slate-50/50">
+                  <div className="px-3.5 py-1.5 border-t border-[#EFEFE6] text-center bg-cream/50">
                     <Link
                       to="/dashboard/exchanges"
                       onClick={() => setNotifDropdownOpen(false)}
-                      className="text-xs text-forest hover:text-forest-dark font-medium"
+                      className="text-[11px] text-forest font-medium hover:underline"
                     >
-                      View All Exchange Requests →
+                      View exchange requests
                     </Link>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* EcoPoints Balance & Profile */}
+            {/* Profile Info */}
             <Link
               to="/dashboard/impact"
-              className="flex items-center gap-2 bg-offwhite border border-sage/50 px-2.5 py-1.5 rounded-lg hover:border-forest transition-colors"
+              className="flex items-center gap-2 py-1 px-2.5 rounded-md hover:bg-cream text-xs text-charcoal border border-transparent hover:border-[#E2E2D8] transition-colors"
             >
               <img
                 src={currentUser.avatar_url}
-                alt={currentUser.full_name}
-                className="w-7 h-7 rounded-full object-cover border border-forest/30"
+                alt=""
+                className="w-6 h-6 rounded-full object-cover border border-[#D5D5CA]"
               />
-              <div className="text-left leading-tight hidden xl:block">
-                <p className="text-xs font-bold text-forest-dark truncate max-w-[110px]">
-                  {currentUser.full_name.split(' ')[0]}
-                </p>
-                <div className="flex items-center gap-1 text-[11px] font-semibold text-forest">
-                  <span>{currentUser.eco_points_balance}</span>
-                  <span className="text-[9px] text-slate-400">PTS</span>
-                </div>
-              </div>
+              <span className="font-medium hidden lg:inline">{currentUser.full_name.split(' ')[0]}</span>
+              <span className="text-[11px] text-charcoal-muted font-normal">
+                ({currentUser.eco_points_balance} pts)
+              </span>
+            </Link>
+
+            {/* List Waste Button */}
+            <Link
+              to="/marketplace/new"
+              className="inline-flex items-center gap-1.5 bg-forest hover:bg-forest-dark text-white text-xs font-medium px-3.5 py-2 rounded-md transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>List Material</span>
             </Link>
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="flex items-center gap-2 lg:hidden">
+          <div className="flex items-center gap-2 md:hidden">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-slate-600 hover:text-forest rounded-lg"
+              className="p-1.5 text-charcoal hover:bg-cream rounded-md"
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
@@ -220,60 +189,39 @@ export const Navbar: React.FC = () => {
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-sage/30 bg-white px-4 pt-2 pb-6 space-y-2 shadow-lg">
-          <div className="flex items-center justify-between py-2 border-b border-slate-100">
+        <div className="md:hidden border-t border-[#E8E8DE] bg-white px-4 py-3 space-y-2">
+          <div className="flex items-center justify-between py-1.5 border-b border-[#EFEFE6]">
             <div className="flex items-center gap-2">
-              <img src={currentUser.avatar_url} alt="" className="w-8 h-8 rounded-full" />
-              <div>
-                <p className="text-xs font-bold text-forest-dark">{currentUser.full_name}</p>
-                <p className="text-[10px] text-slate-500 uppercase">{currentUser.role} • {currentUser.district}</p>
-              </div>
+              <img src={currentUser.avatar_url} alt="" className="w-6 h-6 rounded-full" />
+              <span className="text-xs font-semibold text-charcoal">{currentUser.full_name}</span>
             </div>
-            <div className="bg-sage-light text-forest font-bold px-2.5 py-1 rounded text-xs">
-              {currentUser.eco_points_balance} EcoPoints
-            </div>
+            <span className="text-[11px] text-charcoal-muted">{currentUser.eco_points_balance} pts</span>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 pt-2">
+          <div className="space-y-1 pt-1">
+            {navLinks.map((link) => (
+              <Link
+                key={link.path}
+                to={link.path}
+                onClick={() => setMobileMenuOpen(false)}
+                className="block py-1.5 text-xs text-charcoal hover:text-forest font-medium"
+              >
+                {link.name}
+              </Link>
+            ))}
+          </div>
+
+          <div className="pt-2 border-t border-[#EFEFE6]">
             <Link
               to="/marketplace/new"
               onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center justify-center gap-1.5 bg-forest text-white text-xs font-semibold py-2.5 rounded-lg"
+              className="block w-full text-center py-2 bg-forest text-white text-xs font-medium rounded-md"
             >
-              <PlusCircle className="w-4 h-4 text-lime" />
-              <span>List Waste</span>
+              List Material
             </Link>
-            <Link
-              to="/scanner"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center justify-center gap-1.5 bg-lime text-forest-dark text-xs font-bold py-2.5 rounded-lg"
-            >
-              <ScanLine className="w-4 h-4" />
-              <span>AI Scanner</span>
-            </Link>
-          </div>
-
-          <div className="space-y-1 pt-2">
-            {navLinks.map((link) => {
-              const Icon = link.icon;
-              return (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium ${
-                    isActive(link.path) ? 'bg-forest text-white' : 'text-slate-700 hover:bg-offwhite'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  {link.name}
-                </Link>
-              );
-            })}
           </div>
         </div>
       )}
     </header>
   );
 };
-

@@ -1,15 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  PlusCircle, 
-  Sparkles, 
-  ArrowLeft, 
-  Image as ImageIcon, 
-  MapPin, 
-  Scale, 
-  CheckCircle2, 
-  Info 
-} from 'lucide-react';
+import { ArrowLeft, Plus } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { KERALA_DISTRICTS } from '../../lib/mockData';
@@ -99,79 +90,72 @@ export const CreateListingPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
       <div className="flex items-center justify-between">
         <button
           onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-forest hover:text-forest-dark"
+          className="inline-flex items-center gap-1 text-xs font-medium text-charcoal-muted hover:text-forest"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back</span>
         </button>
       </div>
 
-      <div className="bg-white rounded-3xl border border-sage/40 shadow-soft p-6 sm:p-8 space-y-6">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-forest-dark">
-              List Reusable / Recyclable Material
-            </h1>
-            {aiClassified && (
-              <span className="bg-lime text-forest-dark font-extrabold text-xs px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
-                <Sparkles className="w-3.5 h-3.5" /> AI Pre-filled
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Provide details of your surplus waste batch so local farmers, gardeners, and recyclers can connect.
+      <div className="bg-white rounded-lg border border-[#E2E2D8] p-6 sm:p-8 space-y-6">
+        <div className="border-b border-[#F0F0E6] pb-4">
+          <h1 className="font-heading font-bold text-xl sm:text-2xl text-forest">
+            List Material
+          </h1>
+          <p className="text-xs text-charcoal-muted mt-1 leading-relaxed">
+            Provide details of materials you have available for collection across Kerala.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-5 text-xs">
           {/* Title */}
           <div>
-            <label className="block text-xs font-bold text-forest-dark mb-1">
-              Listing Title *
+            <label className="block font-medium text-charcoal mb-1">
+              Material Title *
             </label>
             <input
               type="text"
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="E.g., 20kg Clean Vegetable Peels & Discarded Produce"
-              className="w-full px-3.5 py-2.5 bg-offwhite border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-forest text-slate-800"
+              placeholder="e.g. 20kg Clean Vegetable Peels & Discarded Produce"
+              className="w-full px-3 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
             />
           </div>
 
           {/* Category & Material Type */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-forest-dark mb-1">
-                Waste Category *
+              <label className="block font-medium text-charcoal mb-1">
+                Category *
               </label>
               <select
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-offwhite border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-forest text-slate-800"
+                className="w-full px-3 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
               >
                 {categories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
-                    {cat.name} ({cat.is_organic ? 'Organic' : 'Inorganic'})
+                    {cat.name}
                   </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-forest-dark mb-1">
-                Specific Material Classification
+              <label className="block font-medium text-charcoal mb-1">
+                Material Classification
               </label>
               <input
                 type="text"
                 value={materialType}
                 onChange={(e) => setMaterialType(e.target.value)}
-                placeholder="E.g., Pre-consumer potato & cabbage cutoffs"
-                className="w-full px-3.5 py-2.5 bg-offwhite border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-forest text-slate-800"
+                placeholder="e.g. Kitchen vegetable pre-consumer cutoffs"
+                className="w-full px-3 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
               />
             </div>
           </div>
@@ -179,7 +163,7 @@ export const CreateListingPage: React.FC = () => {
           {/* Quantity, Unit, Pricing */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-bold text-forest-dark mb-1">
+              <label className="block font-medium text-charcoal mb-1">
                 Quantity *
               </label>
               <input
@@ -189,18 +173,18 @@ export const CreateListingPage: React.FC = () => {
                 required
                 value={quantity}
                 onChange={(e) => setQuantity(Number(e.target.value))}
-                className="w-full px-3.5 py-2.5 bg-offwhite border border-slate-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-forest text-slate-800"
+                className="w-full px-3 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-forest-dark mb-1">
-                Unit of Measurement
+              <label className="block font-medium text-charcoal mb-1">
+                Unit
               </label>
               <select
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-offwhite border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-forest text-slate-800"
+                className="w-full px-3 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
               >
                 <option value="kg">Kilograms (kg)</option>
                 <option value="sacks">Sacks / Bags</option>
@@ -210,61 +194,61 @@ export const CreateListingPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-forest-dark mb-1">
-                Listing Type
+              <label className="block font-medium text-charcoal mb-1">
+                Pricing Type
               </label>
               <select
                 value={listingType}
                 onChange={(e) => setListingType(e.target.value as ListingPricing)}
-                className="w-full px-3.5 py-2.5 bg-offwhite border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-forest text-slate-800"
+                className="w-full px-3 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
               >
                 <option value="free">Free Giveaway</option>
-                <option value="exchange">Resource Barter / Exchange</option>
-                <option value="sale">Nominal Scrap Sale</option>
+                <option value="exchange">Resource Exchange / Barter</option>
+                <option value="sale">Scrap Sale</option>
               </select>
             </div>
           </div>
 
           {listingType === 'sale' && (
             <div>
-              <label className="block text-xs font-bold text-forest-dark mb-1">
-                Total Price (₹ INR)
+              <label className="block font-medium text-charcoal mb-1">
+                Price (₹ INR)
               </label>
               <input
                 type="number"
                 min="0"
                 value={price}
                 onChange={(e) => setPrice(Number(e.target.value))}
-                className="w-full px-3.5 py-2.5 bg-offwhite border border-slate-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-forest text-slate-800"
+                className="w-full px-3 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
               />
             </div>
           )}
 
           {/* Description */}
           <div>
-            <label className="block text-xs font-bold text-forest-dark mb-1">
-              Detailed Description & Handling Notes *
+            <label className="block font-medium text-charcoal mb-1">
+              Description & Storage Condition *
             </label>
             <textarea
               rows={4}
               required
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Mention how the material was collected, storage conditions, whether it is dry, sorted, or packaged in boxes/sacks."
-              className="w-full px-3.5 py-2.5 bg-offwhite border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-forest text-slate-800 leading-relaxed"
+              placeholder="State how the item was stored, cleanliness, packaging, or any collection details."
+              className="w-full px-3 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest leading-relaxed"
             />
           </div>
 
-          {/* Location in Kerala */}
+          {/* Location */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-bold text-forest-dark mb-1">
+              <label className="block font-medium text-charcoal mb-1">
                 District *
               </label>
               <select
                 value={district}
                 onChange={(e) => setDistrict(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-offwhite border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-forest text-slate-800"
+                className="w-full px-3 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
               >
                 {KERALA_DISTRICTS.filter((d) => d !== 'All Kerala').map((d) => (
                   <option key={d} value={d}>
@@ -275,7 +259,7 @@ export const CreateListingPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-forest-dark mb-1">
+              <label className="block font-medium text-charcoal mb-1">
                 Locality / Town *
               </label>
               <input
@@ -283,64 +267,53 @@ export const CreateListingPage: React.FC = () => {
                 required
                 value={locality}
                 onChange={(e) => setLocality(e.target.value)}
-                placeholder="E.g., Perinthalmanna Town"
-                className="w-full px-3.5 py-2.5 bg-offwhite border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-forest text-slate-800"
+                placeholder="e.g. Perinthalmanna Town"
+                className="w-full px-3 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-forest-dark mb-1">
+              <label className="block font-medium text-charcoal mb-1">
                 Street / Landmark
               </label>
               <input
                 type="text"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                placeholder="E.g., Near Bypass Junction"
-                className="w-full px-3.5 py-2.5 bg-offwhite border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-forest text-slate-800"
+                placeholder="e.g. Near Bypass Junction"
+                className="w-full px-3 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
               />
             </div>
           </div>
 
           {/* Image URL */}
           <div>
-            <label className="block text-xs font-bold text-forest-dark mb-1">
+            <label className="block font-medium text-charcoal mb-1">
               Photograph URL (Optional)
             </label>
             <input
               type="url"
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://images.unsplash.com/... (Defaults to category image if empty)"
-              className="w-full px-3.5 py-2.5 bg-offwhite border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-forest text-slate-800"
+              placeholder="https://... (Uses category default if left empty)"
+              className="w-full px-3 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
             />
           </div>
 
-          {/* Points Incentive Note */}
-          <div className="p-3 bg-sage-light/50 border border-sage/60 rounded-xl flex items-center justify-between text-xs">
-            <span className="text-forest-dark font-medium">
-              🌿 Publishing this listing will credit <strong>+30 EcoPoints</strong> to your profile!
-            </span>
-            <span className="font-bold text-forest bg-white px-2.5 py-0.5 rounded shadow-sm">
-              Reward Ready
-            </span>
-          </div>
-
-          {/* Submit Action */}
-          <div className="flex items-center justify-end gap-3 pt-2">
+          {/* Submit */}
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#F0F0E6]">
             <button
               type="button"
               onClick={() => navigate('/marketplace')}
-              className="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:text-slate-800"
+              className="px-4 py-2 text-xs font-medium text-charcoal-muted hover:text-charcoal"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 bg-forest hover:bg-forest-dark text-white font-bold text-xs rounded-xl shadow-md hover:shadow-elevated transition-all flex items-center gap-2"
+              className="px-5 py-2.5 bg-forest hover:bg-forest-dark text-white font-semibold text-xs rounded-md transition-colors"
             >
-              <PlusCircle className="w-4 h-4 text-lime" />
-              <span>Publish Listing to GreenLoop</span>
+              Publish Material
             </button>
           </div>
         </form>
@@ -348,4 +321,3 @@ export const CreateListingPage: React.FC = () => {
     </div>
   );
 };
-

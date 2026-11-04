@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Leaf, LogIn, ArrowRight, Sparkles, UserCheck } from 'lucide-react';
+import { Leaf } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 export const LoginPage: React.FC = () => {
@@ -18,7 +18,7 @@ export const LoginPage: React.FC = () => {
     if (ok) {
       navigate('/marketplace');
     } else {
-      setError('Account with this email not found. You can click any demo persona below to login instantly.');
+      setError('Account with this email not found. You can choose any demo account below.');
     }
   };
 
@@ -30,27 +30,27 @@ export const LoginPage: React.FC = () => {
   return (
     <div className="max-w-md mx-auto px-4 py-16 space-y-6">
       <div className="text-center space-y-2">
-        <div className="w-12 h-12 rounded-2xl bg-forest text-lime flex items-center justify-center mx-auto shadow-md">
-          <Leaf className="w-7 h-7" />
+        <div className="w-9 h-9 rounded-md bg-forest text-white flex items-center justify-center mx-auto">
+          <Leaf className="w-5 h-5" />
         </div>
-        <h1 className="font-heading font-extrabold text-2xl text-forest-dark">
-          Sign In to GreenLoop
+        <h1 className="font-heading font-bold text-xl text-forest">
+          Sign in to GreenLoop
         </h1>
-        <p className="text-xs text-slate-500">
-          Kerala's circular economy and sustainable waste exchange network.
+        <p className="text-xs text-charcoal-muted">
+          Kerala's circular resource exchange network.
         </p>
       </div>
 
-      <div className="bg-white rounded-3xl border border-sage/40 shadow-soft p-6 sm:p-8 space-y-6">
+      <div className="bg-white rounded-lg border border-[#E2E2D8] p-6 space-y-5 text-xs">
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs">
+            <div className="p-2.5 bg-red-50 border border-red-200 text-red-700 rounded text-xs">
               {error}
             </div>
           )}
 
           <div>
-            <label className="block text-xs font-bold text-forest-dark mb-1">
+            <label className="block font-medium text-charcoal mb-1">
               Email Address
             </label>
             <input
@@ -59,12 +59,12 @@ export const LoginPage: React.FC = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@example.com"
-              className="w-full px-3.5 py-2.5 bg-offwhite border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-forest text-slate-800"
+              className="w-full px-3 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-forest-dark mb-1">
+            <label className="block font-medium text-charcoal mb-1">
               Password
             </label>
             <input
@@ -73,41 +73,40 @@ export const LoginPage: React.FC = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full px-3.5 py-2.5 bg-offwhite border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-forest text-slate-800"
+              className="w-full px-3 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
             />
           </div>
 
           <button
             type="submit"
-            className="w-full py-3 bg-forest hover:bg-forest-dark text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
+            className="w-full py-2.5 bg-forest hover:bg-forest-dark text-white font-semibold text-xs rounded-md transition-colors"
           >
-            <LogIn className="w-4 h-4 text-lime" />
-            <span>Sign In</span>
+            Sign In
           </button>
         </form>
 
-        {/* Demo Fast Login for judges */}
-        <div className="pt-4 border-t border-slate-100 space-y-2">
-          <p className="text-[11px] font-bold text-forest uppercase tracking-wider flex items-center gap-1">
-            <Sparkles className="w-3.5 h-3.5" /> Instant Demo Role Access (TERRACODE 2026):
+        {/* Demo Fast Login */}
+        <div className="pt-4 border-t border-[#F0F0E6] space-y-2">
+          <p className="text-[11px] font-medium text-charcoal-muted">
+            Instant Demo Logins:
           </p>
           <div className="grid grid-cols-2 gap-2">
             {allDemoUsers.map((u) => (
               <button
                 key={u.id}
                 onClick={() => handleQuickLogin(u.id)}
-                className="p-2 bg-offwhite hover:bg-sage-light text-left rounded-xl border border-slate-200 transition-colors"
+                className="p-2 bg-cream hover:bg-[#EBEBE0] text-left rounded border border-[#E2E2D8] transition-colors"
               >
-                <p className="text-xs font-bold text-forest-dark truncate">{u.full_name.split(' ')[0]}</p>
-                <p className="text-[10px] text-slate-400 capitalize">{u.role}</p>
+                <p className="font-semibold text-charcoal truncate">{u.full_name.split(' ')[0]}</p>
+                <p className="text-[10px] text-charcoal-muted capitalize">{u.role}</p>
               </button>
             ))}
           </div>
         </div>
 
-        <div className="text-center text-xs text-slate-500">
+        <div className="text-center text-[11px] text-charcoal-muted pt-1">
           New to GreenLoop?{' '}
-          <Link to="/register" className="text-forest font-bold hover:underline">
+          <Link to="/register" className="text-forest font-semibold hover:underline">
             Register Account
           </Link>
         </div>
@@ -115,4 +114,3 @@ export const LoginPage: React.FC = () => {
     </div>
   );
 };
-

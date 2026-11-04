@@ -1,125 +1,103 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Leaf, Heart, Shield, Award, ExternalLink, Github } from 'lucide-react';
+import { Leaf, ExternalLink } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="bg-forest-dark text-slate-300 border-t border-forest pt-12 pb-8 mt-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-          {/* Identity & Mission */}
-          <div className="space-y-4">
+    <footer className="bg-[#183B2A] text-[#DCE5D4] border-t border-[#234B35] pt-12 pb-8 mt-20">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10 text-xs">
+          
+          {/* Identity */}
+          <div className="space-y-3 md:col-span-1">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-forest flex items-center justify-center text-lime shadow-md">
-                <Leaf className="w-5 h-5" />
+              <div className="w-6 h-6 rounded bg-[#234B35] flex items-center justify-center text-white">
+                <Leaf className="w-3.5 h-3.5" />
               </div>
-              <span className="font-heading font-extrabold text-xl text-white tracking-tight">
-                GREEN<span className="text-lime">LOOP</span>
+              <span className="font-heading font-bold text-base text-white tracking-tight">
+                GreenLoop
               </span>
             </div>
-            <p className="text-xs text-sage-light/80 leading-relaxed">
-              Waste is not the end of a product's life. It is the beginning of another resource. 
-              Connecting households, businesses, farmers, and recycling networks across Kerala.
+            <p className="text-[#A8B89F] leading-relaxed">
+              A Kerala-focused circular resource network connecting people who have reusable or organic materials with those who can put them to good use.
             </p>
-            <div className="flex items-center gap-2 text-xs text-lime">
-              <Award className="w-4 h-4" />
-              <span className="font-semibold">TERRACODE 2026</span>
-              <span className="text-sage-light/60">• FOSS Club MEA</span>
-            </div>
+            <p className="text-[11px] text-[#A8B89F]">
+              Waste Has a Second Life.
+            </p>
           </div>
 
-          {/* Quick Platform Links */}
+          {/* Navigation */}
           <div>
-            <h4 className="text-sm font-heading font-bold text-white uppercase tracking-wider mb-3">
-              Circular Network
+            <h4 className="font-heading font-semibold text-white uppercase tracking-wider text-[11px] mb-3">
+              Platform
             </h4>
-            <ul className="space-y-2 text-xs">
+            <ul className="space-y-2 text-[#A8B89F]">
               <li>
-                <Link to="/marketplace" className="hover:text-lime transition-colors">
-                  Waste Material Marketplace
+                <Link to="/marketplace" className="hover:text-white transition-colors">
+                  Explore Materials
                 </Link>
               </li>
               <li>
-                <Link to="/scanner" className="hover:text-lime transition-colors">
-                  AI Waste Classification Scanner
+                <Link to="/scanner" className="hover:text-white transition-colors">
+                  AI Material Scanner
                 </Link>
               </li>
               <li>
-                <Link to="/smart-match" className="hover:text-lime transition-colors">
-                  Smart Proximity Matchmaker
+                <Link to="/smart-match" className="hover:text-white transition-colors">
+                  Smart Proximity Match
                 </Link>
               </li>
               <li>
-                <Link to="/map" className="hover:text-lime transition-colors">
-                  Recycling Centres & Haritha Karma Map
+                <Link to="/map" className="hover:text-white transition-colors">
+                  Recovery Facilities Map
                 </Link>
               </li>
               <li>
-                <Link to="/impact" className="hover:text-lime transition-colors">
-                  Environmental Impact Dashboard
+                <Link to="/impact" className="hover:text-white transition-colors">
+                  Environmental Metrics
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* User Ecosystem */}
+          {/* Ecosystem */}
           <div>
-            <h4 className="text-sm font-heading font-bold text-white uppercase tracking-wider mb-3">
-              Participant Roles
+            <h4 className="font-heading font-semibold text-white uppercase tracking-wider text-[11px] mb-3">
+              Participants
             </h4>
-            <ul className="space-y-2 text-xs">
-              <li>
-                <span className="text-sage-light font-medium">Households:</span> Free recyclable exchange & EcoPoints
-              </li>
-              <li>
-                <span className="text-sage-light font-medium">Restaurants & Kitchens:</span> Organic food waste diversion
-              </li>
-              <li>
-                <span className="text-sage-light font-medium">Farmers & Gardeners:</span> Biomass, coconut husk & compost
-              </li>
-              <li>
-                <span className="text-sage-light font-medium">Recyclers & MCF:</span> Baled polymers, e-waste & scrap
-              </li>
-              <li>
-                <span className="text-sage-light font-medium">NGOs & Drives:</span> Community cleanups & challenges
-              </li>
+            <ul className="space-y-2 text-[#A8B89F]">
+              <li>Households & Apartment complexes</li>
+              <li>Restaurants & Kitchens</li>
+              <li>Organic Farmers & Nurseries</li>
+              <li>Haritha Karma Sena & MCFs</li>
+              <li>Clean Kerala Company facilities</li>
             </ul>
           </div>
 
           {/* Competition & Open Source */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-heading font-bold text-white uppercase tracking-wider mb-3">
-              TERRACODE 2026
+          <div className="space-y-2">
+            <h4 className="font-heading font-semibold text-white uppercase tracking-wider text-[11px] mb-3">
+              Context
             </h4>
-            <p className="text-xs text-sage-light/80 leading-relaxed">
-              Organised by FOSS Club, MEA Engineering College, Perinthalmanna, Malappuram, Kerala.
+            <p className="text-[#A8B89F] leading-relaxed">
+              Built for <strong className="text-white">TERRACODE 2026</strong>, organized by the FOSS Club at MEA Engineering College, Perinthalmanna, Kerala.
             </p>
-            <div className="pt-2">
-              <a
-                href="https://github.com"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 bg-forest/80 hover:bg-forest text-lime border border-forest px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
-              >
-                <Github className="w-4 h-4" />
-                <span>Open Source Repository</span>
-                <ExternalLink className="w-3 h-3 text-sage" />
-              </a>
-            </div>
+            <p className="text-[11px] text-[#A8B89F]">
+              Open-source software published under the MIT License.
+            </p>
           </div>
         </div>
 
-        {/* Bottom bar */}
-        <div className="border-t border-forest pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-sage-light/70">
-          <p>© 2026 GREENLOOP. Open-source circular economy under MIT License.</p>
-          <div className="flex items-center gap-1">
-            <span>Built for a Sustainable Kerala with</span>
-            <Heart className="w-3.5 h-3.5 text-lime fill-lime mx-1" />
-            <span>at MEA Engineering College</span>
+        {/* Bottom divider */}
+        <div className="border-t border-[#234B35] pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-[#A8B89F]">
+          <p>© 2026 GreenLoop. Kerala Circular Waste Exchange.</p>
+          <div className="flex items-center gap-4">
+            <Link to="/marketplace" className="hover:text-white transition-colors">Marketplace</Link>
+            <Link to="/impact" className="hover:text-white transition-colors">Impact Telemetry</Link>
+            <Link to="/community" className="hover:text-white transition-colors">Community</Link>
           </div>
         </div>
       </div>
     </footer>
   );
 };
-

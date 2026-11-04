@@ -1,16 +1,7 @@
 import React, { useState } from 'react';
 import { 
   ShieldCheck, 
-  Users, 
-  Store, 
-  Recycle, 
-  CheckCircle2, 
-  XCircle, 
-  AlertTriangle, 
-  FileText, 
-  Sparkles,
-  Lock,
-  ArrowRight
+  Lock
 } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -20,158 +11,142 @@ export const AdminDashboardPage: React.FC = () => {
   const { currentUser, allDemoUsers } = useAuth();
   const [activeTab, setActiveTab] = useState<'listings' | 'users' | 'centres' | 'audit'>('listings');
 
-  // If active user is not admin, show role barrier with 1-click switch
   if (currentUser.role !== 'admin') {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-16 text-center space-y-4">
-        <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center mx-auto">
-          <Lock className="w-7 h-7" />
-        </div>
-        <h2 className="font-heading font-extrabold text-2xl text-forest-dark">
-          Administrator Access Required
+      <div className="max-w-md mx-auto px-4 py-16 text-center space-y-3">
+        <Lock className="w-8 h-8 text-charcoal-muted mx-auto" />
+        <h2 className="font-heading font-bold text-lg text-charcoal">
+          Administrator Access
         </h2>
-        <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+        <p className="text-xs text-charcoal-muted leading-relaxed">
           You are currently signed in as <strong>{currentUser.full_name}</strong> ({currentUser.role}). 
-          For TERRACODE 2026 evaluation, switch your persona to <strong>Platform Admin</strong> using the top demo bar to preview administrative moderation.
+          Switch to the <strong>Administrator</strong> persona using the top bar to review moderation controls.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-1.5 bg-forest text-lime border border-forest-light px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider mb-2">
-            <ShieldCheck className="w-3.5 h-3.5 text-lime" /> Superadmin Operations Console
-          </div>
-          <h1 className="font-heading font-extrabold text-3xl text-forest-dark">
-            Platform Moderation & Telemetry
+          <h1 className="font-heading font-bold text-2xl sm:text-3xl text-forest">
+            Platform Administration
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Oversee user verification, marketplace content moderation, and cryptographic exchange audit trails.
+          <p className="text-xs sm:text-sm text-charcoal-muted mt-0.5">
+            Content moderation, user directories, facility approvals, and security audit logs.
           </p>
         </div>
 
-        <span className="bg-lime/20 text-forest-dark border border-lime/40 px-3 py-1.5 rounded-xl font-bold text-xs">
-          Role: Platform Administrator (TERRACODE)
+        <span className="text-xs text-charcoal bg-white border border-[#E2E2D8] px-3 py-1.5 rounded-md self-start sm:self-auto">
+          Role: Platform Administrator
         </span>
       </div>
 
-      {/* Admin Quick Metrics */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-sage/40 shadow-soft">
-          <span className="text-xs text-slate-400 font-medium block">Registered Users</span>
-          <span className="font-heading font-black text-2xl text-forest-dark">
+      {/* Summary Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+        <div className="bg-white p-4 rounded-lg border border-[#E2E2D8] space-y-0.5">
+          <span className="text-charcoal-muted font-medium block">Registered Users</span>
+          <span className="font-heading font-bold text-xl text-charcoal">
             {allDemoUsers.length}
           </span>
-          <span className="text-[10px] text-emerald-600 block mt-1">100% Identity Verified</span>
         </div>
-        <div className="bg-white p-5 rounded-2xl border border-sage/40 shadow-soft">
-          <span className="text-xs text-slate-400 font-medium block">Total Listings</span>
-          <span className="font-heading font-black text-2xl text-forest-dark">
+        <div className="bg-white p-4 rounded-lg border border-[#E2E2D8] space-y-0.5">
+          <span className="text-charcoal-muted font-medium block">Total Listings</span>
+          <span className="font-heading font-bold text-xl text-charcoal">
             {listings.length}
           </span>
-          <span className="text-[10px] text-forest block mt-1">Active on Marketplace</span>
         </div>
-        <div className="bg-white p-5 rounded-2xl border border-sage/40 shadow-soft">
-          <span className="text-xs text-slate-400 font-medium block">Verified Recovery Centres</span>
-          <span className="font-heading font-black text-2xl text-forest-dark">
+        <div className="bg-white p-4 rounded-lg border border-[#E2E2D8] space-y-0.5">
+          <span className="text-charcoal-muted font-medium block">Verified Facilities</span>
+          <span className="font-heading font-bold text-xl text-charcoal">
             {recyclingCentres.length}
           </span>
-          <span className="text-[10px] text-slate-500 block mt-1">Haritha Karma / Clean Kerala</span>
         </div>
-        <div className="bg-white p-5 rounded-2xl border border-sage/40 shadow-soft">
-          <span className="text-xs text-slate-400 font-medium block">Completed Transactions</span>
-          <span className="font-heading font-black text-2xl text-forest-dark">
+        <div className="bg-white p-4 rounded-lg border border-[#E2E2D8] space-y-0.5">
+          <span className="text-charcoal-muted font-medium block">Verified Transactions</span>
+          <span className="font-heading font-bold text-xl text-charcoal">
             {transactions.length}
           </span>
-          <span className="text-[10px] text-lime-700 font-bold block mt-1">With Handover Security Codes</span>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-sage/40 pb-2">
+      <div className="flex items-center gap-2 border-b border-[#E2E2D8] text-xs">
         <button
           onClick={() => setActiveTab('listings')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-            activeTab === 'listings' ? 'bg-forest text-white shadow-sm' : 'text-slate-600 hover:bg-white'
+          className={`px-3 py-2 font-medium border-b-2 transition-colors ${
+            activeTab === 'listings'
+              ? 'border-forest text-forest font-semibold'
+              : 'border-transparent text-charcoal-muted hover:text-charcoal'
           }`}
         >
           Listing Moderation ({listings.length})
         </button>
         <button
           onClick={() => setActiveTab('users')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-            activeTab === 'users' ? 'bg-forest text-white shadow-sm' : 'text-slate-600 hover:bg-white'
+          className={`px-3 py-2 font-medium border-b-2 transition-colors ${
+            activeTab === 'users'
+              ? 'border-forest text-forest font-semibold'
+              : 'border-transparent text-charcoal-muted hover:text-charcoal'
           }`}
         >
           User Accounts ({allDemoUsers.length})
         </button>
         <button
           onClick={() => setActiveTab('centres')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-            activeTab === 'centres' ? 'bg-forest text-white shadow-sm' : 'text-slate-600 hover:bg-white'
+          className={`px-3 py-2 font-medium border-b-2 transition-colors ${
+            activeTab === 'centres'
+              ? 'border-forest text-forest font-semibold'
+              : 'border-transparent text-charcoal-muted hover:text-charcoal'
           }`}
         >
-          Facility Approvals ({recyclingCentres.length})
+          Recovery Facilities ({recyclingCentres.length})
         </button>
         <button
           onClick={() => setActiveTab('audit')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-            activeTab === 'audit' ? 'bg-forest text-white shadow-sm' : 'text-slate-600 hover:bg-white'
+          className={`px-3 py-2 font-medium border-b-2 transition-colors ${
+            activeTab === 'audit'
+              ? 'border-forest text-forest font-semibold'
+              : 'border-transparent text-charcoal-muted hover:text-charcoal'
           }`}
         >
-          Security Audit Logs ({transactions.length})
+          Audit Logs ({transactions.length})
         </button>
       </div>
 
-      {/* Content Panels */}
+      {/* Content */}
       {activeTab === 'listings' && (
-        <div className="bg-white rounded-3xl border border-sage/40 shadow-soft p-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <h3 className="font-heading font-bold text-base text-forest-dark">
-              Marketplace Listings Under Moderation
-            </h3>
-            <span className="text-xs text-slate-400">Status: Realtime Active Sync</span>
-          </div>
+        <div className="bg-white rounded-lg border border-[#E2E2D8] p-5 space-y-3">
+          <h3 className="font-heading font-semibold text-sm text-charcoal pb-2 border-b border-[#F0F0E6]">
+            Marketplace Listings
+          </h3>
 
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-[#F0F0E6] text-xs">
             {listings.map((l) => (
-              <div key={l.id} className="py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold uppercase text-forest bg-sage-light px-2 py-0.5 rounded">
-                      {l.category?.name || 'Recyclable'}
-                    </span>
-                    <span className="text-xs text-slate-400 font-medium">
-                      {l.locality}, {l.district}
-                    </span>
-                    {l.ai_classified && (
-                      <span className="text-[10px] bg-lime/40 text-forest font-bold px-1.5 py-0.5 rounded">
-                        AI Verified ({l.ai_confidence}%)
-                      </span>
-                    )}
+              <div key={l.id} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2 text-charcoal-muted text-[11px]">
+                    <span className="font-medium text-forest">{l.category?.name}</span>
+                    <span>•</span>
+                    <span>{l.locality}, {l.district}</span>
+                    <span>•</span>
+                    <span>{l.quantity} {l.unit}</span>
                   </div>
-                  <h4 className="font-heading font-bold text-sm text-forest-dark">{l.title}</h4>
-                  <p className="text-xs text-slate-500">
-                    Quantity: {l.quantity} {l.unit} • Pricing: {l.listing_type} • Status: {l.status}
-                  </p>
+                  <h4 className="font-heading font-semibold text-sm text-charcoal">{l.title}</h4>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      if (confirm(`Remove listing "${l.title}" from GreenLoop?`)) {
-                        deleteListing(l.id);
-                      }
-                    }}
-                    className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-semibold rounded-lg transition-colors"
-                  >
-                    Moderate / Remove
-                  </button>
-                </div>
+                <button
+                  onClick={() => {
+                    if (confirm(`Remove listing "${l.title}" from marketplace?`)) {
+                      deleteListing(l.id);
+                    }
+                  }}
+                  className="px-3 py-1 bg-cream hover:bg-red-50 text-red-700 border border-[#D5D5CA] rounded text-xs transition-colors self-start sm:self-auto"
+                >
+                  Remove Listing
+                </button>
               </div>
             ))}
           </div>
@@ -179,29 +154,27 @@ export const AdminDashboardPage: React.FC = () => {
       )}
 
       {activeTab === 'users' && (
-        <div className="bg-white rounded-3xl border border-sage/40 shadow-soft p-6 space-y-4">
-          <h3 className="font-heading font-bold text-base text-forest-dark pb-3 border-b border-slate-100">
-            Registered Community Members & Organizations
+        <div className="bg-white rounded-lg border border-[#E2E2D8] p-5 space-y-3">
+          <h3 className="font-heading font-semibold text-sm text-charcoal pb-2 border-b border-[#F0F0E6]">
+            Registered Users
           </h3>
 
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-[#F0F0E6] text-xs">
             {allDemoUsers.map((u) => (
-              <div key={u.id} className="py-3 flex items-center justify-between gap-4 text-xs">
-                <div className="flex items-center gap-3">
-                  <img src={u.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover" />
+              <div key={u.id} className="py-2.5 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <img src={u.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover" />
                   <div>
-                    <h4 className="font-heading font-bold text-forest-dark">{u.full_name}</h4>
-                    <p className="text-[11px] text-slate-400">{u.email} • {u.district}, Kerala</p>
+                    <span className="font-semibold text-charcoal">{u.full_name}</span>
+                    <span className="text-charcoal-muted text-[11px] block">{u.email} • {u.district}</span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <span className="bg-sage-light text-forest px-2 py-0.5 rounded font-bold uppercase text-[10px]">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] uppercase font-semibold text-forest bg-cream px-2 py-0.5 rounded border border-[#E2E2D8]">
                     {u.role}
                   </span>
-                  <span className="font-bold text-forest-dark">
-                    {u.eco_points_balance} PTS
-                  </span>
+                  <span className="text-charcoal-muted">{u.eco_points_balance} pts</span>
                 </div>
               </div>
             ))}
@@ -210,26 +183,21 @@ export const AdminDashboardPage: React.FC = () => {
       )}
 
       {activeTab === 'centres' && (
-        <div className="bg-white rounded-3xl border border-sage/40 shadow-soft p-6 space-y-4">
-          <h3 className="font-heading font-bold text-base text-forest-dark pb-3 border-b border-slate-100">
-            Certified Facilities Registry
+        <div className="bg-white rounded-lg border border-[#E2E2D8] p-5 space-y-3">
+          <h3 className="font-heading font-semibold text-sm text-charcoal pb-2 border-b border-[#F0F0E6]">
+            Approved Facilities
           </h3>
 
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-[#F0F0E6] text-xs">
             {recyclingCentres.map((centre) => (
-              <div key={centre.id} className="py-3.5 flex items-center justify-between gap-4 text-xs">
+              <div key={centre.id} className="py-3 flex items-center justify-between gap-3">
                 <div>
-                  <h4 className="font-heading font-bold text-forest-dark text-sm">{centre.name}</h4>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
-                    {centre.address} • Phone: {centre.phone}
-                  </p>
+                  <h4 className="font-heading font-semibold text-sm text-charcoal">{centre.name}</h4>
+                  <p className="text-charcoal-muted text-[11px]">{centre.address} • {centre.phone}</p>
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" /> Certified Active
-                  </span>
-                </div>
+                <span className="text-forest text-[11px] font-semibold bg-cream px-2 py-0.5 rounded border border-[#E2E2D8]">
+                  Verified
+                </span>
               </div>
             ))}
           </div>
@@ -237,31 +205,25 @@ export const AdminDashboardPage: React.FC = () => {
       )}
 
       {activeTab === 'audit' && (
-        <div className="bg-white rounded-3xl border border-sage/40 shadow-soft p-6 space-y-4">
-          <h3 className="font-heading font-bold text-base text-forest-dark pb-3 border-b border-slate-100">
-            Cryptographic Transaction & Exchange Audit Logs
+        <div className="bg-white rounded-lg border border-[#E2E2D8] p-5 space-y-3">
+          <h3 className="font-heading font-semibold text-sm text-charcoal pb-2 border-b border-[#F0F0E6]">
+            Verified Handover Records
           </h3>
 
-          <div className="divide-y divide-slate-100 text-xs">
+          <div className="divide-y divide-[#F0F0E6] text-xs">
             {transactions.map((tx) => (
-              <div key={tx.id} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div key={tx.id} className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <span className="font-mono text-[10px] text-slate-400 block font-bold">TX ID: {tx.id}</span>
-                  <p className="font-bold text-forest-dark mt-0.5">
-                    Circular Exchange of {tx.quantity} {tx.unit}
-                  </p>
-                  <p className="text-[11px] text-slate-500">
-                    Saved {tx.co2_saved_kg} kg CO₂e • Diverted {tx.landfill_saved_kg} kg from landfill • Awarded {tx.eco_points_awarded} PTS
+                  <span className="font-mono text-[10px] text-charcoal-muted block">ID: {tx.id}</span>
+                  <span className="font-medium text-charcoal">
+                    Exchange: {tx.quantity} {tx.unit}
+                  </span>
+                  <p className="text-charcoal-muted text-[11px]">
+                    Avoided {tx.co2_saved_kg} kg CO₂e • Landfill saved: {tx.landfill_saved_kg} kg
                   </p>
                 </div>
-
-                <div className="text-right">
-                  <span className="text-[10px] text-slate-400 block">
-                    {new Date(tx.completed_at).toLocaleString()}
-                  </span>
-                  <span className="text-emerald-700 font-bold text-[11px]">
-                    Verified Handover ✓
-                  </span>
+                <div className="text-left sm:text-right text-[11px] text-charcoal-muted">
+                  {new Date(tx.completed_at).toLocaleString()}
                 </div>
               </div>
             ))}
@@ -271,4 +233,3 @@ export const AdminDashboardPage: React.FC = () => {
     </div>
   );
 };
-

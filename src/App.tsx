@@ -25,7 +25,7 @@ export const App: React.FC = () => {
     <BrowserRouter>
       <AuthProvider>
         <DataProvider>
-          <div className="flex flex-col min-h-screen bg-offwhite text-slate-800 font-sans selection:bg-lime selection:text-forest-dark">
+          <div className="flex flex-col min-h-screen bg-cream text-charcoal font-sans selection:bg-olive selection:text-forest-dark">
             <Navbar />
             <main className="flex-1">
               <Routes>

@@ -376,6 +376,32 @@ export const INITIAL_LISTINGS: WasteListing[] = [
     images: [
       'https://images.unsplash.com/photo-1528190336454-13cd56b45b5a?auto=format&fit=crop&w=800&q=80'
     ]
+  },
+  {
+    id: 'list-107',
+    user_id: 'user-gokul',
+    category_id: 'cat-paper',
+    title: 'Used School Textbooks & Malayalam Reference Novels',
+    description: '35 gently used high-school science books, Malayalam storybooks, and notebook bundles. Perfect for community libraries or local reading rooms.',
+    material_type: 'Bound books and print paper',
+    quantity: 22,
+    unit: 'kg',
+    listing_type: 'free',
+    price: 0,
+    condition: 'Good condition, readable pages',
+    district: 'Malappuram',
+    locality: 'Perinthalmanna',
+    address: 'Near Library Road',
+    latitude: 10.9760,
+    longitude: 76.2254,
+    status: 'active',
+    ai_classified: true,
+    ai_confidence: 97.2,
+    suggested_action: 'upcycling',
+    created_at: new Date(Date.now() - 3600000 * 8).toISOString(),
+    images: [
+      'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=800&q=80'
+    ]
   }
 ];
 
