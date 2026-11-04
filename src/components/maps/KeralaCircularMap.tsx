@@ -1,27 +1,51 @@
 import React, { useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
-import { RecyclingCentre, WasteListing } from '../../types';
-import { Phone, Clock, ArrowRight } from 'lucide-react';
+import { RecyclingCentre, WasteListing, PublicWasteBin } from '../../types';
+import { Phone, Clock, ArrowRight, MapPin, Trash2, BatteryCharging, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface KeralaCircularMapProps {
   centres: RecyclingCentre[];
   listings: WasteListing[];
+  wasteBins?: PublicWasteBin[];
+  initialFilter?: 'all' | 'centres' | 'bins' | 'listings';
 }
 
-export const KeralaCircularMap: React.FC<KeralaCircularMapProps> = ({ centres, listings }) => {
-  const [filterType, setFilterType] = useState<'all' | 'centres' | 'listings'>('all');
+export const KeralaCircularMap: React.FC<KeralaCircularMapProps> = ({ 
+  centres, 
+  listings,
+  wasteBins = [],
+  initialFilter = 'all'
+}) => {
+  const [filterType, setFilterType] = useState<'all' | 'centres' | 'bins' | 'listings'>(initialFilter);
 
-  // Clean custom pin for Facilities
+  // Clean custom pin for Facilities / MCFs
   const centreIcon = L.divIcon({
     className: 'custom-centre-pin',
     html: `
-      <div style="background-color: #234B35; color: #FFFFFF; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.2); border: 1.5px solid #FFFFFF;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <div style="background-color: #234B35; color: #FFFFFF; width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.25); border: 2px solid #FFFFFF;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M7 19H4.815a1.83 1.83 0 0 1-1.57-.881 1.785 1.785 0 0 1-.004-1.784L7.196 9.5"/>
           <path d="M11 19h8.2a1.8 1.8 0 0 0 1.5-1 1.8 1.8 0 0 0 0-1.8L17 9.5"/>
           <path d="M11 5h2a2 2 0 0 1 2 2v2H9V7a2 2 0 0 1 2-2Z"/>
+        </svg>
+      </div>
+    `,
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
+    popupAnchor: [0, -15],
+  });
+
+  // Clean custom pin for Public Waste Bins
+  const binIcon = L.divIcon({
+    className: 'custom-bin-pin',
+    html: `
+      <div style="background-color: #093420; color: #C4ECD3; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.25); border: 2px solid #FFFFFF;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 6h18"/>
+          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
         </svg>
       </div>
     `,
@@ -30,11 +54,11 @@ export const KeralaCircularMap: React.FC<KeralaCircularMapProps> = ({ centres, l
     popupAnchor: [0, -14],
   });
 
-  // Clean custom pin for Listings
+  // Clean custom pin for Material Listings
   const listingIcon = L.divIcon({
     className: 'custom-listing-pin',
     html: `
-      <div style="background-color: #DCE5D4; color: #183B2A; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.15); border: 1.5px solid #234B35;">
+      <div style="background-color: #DCE5D4; color: #093420; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.15); border: 1.5px solid #234B35;">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/>
         </svg>
@@ -45,48 +69,64 @@ export const KeralaCircularMap: React.FC<KeralaCircularMapProps> = ({ centres, l
     popupAnchor: [0, -13],
   });
 
-  const centerLat = 10.9760;
-  const centerLng = 76.2254;
+  const centerLat = 10.2500;
+  const centerLng = 76.3500;
 
   return (
-    <div className="relative w-full h-[480px] rounded-lg overflow-hidden border border-[#E2E2D8]">
+    <div className="relative w-full h-[520px] rounded-xl overflow-hidden border border-outline-variant/70 shadow-sm">
       {/* Map Filter Controls Bar */}
-      <div className="absolute top-3 right-3 z-[400] bg-white p-1 rounded-md border border-[#E2E2D8] flex items-center gap-1 text-xs">
+      <div className="absolute top-3 right-3 z-[400] bg-surface-container-lowest/95 backdrop-blur-md p-1.5 rounded-lg border border-outline-variant shadow-dropdown flex flex-wrap items-center gap-1 text-xs">
         <button
           onClick={() => setFilterType('all')}
-          className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
+          className={`px-3 py-1 rounded-md font-label-md text-xs transition-colors ${
             filterType === 'all'
-              ? 'bg-forest text-white'
-              : 'text-charcoal hover:bg-cream'
+              ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
+              : 'text-on-surface hover:bg-surface-container'
           }`}
         >
-          All ({centres.length + listings.length})
+          All Points ({centres.length + wasteBins.length + listings.length})
         </button>
+
+        <button
+          onClick={() => setFilterType('bins')}
+          className={`px-3 py-1 rounded-md font-label-md text-xs transition-colors flex items-center gap-1 ${
+            filterType === 'bins'
+              ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
+              : 'text-on-surface hover:bg-surface-container'
+          }`}
+        >
+          <span className="w-2 h-2 rounded-full bg-surface-tint"></span>
+          <span>Public Bins ({wasteBins.length})</span>
+        </button>
+
         <button
           onClick={() => setFilterType('centres')}
-          className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
+          className={`px-3 py-1 rounded-md font-label-md text-xs transition-colors flex items-center gap-1 ${
             filterType === 'centres'
-              ? 'bg-forest text-white'
-              : 'text-charcoal hover:bg-cream'
+              ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
+              : 'text-on-surface hover:bg-surface-container'
           }`}
         >
-          Facilities ({centres.length})
+          <span className="w-2 h-2 rounded-full bg-primary-container"></span>
+          <span>MCF Centres ({centres.length})</span>
         </button>
+
         <button
           onClick={() => setFilterType('listings')}
-          className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
+          className={`px-3 py-1 rounded-md font-label-md text-xs transition-colors flex items-center gap-1 ${
             filterType === 'listings'
-              ? 'bg-forest text-white'
-              : 'text-charcoal hover:bg-cream'
+              ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
+              : 'text-on-surface hover:bg-surface-container'
           }`}
         >
-          Materials ({listings.length})
+          <span className="w-2 h-2 rounded-full bg-secondary-container"></span>
+          <span>Active Materials ({listings.length})</span>
         </button>
       </div>
 
       <MapContainer
         center={[centerLat, centerLng]}
-        zoom={9}
+        zoom={8}
         scrollWheelZoom={false}
         className="w-full h-full"
       >
@@ -94,6 +134,44 @@ export const KeralaCircularMap: React.FC<KeralaCircularMapProps> = ({ centres, l
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+
+        {/* Public Segregated Waste Bins */}
+        {(filterType === 'all' || filterType === 'bins') &&
+          wasteBins.map((bin) => (
+            <Marker
+              key={bin.id}
+              position={[bin.latitude, bin.longitude]}
+              icon={binIcon}
+            >
+              <Popup>
+                <div className="p-1 space-y-2 text-left max-w-xs font-sans">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[10px] font-bold text-on-primary bg-primary px-2 py-0.5 rounded-full uppercase">
+                      Public Waste Bin
+                    </span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      bin.fill_percentage > 80 ? 'bg-error-container text-on-error-container' : 'bg-tertiary-fixed text-primary'
+                    }`}>
+                      {bin.fill_percentage}% Full
+                    </span>
+                  </div>
+
+                  <h4 className="font-heading font-semibold text-xs text-primary leading-tight">
+                    {bin.name}
+                  </h4>
+
+                  <p className="text-[11px] text-charcoal">
+                    {bin.address}
+                  </p>
+
+                  <div className="pt-1 text-[10px] text-outline border-t border-gray-200 space-y-0.5">
+                    <div>Managed by: <strong>{bin.managed_by}</strong></div>
+                    <div>Serviced: {bin.last_serviced}</div>
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+          ))}
 
         {/* Facilities Markers */}
         {(filterType === 'all' || filterType === 'centres') &&
@@ -104,31 +182,55 @@ export const KeralaCircularMap: React.FC<KeralaCircularMapProps> = ({ centres, l
               icon={centreIcon}
             >
               <Popup>
-                <div className="p-1 max-w-[210px] text-xs">
-                  <span className="text-[10px] uppercase font-semibold text-forest block mb-0.5">
-                    Recovery Facility
-                  </span>
-                  <h4 className="font-heading font-bold text-sm text-charcoal leading-snug">
+                <div className="p-1 space-y-2 text-left max-w-xs font-sans">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] uppercase tracking-wider font-semibold bg-olive/60 text-forest px-1.5 py-0.5 rounded">
+                      {centre.operator_type.replace(/_/g, ' ')}
+                    </span>
+                    {centre.is_verified && (
+                      <span className="text-[10px] text-forest font-medium flex items-center gap-0.5">
+                        <ShieldCheck className="w-3 h-3" /> Verified Hub
+                      </span>
+                    )}
+                  </div>
+
+                  <h4 className="font-heading font-semibold text-xs text-forest leading-tight">
                     {centre.name}
                   </h4>
-                  <p className="text-[11px] text-charcoal-muted mt-1">{centre.address}</p>
-                  
-                  <div className="mt-2 text-[11px] text-charcoal space-y-0.5">
-                    <p className="flex items-center gap-1">
-                      <Phone className="w-3 h-3 text-forest" />
-                      <span>{centre.phone}</span>
-                    </p>
-                    <p className="flex items-center gap-1">
+
+                  <p className="text-[11px] text-charcoal">
+                    {centre.address}
+                  </p>
+
+                  <div className="pt-1 border-t border-gray-200 text-[10px] text-charcoal-muted space-y-0.5">
+                    <div className="flex items-center gap-1">
                       <Clock className="w-3 h-3 text-forest" />
                       <span>{centre.operating_hours}</span>
-                    </p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Phone className="w-3 h-3 text-forest" />
+                      <span>{centre.phone}</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-1">
+                    <span className="text-[10px] text-charcoal font-medium block mb-1">
+                      Accepted Segregations:
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {centre.accepted_categories.map((c) => (
+                        <span key={c} className="text-[9px] bg-gray-100 text-charcoal px-1.5 py-0.5 rounded">
+                          {c}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </Popup>
             </Marker>
           ))}
 
-        {/* Waste Listings Markers */}
+        {/* Listings Markers */}
         {(filterType === 'all' || filterType === 'listings') &&
           listings.map((listing) => (
             <Marker
@@ -137,24 +239,29 @@ export const KeralaCircularMap: React.FC<KeralaCircularMapProps> = ({ centres, l
               icon={listingIcon}
             >
               <Popup>
-                <div className="p-1 max-w-[210px] text-xs">
-                  <span className="text-[10px] uppercase font-semibold text-forest block mb-0.5">
-                    Available Material
-                  </span>
-                  <h4 className="font-heading font-bold text-sm text-charcoal leading-snug">
+                <div className="p-1 space-y-1.5 text-left max-w-xs font-sans">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-semibold text-forest">
+                      {listing.category?.name || 'Material'}
+                    </span>
+                    <span className="text-[10px] font-bold text-forest">
+                      {listing.quantity} {listing.unit}
+                    </span>
+                  </div>
+
+                  <h4 className="font-heading font-semibold text-xs text-charcoal">
                     {listing.title}
                   </h4>
-                  <p className="text-xs font-semibold text-forest mt-0.5">
-                    {listing.quantity} {listing.unit} • {listing.listing_type.toUpperCase()}
-                  </p>
-                  <p className="text-[11px] text-charcoal-muted mt-0.5">
+
+                  <p className="text-[11px] text-charcoal-muted">
                     {listing.locality}, {listing.district}
                   </p>
+
                   <Link
                     to={`/marketplace/${listing.id}`}
-                    className="mt-2 inline-flex items-center gap-1 text-xs text-forest font-semibold hover:underline"
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-forest hover:underline pt-1"
                   >
-                    <span>View Listing</span>
+                    <span>View Listing Details</span>
                     <ArrowRight className="w-3 h-3" />
                   </Link>
                 </div>

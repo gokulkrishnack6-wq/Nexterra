@@ -8,7 +8,9 @@ import {
   Challenge, 
   RecyclingCentre, 
   NotificationItem, 
-  SustainabilityMetrics 
+  SustainabilityMetrics,
+  PublicWasteBin,
+  EnvironmentalReport
 } from '../types';
 
 export const INITIAL_CATEGORIES: WasteCategory[] = [
@@ -682,6 +684,126 @@ export const INITIAL_NOTIFICATIONS: NotificationItem[] = [
     link: '/marketplace',
     is_read: true,
     created_at: new Date(Date.now() - 86400000 * 4).toISOString(),
+  }
+];
+
+export const INITIAL_WASTE_BINS: PublicWasteBin[] = [
+  {
+    id: 'bin-1',
+    name: 'Marine Drive Segregated Bio-Bin Hub',
+    bin_type: 'organic_bio',
+    district: 'Ernakulam',
+    locality: 'Marine Drive Walkway',
+    address: 'Near Rainbow Bridge Promenade, Kochi - 682031',
+    latitude: 9.9816,
+    longitude: 76.2750,
+    fill_percentage: 85,
+    last_serviced: 'Yesterday, 19:00',
+    status: 'active',
+    managed_by: 'Kochi Municipal Corporation'
+  },
+  {
+    id: 'bin-2',
+    name: 'Panampilly Nagar Smart Plastic Flaking Kiosk',
+    bin_type: 'plastic_bottle',
+    district: 'Ernakulam',
+    locality: 'Panampilly Nagar',
+    address: 'Central Park Entrance, Ward 24, Kochi - 682036',
+    latitude: 9.9610,
+    longitude: 76.2950,
+    fill_percentage: 42,
+    last_serviced: 'Today, 07:30',
+    status: 'active',
+    managed_by: 'Haritha Karma Sena Ward 24'
+  },
+  {
+    id: 'bin-3',
+    name: 'Kadavanthra Junction E-Waste Drop Box',
+    bin_type: 'e_waste_kiosk',
+    district: 'Ernakulam',
+    locality: 'Kadavanthra',
+    address: 'Metro Station Entry B, Kadavanthra, Kochi - 682020',
+    latitude: 9.9675,
+    longitude: 76.2995,
+    fill_percentage: 60,
+    last_serviced: '2 days ago',
+    status: 'active',
+    managed_by: 'Clean Kerala Company Ltd'
+  },
+  {
+    id: 'bin-4',
+    name: 'Perinthalmanna Town Square Segregated Smart Kiosk',
+    bin_type: 'segregated_smart',
+    district: 'Malappuram',
+    locality: 'Perinthalmanna',
+    address: 'Opposite Municipal Town Hall, Perinthalmanna - 679322',
+    latitude: 10.9760,
+    longitude: 76.2254,
+    fill_percentage: 30,
+    last_serviced: 'Today, 06:00',
+    status: 'active',
+    managed_by: 'Perinthalmanna Municipality'
+  },
+  {
+    id: 'bin-5',
+    name: 'Manaveeyam Veedhi Solar Bio-Composter Bin',
+    bin_type: 'organic_bio',
+    district: 'Thiruvananthapuram',
+    locality: 'Vellayambalam',
+    address: 'Manaveeyam Cultural Corridor, Thiruvananthapuram - 695033',
+    latitude: 8.5100,
+    longitude: 76.9550,
+    fill_percentage: 55,
+    last_serviced: 'Yesterday, 18:00',
+    status: 'active',
+    managed_by: 'Suchitwa Mission'
+  }
+];
+
+export const INITIAL_ENVIRONMENTAL_REPORTS: EnvironmentalReport[] = [
+  {
+    id: 'rep-1',
+    ticket_number: 'KMC-2026-8812',
+    reporter_id: 'user-gokul',
+    reporter_name: 'Ananya Nair',
+    issue_type: 'overflowing_bin',
+    title: 'Overflowing Bin near Marine Drive Walkway',
+    description: 'Public bio-bin near the walkway has exceeded capacity. Dispatched to Kochi Municipal Corporation sanitation crew.',
+    district: 'Ernakulam',
+    ward: 'Ward 24',
+    locality: 'Marine Drive Walkway',
+    landmark: 'Near Rainbow Bridge Promenade',
+    latitude: 9.9816,
+    longitude: 76.2750,
+    photo_url: 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=600&q=80',
+    status: 'in_progress',
+    assigned_team: 'KMC Sanitation Squad Alpha',
+    assigned_vehicle: 'Route vehicle #KL-07-CS-4190',
+    resolution_notes: 'Vehicle en route for evening clearing and sanitizing.',
+    created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+    updated_at: new Date(Date.now() - 3600000 * 4).toISOString()
+  },
+  {
+    id: 'rep-2',
+    ticket_number: 'KMC-2026-8804',
+    reporter_id: 'user-gokul',
+    reporter_name: 'Ananya Nair',
+    issue_type: 'illegal_dumping',
+    title: 'Coir Residue Dumping at Ravipuram Corner',
+    description: 'Dry coconut husk residue accumulated along roadside corner.',
+    district: 'Ernakulam',
+    ward: 'Ward 24',
+    locality: 'Ravipuram',
+    landmark: 'Near Temple Road Turn',
+    latitude: 9.9590,
+    longitude: 76.2890,
+    photo_url: 'https://images.unsplash.com/photo-1628352081506-83c43123ed6d?auto=format&fit=crop&w=600&q=80',
+    status: 'resolved',
+    assigned_team: 'Haritha Karma Sena Squad 04',
+    assigned_vehicle: 'Electric Auto #KL-07-EA-1022',
+    resolution_notes: 'Haritha Karma Sena cleared 30 kg residue and channeled directly into nursery bio-mulch depot.',
+    created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
+    updated_at: new Date(Date.now() - 86400000 * 1).toISOString()
   }
 ];
 

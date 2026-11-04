@@ -1,9 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Search, Plus, X, Sparkles } from 'lucide-react';
+import { Search, Plus, X, Sparkles, Filter, CheckCircle2 } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { ListingCard } from '../../components/marketplace/ListingCard';
 import { KERALA_DISTRICTS } from '../../lib/mockData';
+import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
+import { Card } from '../../components/ui/Card';
 
 export const MarketplacePage: React.FC = () => {
   const { listings, categories } = useData();
@@ -62,159 +65,171 @@ export const MarketplacePage: React.FC = () => {
   }, [listings, categories, selectedCategory, selectedDistrict, selectedPricing, onlyAiVerified, searchTerm]);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 space-y-6 text-left">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="font-heading font-bold text-2xl sm:text-3xl text-forest">
-            Explore Materials
+          <div className="inline-flex items-center gap-1.5 mb-1">
+            <Badge variant="brand">Circular Marketplace</Badge>
+            <span className="text-outline text-xs">•</span>
+            <span className="font-label-sm text-label-sm text-secondary">
+              {filteredListings.length} materials in Kerala circulation
+            </span>
+          </div>
+          <h1 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight">
+            Waste Marketplace
           </h1>
-          <p className="text-xs sm:text-sm text-charcoal-muted mt-0.5">
-            Discover reusable, recyclable, and compostable resources available across Kerala.
+          <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
+            Discover reusable, recyclable, and compostable resources available across Kerala's wards.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <Link
-            to="/smart-match"
-            className="inline-flex items-center gap-1.5 bg-cream hover:bg-[#EFEFE6] text-charcoal border border-[#D5D5CA] text-xs font-medium px-3.5 py-2 rounded-md transition-colors"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-forest" />
-            <span>Smart Match</span>
+          <Link to="/smart-match">
+            <Button variant="secondary" size="md" icon={<Sparkles className="w-4 h-4 text-surface-tint" />}>
+              Smart Match
+            </Button>
           </Link>
 
-          <Link
-            to="/marketplace/new"
-            className="inline-flex items-center gap-1.5 bg-forest hover:bg-forest-dark text-white text-xs font-semibold px-4 py-2 rounded-md transition-colors"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>List Material</span>
+          <Link to="/marketplace/new">
+            <Button variant="primary" size="md" icon={<Plus className="w-4 h-4" />}>
+              List Material
+            </Button>
           </Link>
         </div>
       </div>
 
       {/* Filter Toolbar */}
-      <div className="bg-white p-4 rounded-lg border border-[#E2E2D8] space-y-3">
+      <Card variant="elevated" className="space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 text-xs">
           {/* Keyword Search */}
           <div className="sm:col-span-5 relative">
-            <Search className="w-4 h-4 text-charcoal-muted absolute left-3 top-2.5" />
+            <Search className="w-4 h-4 absolute left-3 top-2.5 text-outline" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search cardboard, coconut husk, vegetable scraps, books..."
-              className="w-full pl-9 pr-7 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal placeholder:text-charcoal-muted focus:outline-none focus:ring-1 focus:ring-forest"
+              placeholder="Search by material (e.g. coconut husk, cartons, glass bottles)..."
+              className="w-full pl-9 pr-8 py-2 bg-surface-container-lowest border border-outline-variant hover:border-outline focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 rounded-lg text-body-sm text-on-surface focus:outline-none transition-all placeholder:text-outline"
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm('')}
-                className="absolute right-2.5 top-2.5 text-charcoal-muted hover:text-charcoal"
+                className="absolute right-2.5 top-2.5 text-outline hover:text-on-surface"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
 
-          {/* District */}
-          <div className="sm:col-span-4">
+          {/* District Select */}
+          <div className="sm:col-span-3">
             <select
               value={selectedDistrict}
               onChange={(e) => setSelectedDistrict(e.target.value)}
-              className="w-full py-2 px-3 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
+              className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant hover:border-outline focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 rounded-lg text-body-sm text-on-surface focus:outline-none transition-all"
             >
-              {KERALA_DISTRICTS.map((district) => (
-                <option key={district} value={district}>
-                  {district === 'All Kerala' ? 'All Kerala Districts' : district}
-                </option>
+              <option value="All Kerala">All Kerala (14 Districts)</option>
+              {KERALA_DISTRICTS.map((d) => (
+                <option key={d} value={d}>{d}</option>
               ))}
             </select>
           </div>
 
-          {/* Pricing */}
-          <div className="sm:col-span-3">
+          {/* Pricing Select */}
+          <div className="sm:col-span-2">
             <select
               value={selectedPricing}
               onChange={(e) => setSelectedPricing(e.target.value)}
-              className="w-full py-2 px-3 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
+              className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant hover:border-outline focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 rounded-lg text-body-sm text-on-surface focus:outline-none transition-all"
             >
-              <option value="all">All Pricing Types</option>
+              <option value="all">All Pricing</option>
               <option value="free">Free Only</option>
-              <option value="exchange">Exchange</option>
-              <option value="sale">Scrap Sale</option>
+              <option value="exchange">Exchange / Barter</option>
+              <option value="sale">Nominal Sale</option>
             </select>
+          </div>
+
+          {/* AI Verified Toggle */}
+          <div className="sm:col-span-2 flex items-center">
+            <label className="flex items-center gap-2 cursor-pointer select-none text-body-sm text-on-surface-variant font-medium">
+              <input
+                type="checkbox"
+                checked={onlyAiVerified}
+                onChange={(e) => setOnlyAiVerified(e.target.checked)}
+                className="w-4 h-4 rounded border-outline text-primary-container focus:ring-primary-container accent-primary-container"
+              />
+              <span className="truncate">AI Verified Only</span>
+            </label>
           </div>
         </div>
 
-        {/* Category Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 text-xs">
+        {/* Category Horizontal Scrolling Chips */}
+        <div className="pt-2 border-t border-outline-variant/40 flex items-center gap-2 overflow-x-auto pb-1">
           <button
             onClick={() => handleCategoryChange('all')}
-            className={`px-3 py-1 rounded-md text-[11px] font-medium whitespace-nowrap transition-colors ${
+            className={`px-3 py-1 rounded-full font-label-sm text-label-sm whitespace-nowrap transition-all ${
               selectedCategory === 'all'
-                ? 'bg-forest text-white'
-                : 'bg-cream text-charcoal hover:bg-[#EBEBE0]'
+                ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
+                : 'bg-surface-container text-on-surface hover:bg-surface-container-high border border-outline-variant/50'
             }`}
           >
-            All Categories
+            All Categories ({listings.length})
           </button>
+
           {categories.map((cat) => {
+            const count = listings.filter((l) => l.category_id === cat.id).length;
             const isSelected = selectedCategory === cat.slug;
             return (
               <button
                 key={cat.id}
                 onClick={() => handleCategoryChange(cat.slug)}
-                className={`px-3 py-1 rounded-md text-[11px] font-medium whitespace-nowrap transition-colors ${
+                className={`px-3 py-1 rounded-full font-label-sm text-label-sm whitespace-nowrap transition-all ${
                   isSelected
-                    ? 'bg-forest text-white'
-                    : 'bg-cream text-charcoal hover:bg-[#EBEBE0]'
+                    ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
+                    : 'bg-surface-container text-on-surface hover:bg-surface-container-high border border-outline-variant/50'
                 }`}
               >
-                {cat.name}
+                {cat.name} ({count})
               </button>
             );
           })}
         </div>
-      </div>
+      </Card>
 
-      {/* Results Count & Listings Grid */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between text-xs text-charcoal-muted px-0.5">
-          <span>Showing <strong className="text-charcoal">{filteredListings.length}</strong> available materials</span>
-          {selectedDistrict !== 'All Kerala' && (
-            <span>Filtered: {selectedDistrict}</span>
-          )}
+      {/* Material Grid */}
+      {filteredListings.length === 0 ? (
+        <Card variant="flat" className="py-16 text-center space-y-3">
+          <div className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center mx-auto text-outline">
+            <Filter className="w-5 h-5" />
+          </div>
+          <h3 className="font-heading font-semibold text-title-md text-primary">
+            No materials match your current criteria
+          </h3>
+          <p className="font-body-sm text-body-sm text-on-surface-variant max-w-sm mx-auto">
+            Try clearing search keywords, resetting district filters, or post the first listing for this material category.
+          </p>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              setSearchTerm('');
+              setSelectedDistrict('All Kerala');
+              setSelectedPricing('all');
+              setOnlyAiVerified(false);
+              handleCategoryChange('all');
+            }}
+          >
+            Reset All Filters
+          </Button>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {filteredListings.map((listing) => (
+            <ListingCard key={listing.id} listing={listing} />
+          ))}
         </div>
-
-        {filteredListings.length === 0 ? (
-          <div className="bg-white rounded-lg border border-[#E2E2D8] p-12 text-center max-w-md mx-auto space-y-3">
-            <h3 className="font-heading font-semibold text-base text-charcoal">
-              No matching listings found
-            </h3>
-            <p className="text-xs text-charcoal-muted leading-relaxed">
-              We couldn't find any materials matching your active filters. Try resetting filters or choosing All Kerala.
-            </p>
-            <button
-              onClick={() => {
-                setSearchTerm('');
-                setSelectedDistrict('All Kerala');
-                setSelectedPricing('all');
-                setOnlyAiVerified(false);
-                handleCategoryChange('all');
-              }}
-              className="text-xs font-semibold text-forest underline hover:text-forest-dark"
-            >
-              Reset filters
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filteredListings.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} />
-            ))}
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 };

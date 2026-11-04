@@ -3,11 +3,19 @@ import {
   Award, 
   Leaf, 
   Flame, 
-  ShieldCheck
+  ShieldCheck,
+  TrendingUp,
+  BarChart3,
+  Users,
+  Info
 } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { ImpactCharts } from '../../components/charts/ImpactCharts';
+import { Button } from '../../components/ui/Button';
+import { Card } from '../../components/ui/Card';
+import { Badge } from '../../components/ui/Badge';
+import { MetricCard } from '../../components/ui/MetricCard';
 
 export const ImpactDashboardPage: React.FC = () => {
   const { metrics, ecoPointsLedger, categories } = useData();
@@ -21,269 +29,234 @@ export const ImpactDashboardPage: React.FC = () => {
   );
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 space-y-6 text-left">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="font-heading font-bold text-2xl sm:text-3xl text-forest">
-            Environmental Impact & Metrics
+          <div className="inline-flex items-center gap-1.5 mb-1">
+            <Badge variant="brand">Empirical Telemetry</Badge>
+            <span className="text-outline text-xs">•</span>
+            <span className="font-label-sm text-label-sm text-secondary">
+              Kerala State Ecological Ledger
+            </span>
+          </div>
+          <h1 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight">
+            Environmental Impact & EcoPoints
           </h1>
-          <p className="text-xs sm:text-sm text-charcoal-muted mt-0.5">
-            Transparent empirical telemetry on landfill diversion and greenhouse gas mitigation in Kerala.
+          <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
+            Transparent empirical telemetry on landfill diversion, avoided methane, and greenhouse gas mitigation in Kerala.
           </p>
         </div>
 
-        <div className="bg-white p-3 rounded-lg border border-[#E2E2D8] flex items-center gap-3 text-xs self-start sm:self-auto">
-          <div className="w-8 h-8 rounded bg-forest text-white flex items-center justify-center font-heading font-bold text-sm">
+        <div className="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant shadow-sm flex items-center gap-3 self-start sm:self-auto">
+          <div className="w-10 h-10 rounded-lg bg-primary-container text-on-primary flex items-center justify-center font-heading font-bold text-sm">
             {currentUser.eco_points_balance}
           </div>
           <div>
-            <span className="text-[10px] text-charcoal-muted uppercase tracking-wider block">Your EcoPoints</span>
-            <span className="font-semibold text-charcoal">{currentUser.full_name.split(' ')[0]} ({currentUser.role})</span>
+            <span className="font-label-sm text-[10px] text-outline uppercase tracking-wider block font-semibold">Your EcoPoints</span>
+            <span className="font-heading font-semibold text-xs text-primary">{currentUser.full_name} ({currentUser.role})</span>
           </div>
         </div>
       </div>
 
       {/* KPI Metric Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-        <div className="bg-white p-4 rounded-lg border border-[#E2E2D8] space-y-1">
-          <span className="text-charcoal-muted font-medium block">Total Waste Diverted</span>
-          <div className="font-heading font-bold text-xl sm:text-2xl text-forest">
-            {metrics.total_waste_diverted_kg} <span className="text-xs font-normal text-charcoal-muted">kg</span>
-          </div>
-          <p className="text-[11px] text-charcoal-muted">Redirected into organic & secondary loops</p>
-        </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard
+          label="Total Waste Diverted"
+          value={metrics.total_waste_diverted_kg.toLocaleString()}
+          unit="kg"
+          subtext="Redirected into organic & secondary loops"
+          icon={<Leaf className="w-5 h-5" />}
+        />
 
-        <div className="bg-white p-4 rounded-lg border border-[#E2E2D8] space-y-1">
-          <span className="text-charcoal-muted font-medium block">Avoided CO₂e Emissions</span>
-          <div className="font-heading font-bold text-xl sm:text-2xl text-forest">
-            {metrics.total_co2e_avoided_kg} <span className="text-xs font-normal text-charcoal-muted">kg</span>
-          </div>
-          <p className="text-[11px] text-charcoal-muted">Mitigated via local diversion</p>
-        </div>
+        <MetricCard
+          label="Avoided CO₂e Emissions"
+          value={metrics.total_co2e_avoided_kg.toLocaleString()}
+          unit="kg"
+          subtext="Mitigated via local decentralized diversion"
+          icon={<TrendingUp className="w-5 h-5" />}
+        />
 
-        <div className="bg-white p-4 rounded-lg border border-[#E2E2D8] space-y-1">
-          <span className="text-charcoal-muted font-medium block">Landfill Space Saved</span>
-          <div className="font-heading font-bold text-xl sm:text-2xl text-forest">
-            {metrics.total_landfill_area_saved_sqm} <span className="text-xs font-normal text-charcoal-muted">m²</span>
-          </div>
-          <p className="text-[11px] text-charcoal-muted">Estimated municipal area conserved</p>
-        </div>
+        <MetricCard
+          label="Landfill Space Saved"
+          value={metrics.total_landfill_area_saved_sqm.toLocaleString()}
+          unit="m²"
+          subtext="Estimated municipal landfill area conserved"
+          icon={<ShieldCheck className="w-5 h-5" />}
+        />
 
-        <div className="bg-white p-4 rounded-lg border border-[#E2E2D8] space-y-1">
-          <span className="text-charcoal-muted font-medium block">Completed Exchanges</span>
-          <div className="font-heading font-bold text-xl sm:text-2xl text-forest">
-            {metrics.total_completed_exchanges} <span className="text-xs font-normal text-charcoal-muted">cycles</span>
-          </div>
-          <p className="text-[11px] text-charcoal-muted">Completed with pickup verification</p>
-        </div>
+        <MetricCard
+          label="Completed Exchanges"
+          value={metrics.total_completed_exchanges}
+          unit="cycles"
+          subtext="Completed with QR handover code verification"
+          icon={<Award className="w-5 h-5" />}
+        />
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-[#E2E2D8] text-xs">
+      <div className="flex items-center gap-2 border-b border-outline-variant/60 pb-1">
         <button
           onClick={() => setActiveTab('overview')}
-          className={`px-3 py-2 font-medium border-b-2 transition-colors ${
+          className={`px-4 py-2 font-label-md text-xs rounded-lg transition-all ${
             activeTab === 'overview'
-              ? 'border-forest text-forest font-semibold'
-              : 'border-transparent text-charcoal-muted hover:text-charcoal'
+              ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
+              : 'text-on-surface-variant hover:bg-surface-container'
           }`}
         >
-          Visualizations
+          Visualizations & Charts
         </button>
         <button
           onClick={() => setActiveTab('points')}
-          className={`px-3 py-2 font-medium border-b-2 transition-colors ${
+          className={`px-4 py-2 font-label-md text-xs rounded-lg transition-all ${
             activeTab === 'points'
-              ? 'border-forest text-forest font-semibold'
-              : 'border-transparent text-charcoal-muted hover:text-charcoal'
+              ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
+              : 'text-on-surface-variant hover:bg-surface-container'
           }`}
         >
-          My Points Ledger ({userPointsHistory.length})
+          My EcoPoints Ledger ({userPointsHistory.length})
         </button>
         <button
           onClick={() => setActiveTab('leaderboard')}
-          className={`px-3 py-2 font-medium border-b-2 transition-colors ${
+          className={`px-4 py-2 font-label-md text-xs rounded-lg transition-all ${
             activeTab === 'leaderboard'
-              ? 'border-forest text-forest font-semibold'
-              : 'border-transparent text-charcoal-muted hover:text-charcoal'
+              ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
+              : 'text-on-surface-variant hover:bg-surface-container'
           }`}
         >
-          Community Participants
+          Community Leaderboard
         </button>
         <button
           onClick={() => setActiveTab('factors')}
-          className={`px-3 py-2 font-medium border-b-2 transition-colors ${
+          className={`px-4 py-2 font-label-md text-xs rounded-lg transition-all ${
             activeTab === 'factors'
-              ? 'border-forest text-forest font-semibold'
-              : 'border-transparent text-charcoal-muted hover:text-charcoal'
+              ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
+              : 'text-on-surface-variant hover:bg-surface-container'
           }`}
         >
-          Conversion Factors (KSPCB / IPCC)
+          Carbon Calculation Factors
         </button>
       </div>
 
-      {/* Tab Panels */}
+      {/* Tab 1: Charts */}
       {activeTab === 'overview' && (
-        <div className="space-y-6">
+        <Card variant="elevated" className="p-6">
           <ImpactCharts metrics={metrics} />
-
-          {/* Badges */}
-          <div className="bg-white p-5 rounded-lg border border-[#E2E2D8] space-y-3">
-            <h3 className="font-heading font-semibold text-sm text-charcoal">
-              Participation Badges
-            </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-              <div className="p-3 bg-cream rounded-md border border-[#E2E2D8] space-y-1">
-                <Leaf className="w-4 h-4 text-forest" />
-                <h4 className="font-semibold text-charcoal">Circular Pioneer</h4>
-                <p className="text-[11px] text-charcoal-muted">Joined and logged first exchange.</p>
-                <span className="text-[10px] font-semibold text-forest block pt-1">Active</span>
-              </div>
-
-              <div className="p-3 bg-cream rounded-md border border-[#E2E2D8] space-y-1">
-                <Flame className="w-4 h-4 text-forest" />
-                <h4 className="font-semibold text-charcoal">Carbon Saver</h4>
-                <p className="text-[11px] text-charcoal-muted">Avoided over 50kg greenhouse emissions.</p>
-                <span className="text-[10px] font-semibold text-forest block pt-1">Active</span>
-              </div>
-
-              <div className="p-3 bg-cream rounded-md border border-[#E2E2D8] space-y-1 opacity-60">
-                <Award className="w-4 h-4 text-charcoal-muted" />
-                <h4 className="font-semibold text-charcoal">10 Handover Club</h4>
-                <p className="text-[11px] text-charcoal-muted">Complete 10 material collections.</p>
-                <span className="text-[10px] text-charcoal-muted block pt-1">In progress (3/10)</span>
-              </div>
-
-              <div className="p-3 bg-cream rounded-md border border-[#E2E2D8] space-y-1 opacity-60">
-                <ShieldCheck className="w-4 h-4 text-charcoal-muted" />
-                <h4 className="font-semibold text-charcoal">E-Waste Safeguard</h4>
-                <p className="text-[11px] text-charcoal-muted">Divert 25kg of electronic components.</p>
-                <span className="text-[10px] text-charcoal-muted block pt-1">In progress (15/25)</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        </Card>
       )}
 
+      {/* Tab 2: EcoPoints Ledger */}
       {activeTab === 'points' && (
-        <div className="bg-white rounded-lg border border-[#E2E2D8] p-5 space-y-3">
-          <h3 className="font-heading font-semibold text-sm text-charcoal pb-2 border-b border-[#F0F0E6]">
-            Auditable EcoPoints Log
-          </h3>
+        <Card variant="elevated" className="p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-heading font-semibold text-title-md text-primary">
+              Personal EcoPoints Transaction History
+            </h3>
+            <span className="font-label-sm text-xs font-semibold text-primary bg-tertiary-fixed px-3 py-1 rounded-full">
+              Balance: {currentUser.eco_points_balance} PTS
+            </span>
+          </div>
 
-          <div className="divide-y divide-[#F0F0E6] text-xs">
+          <div className="divide-y divide-outline-variant/40">
             {userPointsHistory.map((item) => (
-              <div key={item.id} className="py-2.5 flex items-center justify-between gap-4">
+              <div key={item.id} className="py-3 flex items-center justify-between text-body-sm">
                 <div>
-                  <p className="font-medium text-charcoal">{item.description}</p>
-                  <p className="text-[11px] text-charcoal-muted mt-0.5">
-                    {new Date(item.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} • {item.action_type}
-                  </p>
+                  <span className="font-heading font-semibold text-on-surface block">
+                    {item.description}
+                  </span>
+                  <span className="font-body-sm text-xs text-outline">
+                    {new Date(item.created_at).toLocaleDateString()} • Action: {item.action_type.replace('_', ' ')}
+                  </span>
                 </div>
-                <span className="font-semibold text-forest bg-cream px-2 py-0.5 rounded border border-[#E2E2D8] shrink-0">
-                  +{item.points} pts
+                <span className="font-heading font-bold text-base text-primary">
+                  +{item.points} PTS
                 </span>
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       )}
 
+      {/* Tab 3: Leaderboard */}
       {activeTab === 'leaderboard' && (
-        <div className="bg-white rounded-lg border border-[#E2E2D8] p-5 space-y-3">
-          <h3 className="font-heading font-semibold text-sm text-charcoal pb-2 border-b border-[#F0F0E6]">
-            Community Participants
+        <Card variant="elevated" className="p-6 space-y-4">
+          <h3 className="font-heading font-semibold text-title-md text-primary">
+            Kerala Circular Contributors Leaderboard
           </h3>
 
-          <div className="divide-y divide-[#F0F0E6] text-xs">
+          <div className="divide-y divide-outline-variant/40">
             {sortedLeaderboard.map((user, idx) => (
-              <div
-                key={user.id}
-                className={`py-2.5 px-2 flex items-center justify-between gap-3 ${
-                  user.id === currentUser.id ? 'bg-cream rounded font-medium' : ''
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <span className="w-5 text-center font-bold text-charcoal-muted text-[11px]">
-                    #{idx + 1}
+              <div key={user.id} className="py-3 flex items-center justify-between text-body-sm">
+                <div className="flex items-center gap-3">
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs ${
+                    idx === 0 ? 'bg-primary-container text-on-primary' : 'bg-surface-container text-on-surface'
+                  }`}>
+                    {idx + 1}
                   </span>
-                  <img src={user.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover" />
+                  <img
+                    src={user.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80'}
+                    alt={user.full_name}
+                    className="w-8 h-8 rounded-full object-cover ring-1 ring-outline-variant"
+                  />
                   <div>
-                    <span className="font-semibold text-charcoal">
+                    <span className="font-heading font-semibold text-on-surface block">
                       {user.full_name} {user.id === currentUser.id && '(You)'}
                     </span>
-                    <span className="text-[11px] text-charcoal-muted ml-2 uppercase">
+                    <span className="text-xs text-outline capitalize">
                       {user.role} • {user.district}
                     </span>
                   </div>
                 </div>
 
-                <span className="font-semibold text-forest">
-                  {user.eco_points_balance} pts
-                </span>
+                <div className="text-right">
+                  <span className="font-heading font-bold text-base text-primary block">
+                    {user.eco_points_balance} PTS
+                  </span>
+                  <span className="text-[10px] text-surface-tint font-semibold uppercase">Verified Contributor</span>
+                </div>
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       )}
 
+      {/* Tab 4: Carbon Factors */}
       {activeTab === 'factors' && (
-        <div className="bg-white rounded-lg border border-[#E2E2D8] p-5 space-y-4 text-xs">
-          <div>
-            <h3 className="font-heading font-semibold text-sm text-charcoal">
-              Conversion Factors & IPCC References
-            </h3>
-            <p className="text-charcoal-muted mt-0.5 leading-relaxed">
-              GreenLoop uses documented coefficients from the Kerala State Pollution Control Board and the IPCC Waste Model.
-            </p>
-          </div>
+        <Card variant="elevated" className="p-6 space-y-4">
+          <h3 className="font-heading font-semibold text-title-md text-primary">
+            State-Specific Carbon & Landfill Avoidance Factors
+          </h3>
+          <p className="font-body-sm text-body-sm text-on-surface-variant">
+            Coefficients aligned with Suchitwa Mission benchmarks and Kerala State Pollution Control Board life-cycle assessment models.
+          </p>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-cream text-charcoal font-semibold border-b border-[#E2E2D8]">
+            <table className="w-full text-left text-body-sm">
+              <thead className="bg-surface-container-low font-label-sm text-xs text-outline uppercase border-b border-outline-variant">
                 <tr>
-                  <th className="py-2 px-3">Category</th>
-                  <th className="py-2 px-3">CO₂e Saved / kg</th>
-                  <th className="py-2 px-3">Landfill Conserved / kg</th>
-                  <th className="py-2 px-3">Scientific Source</th>
+                  <th className="p-3">Material Category</th>
+                  <th className="p-3">Standard Unit</th>
+                  <th className="p-3">CO₂e Avoided per Unit</th>
+                  <th className="p-3">Landfill Area Saved per Unit</th>
+                  <th className="p-3">Circular Pathway</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#F0F0E6] text-charcoal">
-                <tr>
-                  <td className="py-2 px-3 font-medium">Organic & Kitchen Waste</td>
-                  <td className="py-2 px-3">1.80 kg</td>
-                  <td className="py-2 px-3">1.20 kg</td>
-                  <td className="py-2 px-3 text-charcoal-muted text-[11px]">KSPCB / IPCC Waste Model 2019</td>
-                </tr>
-                <tr>
-                  <td className="py-2 px-3 font-medium">Coconut & Agricultural Biomass</td>
-                  <td className="py-2 px-3">1.50 kg</td>
-                  <td className="py-2 px-3">1.10 kg</td>
-                  <td className="py-2 px-3 text-charcoal-muted text-[11px]">Kerala Agricultural University (KAU)</td>
-                </tr>
-                <tr>
-                  <td className="py-2 px-3 font-medium">Paper & Cardboard</td>
-                  <td className="py-2 px-3">2.10 kg</td>
-                  <td className="py-2 px-3">1.30 kg</td>
-                  <td className="py-2 px-3 text-charcoal-muted text-[11px]">CPCB Secondary Fibres Study</td>
-                </tr>
-                <tr>
-                  <td className="py-2 px-3 font-medium">Clean Plastics (HDPE / PET)</td>
-                  <td className="py-2 px-3">2.50 kg</td>
-                  <td className="py-2 px-3">1.05 kg</td>
-                  <td className="py-2 px-3 text-charcoal-muted text-[11px]">Suchitwa Mission Kerala Dataset</td>
-                </tr>
-                <tr>
-                  <td className="py-2 px-3 font-medium">E-Waste & Electronics</td>
-                  <td className="py-2 px-3">5.80 kg</td>
-                  <td className="py-2 px-3">0.95 kg</td>
-                  <td className="py-2 px-3 text-charcoal-muted text-[11px]">Clean Kerala Company Baseline</td>
-                </tr>
+              <tbody className="divide-y divide-outline-variant/40">
+                {categories.map((c) => (
+                  <tr key={c.id} className="hover:bg-surface-container-low/50">
+                    <td className="p-3 font-semibold text-on-surface">{c.name}</td>
+                    <td className="p-3 text-outline">{c.standard_unit}</td>
+                    <td className="p-3 text-primary font-bold">{c.default_co2_factor.toFixed(2)} kg CO₂e</td>
+                    <td className="p-3 text-on-surface-variant">{c.default_landfill_factor.toFixed(2)} m²</td>
+                    <td className="p-3 text-xs capitalize text-surface-tint font-medium">
+                      {c.is_organic ? 'Decentralized Composting' : 'Material Recovery & Remanufacture'}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
-        </div>
+        </Card>
       )}
     </div>
   );

@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { ArrowLeft, Plus, Sparkles, Upload, MapPin, CheckCircle2 } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { KERALA_DISTRICTS } from '../../lib/mockData';
 import { ListingPricing } from '../../types';
+import { Button } from '../../components/ui/Button';
+import { Card } from '../../components/ui/Card';
+import { Badge } from '../../components/ui/Badge';
+import { Input, Textarea } from '../../components/ui/Input';
 
 export const CreateListingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -21,9 +25,9 @@ export const CreateListingPage: React.FC = () => {
   const [listingType, setListingType] = useState<ListingPricing>('free');
   const [price, setPrice] = useState<number>(0);
   const [condition, setCondition] = useState('clean/dry');
-  const [district, setDistrict] = useState(currentUser.district || 'Malappuram');
-  const [locality, setLocality] = useState('Perinthalmanna');
-  const [address, setAddress] = useState('Near Town Hall');
+  const [district, setDistrict] = useState(currentUser.district || 'Ernakulam');
+  const [locality, setLocality] = useState('Panampilly Nagar');
+  const [address, setAddress] = useState('Ward 24 Hub Road');
   const [imageUrl, setImageUrl] = useState('');
   const [aiClassified, setAiClassified] = useState(false);
   const [aiConfidence, setAiConfidence] = useState<number | undefined>(undefined);
@@ -75,8 +79,8 @@ export const CreateListingPage: React.FC = () => {
       district,
       locality,
       address,
-      latitude: currentUser.latitude || 10.9760,
-      longitude: currentUser.longitude || 76.2254,
+      latitude: currentUser.latitude || 9.9816,
+      longitude: currentUser.longitude || 76.2999,
       status: 'active',
       ai_classified: aiClassified,
       ai_confidence: aiConfidence,
@@ -90,234 +94,207 @@ export const CreateListingPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 space-y-6 text-left">
+      {/* Top Header */}
       <div className="flex items-center justify-between">
         <button
           onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-1 text-xs font-medium text-charcoal-muted hover:text-forest"
+          className="inline-flex items-center gap-1.5 font-label-md text-xs text-on-surface-variant hover:text-primary transition-colors"
         >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Back</span>
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to Marketplace</span>
         </button>
+
+        <Link to="/scanner">
+          <Button variant="secondary" size="sm" icon={<Sparkles className="w-4 h-4 text-surface-tint" />}>
+            Auto-fill with AI Scanner
+          </Button>
+        </Link>
       </div>
 
-      <div className="bg-white rounded-lg border border-[#E2E2D8] p-6 sm:p-8 space-y-6">
-        <div className="border-b border-[#F0F0E6] pb-4">
-          <h1 className="font-heading font-bold text-xl sm:text-2xl text-forest">
-            List Material
-          </h1>
-          <p className="text-xs text-charcoal-muted mt-1 leading-relaxed">
-            Provide details of materials you have available for collection across Kerala.
-          </p>
+      <div className="space-y-1">
+        <div className="inline-flex items-center gap-1.5 mb-1">
+          <Badge variant="brand">List Material</Badge>
+          {aiClassified && (
+            <Badge variant="active" icon={<Sparkles className="w-3 h-3" />}>
+              AI Pre-Filled
+            </Badge>
+          )}
         </div>
+        <h1 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight">
+          List Unwanted Material for Circulation
+        </h1>
+        <p className="font-body-sm text-body-sm text-on-surface-variant">
+          Connect with nearby compost producers, terrace gardeners, or Haritha Karma Sena hubs.
+        </p>
+      </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5 text-xs">
-          {/* Title */}
-          <div>
-            <label className="block font-medium text-charcoal mb-1">
-              Material Title *
-            </label>
-            <input
-              type="text"
+      <Card variant="elevated" className="p-6 sm:p-8 space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          
+          {/* Material Name & Category */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input
+              label="Material Title *"
               required
+              placeholder="e.g. Dry Coconut Husks, Corrugated Cartons, Clean Bottles"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. 20kg Clean Vegetable Peels & Discarded Produce"
-              className="w-full px-3 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
             />
-          </div>
 
-          {/* Category & Material Type */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block font-medium text-charcoal mb-1">
-                Category *
+              <label className="block font-label-md text-label-md text-on-surface mb-1">
+                Waste Category *
               </label>
               <select
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full px-3 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
+                className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 py-2.5 px-3 transition-all"
               >
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
             </div>
-
-            <div>
-              <label className="block font-medium text-charcoal mb-1">
-                Material Classification
-              </label>
-              <input
-                type="text"
-                value={materialType}
-                onChange={(e) => setMaterialType(e.target.value)}
-                placeholder="e.g. Kitchen vegetable pre-consumer cutoffs"
-                className="w-full px-3 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
-              />
-            </div>
           </div>
 
-          {/* Quantity, Unit, Pricing */}
+          {/* Description */}
+          <Textarea
+            label="Detailed Description & Source *"
+            required
+            rows={3}
+            placeholder="Describe quality, storage condition (dry/wet), origin (kitchen, workshop, packaging)..."
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+
+          {/* Quantity, Unit & Pricing */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block font-medium text-charcoal mb-1">
-                Quantity *
-              </label>
-              <input
-                type="number"
-                min="0.5"
-                step="0.5"
-                required
-                value={quantity}
-                onChange={(e) => setQuantity(Number(e.target.value))}
-                className="w-full px-3 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
-              />
-            </div>
+            <Input
+              label="Available Quantity *"
+              type="number"
+              min={1}
+              required
+              value={quantity}
+              onChange={(e) => setQuantity(Number(e.target.value))}
+            />
 
             <div>
-              <label className="block font-medium text-charcoal mb-1">
-                Unit
+              <label className="block font-label-md text-label-md text-on-surface mb-1">
+                Standard Unit *
               </label>
               <select
                 value={unit}
                 onChange={(e) => setUnit(e.target.value)}
-                className="w-full px-3 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
+                className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 py-2.5 px-3 transition-all"
               >
                 <option value="kg">Kilograms (kg)</option>
-                <option value="sacks">Sacks / Bags</option>
-                <option value="units">Individual Units</option>
+                <option value="units">Units / Pieces</option>
+                <option value="sacks">Gunny Sacks</option>
                 <option value="litres">Litres</option>
               </select>
             </div>
 
             <div>
-              <label className="block font-medium text-charcoal mb-1">
-                Pricing Type
+              <label className="block font-label-md text-label-md text-on-surface mb-1">
+                Pricing Mode *
               </label>
               <select
                 value={listingType}
                 onChange={(e) => setListingType(e.target.value as ListingPricing)}
-                className="w-full px-3 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
+                className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 py-2.5 px-3 transition-all"
               >
-                <option value="free">Free Giveaway</option>
-                <option value="exchange">Resource Exchange / Barter</option>
-                <option value="sale">Scrap Sale</option>
+                <option value="free">Free Donation (Recommended)</option>
+                <option value="exchange">Barter Exchange</option>
+                <option value="sale">Nominal Price (₹)</option>
               </select>
             </div>
           </div>
 
+          {/* If nominal sale, show price field */}
           {listingType === 'sale' && (
-            <div>
-              <label className="block font-medium text-charcoal mb-1">
-                Price (₹ INR)
-              </label>
-              <input
+            <div className="max-w-xs">
+              <Input
+                label="Total Asking Price (₹) *"
                 type="number"
-                min="0"
+                min={1}
                 value={price}
                 onChange={(e) => setPrice(Number(e.target.value))}
-                className="w-full px-3 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
               />
             </div>
           )}
 
-          {/* Description */}
-          <div>
-            <label className="block font-medium text-charcoal mb-1">
-              Description & Storage Condition *
-            </label>
-            <textarea
-              rows={4}
-              required
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="State how the item was stored, cleanliness, packaging, or any collection details."
-              className="w-full px-3 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest leading-relaxed"
-            />
-          </div>
+          {/* Location Fields */}
+          <div className="pt-2 border-t border-outline-variant/40 space-y-3">
+            <span className="font-heading font-semibold text-title-md text-primary block">
+              Pickup Location in Kerala
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block font-label-md text-label-md text-on-surface mb-1">
+                  District *
+                </label>
+                <select
+                  value={district}
+                  onChange={(e) => setDistrict(e.target.value)}
+                  className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 py-2.5 px-3 transition-all"
+                >
+                  {KERALA_DISTRICTS.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
 
-          {/* Location */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block font-medium text-charcoal mb-1">
-                District *
-              </label>
-              <select
-                value={district}
-                onChange={(e) => setDistrict(e.target.value)}
-                className="w-full px-3 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
-              >
-                {KERALA_DISTRICTS.filter((d) => d !== 'All Kerala').map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block font-medium text-charcoal mb-1">
-                Locality / Town *
-              </label>
-              <input
-                type="text"
-                required
+              <Input
+                label="Ward / Locality *"
+                placeholder="e.g. Kadavanthra / Panampilly Nagar"
                 value={locality}
                 onChange={(e) => setLocality(e.target.value)}
-                placeholder="e.g. Perinthalmanna Town"
-                className="w-full px-3 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
+                required
               />
-            </div>
 
-            <div>
-              <label className="block font-medium text-charcoal mb-1">
-                Street / Landmark
-              </label>
-              <input
-                type="text"
+              <Input
+                label="Pickup Landmark *"
+                placeholder="e.g. Near Metro Pillar 812"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                placeholder="e.g. Near Bypass Junction"
-                className="w-full px-3 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
+                required
               />
             </div>
           </div>
 
-          {/* Image URL */}
+          {/* Optional Photo URL */}
           <div>
-            <label className="block font-medium text-charcoal mb-1">
-              Photograph URL (Optional)
-            </label>
-            <input
-              type="url"
+            <Input
+              label="Photo Image URL (Optional)"
+              placeholder="https://... (or leave empty for default material photo)"
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://... (Uses category default if left empty)"
-              className="w-full px-3 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
+              helperText="Paste direct image link, or use AI scanner to capture and pre-fill."
             />
           </div>
 
-          {/* Submit */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#F0F0E6]">
-            <button
+          <div className="pt-4 border-t border-outline-variant/40 flex items-center justify-end gap-3">
+            <Button
               type="button"
-              onClick={() => navigate('/marketplace')}
-              className="px-4 py-2 text-xs font-medium text-charcoal-muted hover:text-charcoal"
+              variant="outline"
+              onClick={() => navigate(-1)}
             >
               Cancel
-            </button>
-            <button
+            </Button>
+
+            <Button
               type="submit"
-              className="px-5 py-2.5 bg-forest hover:bg-forest-dark text-white font-semibold text-xs rounded-md transition-colors"
+              variant="primary"
+              size="lg"
+              icon={<Plus className="w-4 h-4" />}
             >
-              Publish Material
-            </button>
+              Publish Material Listing
+            </Button>
           </div>
+
         </form>
-      </div>
+      </Card>
     </div>
   );
 };

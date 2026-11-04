@@ -7,10 +7,19 @@ import {
   Send, 
   CheckCircle2, 
   Heart,
-  UserCheck
+  UserCheck,
+  ShieldCheck,
+  Sparkles,
+  Award,
+  Layers,
+  Scale
 } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
+import { Card } from '../../components/ui/Card';
+import { Input, Textarea } from '../../components/ui/Input';
 
 export const ListingDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -29,10 +38,12 @@ export const ListingDetailPage: React.FC = () => {
   if (!listing) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-center space-y-3">
-        <h2 className="font-heading font-bold text-lg text-charcoal">Listing not found</h2>
-        <p className="text-xs text-charcoal-muted">This material listing may have been completed or removed.</p>
-        <Link to="/marketplace" className="inline-flex items-center text-xs text-forest font-semibold hover:underline">
-          <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Back to marketplace
+        <h2 className="font-heading font-bold text-xl text-primary">Listing not found</h2>
+        <p className="font-body-sm text-body-sm text-on-surface-variant">This material listing may have been completed or removed.</p>
+        <Link to="/marketplace">
+          <Button variant="secondary" size="sm" icon={<ArrowLeft className="w-3.5 h-3.5" />}>
+            Back to marketplace
+          </Button>
         </Link>
       </div>
     );
@@ -73,204 +84,228 @@ export const ListingDetailPage: React.FC = () => {
     : ['https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=800&q=80'];
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 space-y-6 text-left">
       {/* Top Breadcrumb */}
       <div className="flex items-center justify-between">
         <button
           onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-1 text-xs font-medium text-charcoal-muted hover:text-forest"
+          className="inline-flex items-center gap-1.5 font-label-md text-xs text-on-surface-variant hover:text-primary transition-colors"
         >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Back</span>
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to Marketplace</span>
         </button>
 
         <button
           onClick={() => toggleFavourite(listing.id)}
-          className={`px-3 py-1.5 rounded-md border text-xs font-medium flex items-center gap-1.5 transition-colors ${
+          className={`px-3 py-1.5 rounded-lg border text-xs font-label-md flex items-center gap-1.5 transition-colors ${
             isFav 
-              ? 'bg-white text-red-600 border-[#E2E2D8]' 
-              : 'bg-white text-charcoal-muted border-[#E2E2D8] hover:text-charcoal'
+              ? 'bg-surface-container-lowest text-error border-error/30' 
+              : 'bg-surface-container-lowest text-on-surface-variant border-outline-variant hover:text-on-surface'
           }`}
         >
-          <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-red-600' : ''}`} />
-          <span>{isFav ? 'Saved' : 'Save'}</span>
+          <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-error' : ''}`} />
+          <span>{isFav ? 'Saved' : 'Save Material'}</span>
         </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Column: Image & Details */}
+        {/* Left Col (7 cols): Images & Description */}
         <div className="lg:col-span-7 space-y-6">
-          <div className="bg-white rounded-lg border border-[#E2E2D8] overflow-hidden">
-            <div className="relative aspect-[16/10] w-full bg-[#EFEFE6]">
+          <Card variant="elevated" className="overflow-hidden p-0 border border-outline-variant/70">
+            <div className="aspect-[16/10] w-full bg-surface-container-low overflow-hidden relative">
               <img
                 src={images[0]}
                 alt={listing.title}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute top-3 left-3">
-                <span className="bg-white/90 backdrop-blur text-charcoal font-semibold text-xs px-2.5 py-1 rounded border border-[#E2E2D8]">
-                  {listing.listing_type === 'free' ? 'Free Material' : listing.listing_type === 'sale' ? `₹${listing.price}` : 'Exchange'}
+              <div className="absolute top-3 left-3 flex gap-2">
+                <span className="font-label-sm text-label-sm text-primary font-bold bg-tertiary-fixed px-3 py-1 rounded-full shadow-sm">
+                  {listing.listing_type === 'free' ? 'Free Claim' : listing.listing_type === 'exchange' ? 'Barter Exchange' : `₹${listing.price}`}
                 </span>
+                {listing.ai_classified && (
+                  <span className="font-label-sm text-label-sm text-on-primary bg-primary-container px-3 py-1 rounded-full flex items-center gap-1 shadow-sm font-semibold">
+                    <Sparkles className="w-3 h-3" /> AI Verified
+                  </span>
+                )}
               </div>
             </div>
 
-            <div className="p-6 space-y-5">
+            <div className="p-space-md sm:p-space-lg space-y-4">
               <div>
-                <span className="text-[11px] font-semibold text-forest uppercase tracking-wider block">
-                  {category?.name || 'Material'}
+                <span className="font-label-sm text-label-sm text-secondary uppercase tracking-wider block font-semibold">
+                  {category?.name || 'Recyclable Material'}
                 </span>
-                <h1 className="font-heading font-bold text-xl sm:text-2xl text-charcoal mt-1">
+                <h1 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight mt-1">
                   {listing.title}
                 </h1>
-              </div>
-
-              {/* Specs table */}
-              <div className="grid grid-cols-3 gap-3 p-3.5 bg-cream rounded-md border border-[#E2E2D8] text-xs">
-                <div>
-                  <span className="text-[11px] text-charcoal-muted block">Available Quantity</span>
-                  <span className="font-semibold text-charcoal text-sm mt-0.5 block">
-                    {listing.quantity} {listing.unit}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-on-surface-variant font-body-sm text-body-sm mt-2">
+                  <span className="flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5 text-primary" /> {listing.locality}, {listing.district}
                   </span>
-                </div>
-                <div>
-                  <span className="text-[11px] text-charcoal-muted block">Condition</span>
-                  <span className="font-semibold text-charcoal text-sm mt-0.5 block capitalize">
-                    {listing.condition}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[11px] text-charcoal-muted block">Status</span>
-                  <span className="font-semibold text-forest text-sm mt-0.5 block capitalize">
-                    {listing.status}
+                  <span>•</span>
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5 text-outline" /> Listed on {new Date(listing.created_at).toLocaleDateString()}
                   </span>
                 </div>
               </div>
 
-              {/* Description */}
-              <div className="space-y-1.5">
-                <h3 className="font-heading font-semibold text-xs text-charcoal uppercase tracking-wider">
-                  Description
+              {/* Material Specs */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 bg-surface-container rounded-lg border border-outline-variant/40">
+                <div>
+                  <span className="font-label-sm text-label-sm text-outline block">Available Quantity</span>
+                  <span className="font-heading font-bold text-body-lg text-primary">{listing.quantity} {listing.unit}</span>
+                </div>
+                <div>
+                  <span className="font-label-sm text-label-sm text-outline block">Condition</span>
+                  <span className="font-heading font-semibold text-body-md text-on-surface capitalize">{listing.condition}</span>
+                </div>
+                <div>
+                  <span className="font-label-sm text-label-sm text-outline block">Circularity Mode</span>
+                  <span className="font-heading font-semibold text-body-md text-on-surface capitalize">{listing.listing_type}</span>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-heading font-semibold text-title-md text-primary mb-1">
+                  Material Details & Context
                 </h3>
-                <p className="text-xs text-charcoal leading-relaxed whitespace-pre-line">
+                <p className="font-body text-body-md text-on-surface-variant leading-relaxed">
                   {listing.description}
                 </p>
               </div>
 
               {/* AI Guidance if present */}
               {listing.suggested_action && (
-                <div className="p-3.5 bg-cream rounded-md border border-[#E2E2D8] text-xs space-y-1">
-                  <span className="font-semibold text-forest block">Suggested Circular Action:</span>
-                  <p className="text-charcoal-muted">
-                    This material has been identified as suitable for <strong className="text-charcoal">{listing.suggested_action}</strong>.
-                  </p>
+                <div className="p-3.5 rounded-lg bg-surface-container-low border border-outline-variant/60 flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-tertiary-fixed text-primary mt-0.5">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="font-heading font-semibold text-body-md text-primary block">
+                      AI Circular Recommendation
+                    </span>
+                    <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
+                      Suggested Action: <strong className="capitalize text-primary">{listing.suggested_action.replace('_', ' ')}</strong>. Confidence score {Math.round((listing.ai_confidence || 0.9) * 100)}%.
+                    </p>
+                  </div>
                 </div>
               )}
-
-              {/* Location info */}
-              <div className="pt-3 border-t border-[#F0F0E6] flex items-center justify-between text-xs text-charcoal-muted">
-                <div className="flex items-center gap-1.5 text-charcoal">
-                  <MapPin className="w-3.5 h-3.5 text-forest" />
-                  <span>{listing.locality}, {listing.district}, Kerala</span>
-                </div>
-                <div className="flex items-center gap-1 text-[11px]">
-                  <Calendar className="w-3 h-3" />
-                  <span>Posted {new Date(listing.created_at).toLocaleDateString()}</span>
-                </div>
-              </div>
             </div>
-          </div>
+          </Card>
         </div>
 
-        {/* Right Column: Exchange Request Card */}
+        {/* Right Col (5 cols): Seller Card & Request Form */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="bg-white rounded-lg border border-[#E2E2D8] p-5 space-y-5 sticky top-20">
-            <div className="flex items-center justify-between pb-3 border-b border-[#F0F0E6]">
+          
+          {/* Generator Info */}
+          <Card variant="elevated" className="space-y-3">
+            <div className="flex items-center gap-3">
+              <img
+                src={listing.user?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'}
+                alt={listing.user?.full_name || 'Listing Owner'}
+                className="w-12 h-12 rounded-full object-cover ring-1 ring-outline-variant"
+              />
               <div>
-                <h3 className="font-heading font-semibold text-sm text-charcoal">
-                  Request Material
-                </h3>
-                <p className="text-[11px] text-charcoal-muted">Coordinate direct pickup with the generator.</p>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-heading font-semibold text-title-md text-on-surface">
+                    {listing.user?.full_name || 'Verified Generator'}
+                  </span>
+                  <ShieldCheck className="w-4 h-4 text-surface-tint" />
+                </div>
+                <span className="font-body-sm text-body-sm text-outline block capitalize">
+                  {listing.user?.role || 'Household'} • {listing.district}
+                </span>
               </div>
             </div>
 
-            {isOwner ? (
-              <div className="p-4 bg-cream rounded-md border border-[#E2E2D8] text-center space-y-2 text-xs">
-                <p className="font-medium text-charcoal">You posted this listing</p>
-                <p className="text-charcoal-muted leading-relaxed">
-                  Manage incoming pickup requests in your exchange management console.
-                </p>
-                <Link
-                  to="/dashboard/exchanges"
-                  className="inline-block text-xs font-semibold text-forest hover:underline pt-1"
-                >
-                  View requests →
-                </Link>
-              </div>
-            ) : successMessage ? (
-              <div className="p-4 bg-cream rounded-md border border-[#D5D5CA] text-center space-y-2">
-                <CheckCircle2 className="w-6 h-6 text-forest mx-auto" />
-                <p className="font-semibold text-xs text-charcoal">{successMessage}</p>
-                <span className="text-[11px] text-charcoal-muted block">Redirecting to exchanges...</span>
-              </div>
-            ) : (
-              <form onSubmit={handleRequestSubmit} className="space-y-4 text-xs">
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="font-medium text-charcoal">Quantity to Request ({listing.unit})</label>
-                    <span className="text-[11px] text-charcoal-muted">Max: {listing.quantity} {listing.unit}</span>
+            <div className="pt-2 border-t border-outline-variant/40 flex items-center justify-between text-body-sm text-on-surface-variant">
+              <span>EcoPoints Earned:</span>
+              <span className="font-semibold text-primary">{listing.user?.eco_points_balance || 480} PTS</span>
+            </div>
+          </Card>
+
+          {/* Request Form or Owner Controls */}
+          {isOwner ? (
+            <Card variant="flat" className="space-y-3">
+              <span className="font-label-sm text-label-sm text-outline uppercase tracking-wider font-semibold">
+                Your Active Listing
+              </span>
+              <p className="font-body-sm text-body-sm text-on-surface-variant">
+                You created this material listing. Incoming exchange proposals from nearby collectors will appear in your exchanges pipeline.
+              </p>
+              <Button
+                variant="secondary"
+                fullWidth
+                onClick={() => navigate('/dashboard/exchanges')}
+              >
+                View Exchange Pipeline
+              </Button>
+            </Card>
+          ) : (
+            <Card variant="elevated" className="space-y-4">
+              <h3 className="font-heading font-semibold text-title-md text-primary">
+                Propose Material Exchange
+              </h3>
+
+              {successMessage ? (
+                <div className="p-4 bg-tertiary-fixed text-primary rounded-lg text-body-sm font-medium border border-primary/20 space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold">
+                    <CheckCircle2 className="w-4 h-4" /> Request Submitted
                   </div>
-                  <input
+                  <p>{successMessage}</p>
+                </div>
+              ) : (
+                <form onSubmit={handleRequestSubmit} className="space-y-3">
+                  <Input
+                    label={`Requested Quantity (Max ${listing.quantity} ${listing.unit}) *`}
                     type="number"
-                    min="1"
+                    min={1}
                     max={listing.quantity}
                     value={requestedQuantity}
                     onChange={(e) => setRequestedQuantity(Number(e.target.value))}
                     required
-                    className="w-full px-3 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
                   />
-                </div>
 
-                <div>
-                  <label className="block font-medium text-charcoal mb-1">
-                    Your Proposed Purpose
-                  </label>
-                  <select
-                    value={proposedAction}
-                    onChange={(e) => setProposedAction(e.target.value)}
-                    className="w-full px-3 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest"
-                  >
-                    <option value="Composting & organic soil amendment">Composting & Farm Soil Amendment</option>
-                    <option value="Secondary sorting & mechanical recycling">Secondary Sorting & Recycling</option>
-                    <option value="Upcycling into craft / planters">Upcycling / Creative Reuse</option>
-                    <option value="Biogas / Biomethanation feed">Biogas / Bio-methanation Feed</option>
-                    <option value="Community redistribution">Free Community Redistribution</option>
-                  </select>
-                </div>
+                  <div>
+                    <label className="block font-label-md text-label-md text-on-surface mb-1">
+                      Proposed Circular Purpose *
+                    </label>
+                    <select
+                      value={proposedAction}
+                      onChange={(e) => setProposedAction(e.target.value)}
+                      className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 py-2.5 px-3 transition-all"
+                    >
+                      <option value="Composting & organic soil amendment">Composting & organic soil amendment</option>
+                      <option value="Direct reuse or packaging">Direct reuse or packaging</option>
+                      <option value="Mechanical recycling at registered MCF">Mechanical recycling at registered MCF</option>
+                      <option value="Artisanal upcycling / crafts">Artisanal upcycling / crafts</option>
+                      <option value="Bio-gas generation / animal feed">Bio-gas generation / animal feed</option>
+                    </select>
+                  </div>
 
-                <div>
-                  <label className="block font-medium text-charcoal mb-1">
-                    Message to Generator (Pickup Timing / Vehicle)
-                  </label>
-                  <textarea
+                  <Textarea
+                    label="Message to Generator"
+                    placeholder="e.g. Can pick up tomorrow at 4 PM near Kadavanthra hub..."
                     rows={3}
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    placeholder="E.g., I have a farm pickup vehicle and can collect these tomorrow around 5 PM."
-                    className="w-full px-3 py-2 bg-cream border border-[#D5D5CA] rounded-md text-xs text-charcoal focus:outline-none focus:ring-1 focus:ring-forest resize-none"
                   />
-                </div>
 
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full py-2.5 bg-forest hover:bg-forest-dark text-white rounded-md text-xs font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>{submitting ? 'Submitting...' : 'Submit Exchange Request'}</span>
-                </button>
-              </form>
-            )}
-          </div>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    fullWidth
+                    size="lg"
+                    disabled={submitting}
+                    icon={<Send className="w-4 h-4" />}
+                  >
+                    {submitting ? 'Submitting Request...' : 'Submit Pickup Proposal'}
+                  </Button>
+                </form>
+              )}
+            </Card>
+          )}
+
         </div>
       </div>
     </div>

@@ -9,7 +9,9 @@ import {
   Challenge, 
   RecyclingCentre, 
   NotificationItem, 
-  SustainabilityMetrics 
+  SustainabilityMetrics,
+  PublicWasteBin,
+  EnvironmentalReport
 } from '../types';
 import { 
   INITIAL_CATEGORIES, 
@@ -19,7 +21,9 @@ import {
   INITIAL_ECO_POINTS, 
   INITIAL_CHALLENGES, 
   INITIAL_RECYCLING_CENTRES, 
-  INITIAL_NOTIFICATIONS 
+  INITIAL_NOTIFICATIONS,
+  INITIAL_WASTE_BINS,
+  INITIAL_ENVIRONMENTAL_REPORTS
 } from '../lib/mockData';
 import { useAuth } from './AuthContext';
 
@@ -34,6 +38,8 @@ interface DataContextType {
   notifications: NotificationItem[];
   favourites: string[];
   metrics: SustainabilityMetrics;
+  wasteBins: PublicWasteBin[];
+  reports: EnvironmentalReport[];
   
   // Actions
   addListing: (listing: Omit<WasteListing, 'id' | 'created_at' | 'user' | 'category'>) => string;
@@ -48,6 +54,8 @@ interface DataContextType {
   joinChallenge: (challengeId: string) => void;
   markNotificationAsRead: (notificationId: string) => void;
   markAllNotificationsAsRead: () => void;
+  submitReport: (reportData: Omit<EnvironmentalReport, 'id' | 'ticket_number' | 'created_at' | 'updated_at' | 'status'>) => string;
+  updateReportStatus: (reportId: string, status: 'pending' | 'in_progress' | 'resolved', notes?: string) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -121,6 +129,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return ['list-101'];
   });
 
+  const [wasteBins, setWasteBins] = useState<PublicWasteBin[]>(() => {
+    const saved = localStorage.getItem('greenloop_waste_bins');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { /* fallback */ }
+    }
+    return INITIAL_WASTE_BINS;
+  });
+
+  const [reports, setReports] = useState<EnvironmentalReport[]>(() => {
+    const saved = localStorage.getItem('greenloop_reports');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { /* fallback */ }
+    }
+    return INITIAL_ENVIRONMENTAL_REPORTS;
+  });
+
   // Sync to local storage
   useEffect(() => {
     localStorage.setItem('greenloop_listings', JSON.stringify(listings));
@@ -149,6 +173,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     localStorage.setItem('greenloop_favourites', JSON.stringify(favourites));
   }, [favourites]);
+
+  useEffect(() => {
+    localStorage.setItem('greenloop_waste_bins', JSON.stringify(wasteBins));
+  }, [wasteBins]);
+
+  useEffect(() => {
+    localStorage.setItem('greenloop_reports', JSON.stringify(reports));
+  }, [reports]);
 
   // Enrich listings with category metadata
   const populatedListings = useMemo(() => {
@@ -502,6 +534,51 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
   };
 
+  const submitReport = (reportData: Omit<EnvironmentalReport, 'id' | 'ticket_number' | 'created_at' | 'updated_at' | 'status'>) => {
+    const randomTicket = `KMC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const newReport: EnvironmentalReport = {
+      ...reportData,
+      id: `rep-${Date.now()}`,
+      ticket_number: randomTicket,
+      status: 'pending',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    setReports((prev) => [newReport, ...prev]);
+
+    setNotifications((prev) => [
+      {
+        id: `notif-${Date.now()}`,
+        user_id: currentUser.id,
+        title: `Report Registered: #${randomTicket}`,
+        message: `Your environmental report for ${reportData.locality} has been dispatched to KMC Ward Squad.`,
+        type: 'system',
+        link: '/reports',
+        is_read: false,
+        created_at: new Date().toISOString(),
+      },
+      ...prev,
+    ]);
+
+    return newReport.ticket_number;
+  };
+
+  const updateReportStatus = (reportId: string, status: 'pending' | 'in_progress' | 'resolved', notes?: string) => {
+    setReports((prev) =>
+      prev.map((r) =>
+        r.id === reportId
+          ? {
+              ...r,
+              status,
+              resolution_notes: notes || r.resolution_notes,
+              updated_at: new Date().toISOString()
+            }
+          : r
+      )
+    );
+  };
+
   return (
     <DataContext.Provider
       value={{
@@ -515,6 +592,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         notifications,
         favourites,
         metrics,
+        wasteBins,
+        reports,
         addListing,
         updateListing,
         deleteListing,
@@ -527,6 +606,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         joinChallenge,
         markNotificationAsRead,
         markAllNotificationsAsRead,
+        submitReport,
+        updateReportStatus,
       }}
     >
       {children}

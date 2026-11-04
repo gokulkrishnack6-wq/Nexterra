@@ -7,10 +7,16 @@ import {
   ArrowRight, 
   ShieldCheck, 
   RotateCw,
-  FileCheck
+  FileCheck,
+  Sparkles,
+  Award,
+  AlertCircle
 } from 'lucide-react';
 import { analyzeWasteImage } from '../../lib/gemini';
 import { AIScanResult } from '../../types';
+import { Button } from '../../components/ui/Button';
+import { Card } from '../../components/ui/Card';
+import { Badge } from '../../components/ui/Badge';
 
 export const WasteScannerPage: React.FC = () => {
   const navigate = useNavigate();
@@ -94,103 +100,103 @@ export const WasteScannerPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 space-y-6 text-left">
       {/* Page Header */}
-      <div className="max-w-xl space-y-1">
-        <h1 className="font-heading font-bold text-2xl sm:text-3xl text-forest">
-          Material Scanner
+      <div className="space-y-1">
+        <div className="inline-flex items-center gap-1.5 mb-1">
+          <Badge variant="brand">AI Circular Diagnostic</Badge>
+          <span className="text-outline text-xs">•</span>
+          <span className="font-label-sm text-label-sm text-secondary">
+            Gemini Multimodal Vision Engine
+          </span>
+        </div>
+        <h1 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight">
+          AI Waste Scanner
         </h1>
-        <p className="text-xs sm:text-sm text-charcoal-muted leading-relaxed">
-          Not sure how to categorise your waste? Take a photo and let GreenLoop help identify it.
+        <p className="font-body-sm text-body-sm text-on-surface-variant max-w-xl">
+          Upload or photograph any waste item. The AI classifies its material type, estimates recyclability, provides safe handling guidance, and converts it into a listing.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
-        {/* Left Column: Upload / Camera */}
+      {/* Main Scanner Section */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+        
+        {/* Left Col (5 cols): Camera / File Upload Box */}
         <div className="md:col-span-5 space-y-4">
-          <div className="bg-white p-5 rounded-lg border border-[#E2E2D8] text-center space-y-4">
+          <Card variant="elevated" className="space-y-4 text-center p-6 border-dashed border-2 border-outline-variant hover:border-primary-container transition-colors">
             {imagePreview ? (
-              <div className="space-y-3">
-                <div className="relative aspect-[4/3] rounded-md overflow-hidden bg-cream border border-[#E2E2D8]">
-                  <img
-                    src={imagePreview}
-                    alt="Scanned item"
-                    className="w-full h-full object-cover"
-                  />
-                  {analyzing && (
-                    <div className="absolute inset-0 bg-white/85 flex flex-col items-center justify-center p-4 space-y-2">
-                      <RotateCw className="w-5 h-5 text-forest animate-spin" />
-                      <p className="text-xs font-medium text-charcoal">
-                        Identifying material...
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={analyzing}
-                    className="flex-1 py-1.5 bg-cream hover:bg-[#EBEBE0] text-charcoal font-medium text-xs rounded border border-[#D5D5CA] transition-colors"
-                  >
-                    Replace Photo
-                  </button>
-                  <button
-                    onClick={() => {
-                      setImagePreview(null);
-                      setScanResult(null);
-                    }}
-                    disabled={analyzing}
-                    className="px-3 py-1.5 text-xs text-charcoal-muted hover:text-charcoal"
-                  >
-                    Clear
-                  </button>
-                </div>
+              <div className="relative aspect-square w-full rounded-lg overflow-hidden bg-surface-container">
+                <img
+                  src={imagePreview}
+                  alt="Scanned item"
+                  className="w-full h-full object-cover"
+                />
+                {analyzing && (
+                  <div className="absolute inset-0 bg-primary/75 backdrop-blur-sm flex flex-col items-center justify-center text-on-primary p-4 space-y-2">
+                    <RotateCw className="w-8 h-8 animate-spin text-tertiary-fixed" />
+                    <span className="font-heading font-semibold text-sm">Classifying Material...</span>
+                    <span className="text-[11px] text-on-primary-container text-center">
+                      Gemini Vision analyzing circular potential
+                    </span>
+                  </div>
+                )}
               </div>
             ) : (
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className="py-10 cursor-pointer space-y-2 border-2 border-dashed border-[#D5D5CA] rounded-md hover:border-forest/50 transition-colors"
-              >
-                <div className="w-10 h-10 rounded-md bg-cream border border-[#E2E2D8] flex items-center justify-center text-forest mx-auto">
-                  <Camera className="w-5 h-5" />
+              <div className="py-10 space-y-3">
+                <div className="w-12 h-12 rounded-xl bg-surface-container text-primary flex items-center justify-center mx-auto">
+                  <Camera className="w-6 h-6" />
                 </div>
-                <div>
-                  <p className="font-heading font-semibold text-xs text-charcoal">
-                    Click to select or drop photo
+                <div className="space-y-1">
+                  <p className="font-heading font-semibold text-sm text-primary">
+                    Upload or snap a waste photo
                   </p>
-                  <p className="text-[11px] text-charcoal-muted mt-0.5">
-                    JPEG, PNG, WEBP (under 10MB)
+                  <p className="text-xs text-on-surface-variant">
+                    PNG, JPG, or WEBP up to 10MB
                   </p>
                 </div>
-                <span className="inline-block bg-cream border border-[#D5D5CA] text-charcoal text-[11px] font-medium px-3 py-1 rounded">
-                  Browse Files
-                </span>
               </div>
             )}
 
             <input
-              ref={fileInputRef}
               type="file"
-              accept="image/*"
+              ref={fileInputRef}
               onChange={handleFileChange}
+              accept="image/*"
               className="hidden"
             />
-          </div>
 
-          {/* Sample quick tests */}
-          <div className="bg-white p-4 rounded-lg border border-[#E2E2D8] space-y-2 text-xs">
-            <span className="font-medium text-charcoal block">Sample Test Materials:</span>
+            <div className="flex gap-2">
+              <Button
+                variant="primary"
+                fullWidth
+                size="md"
+                onClick={() => fileInputRef.current?.click()}
+                icon={<Upload className="w-4 h-4" />}
+              >
+                {imagePreview ? 'Upload Different Photo' : 'Select Photo'}
+              </Button>
+            </div>
+          </Card>
+
+          {/* Demonstration Quick Picks */}
+          <div className="space-y-2">
+            <span className="font-label-sm text-label-sm text-outline uppercase tracking-wider block font-semibold">
+              Or test with sample discards:
+            </span>
             <div className="grid grid-cols-2 gap-2">
-              {demoImages.map((demo, idx) => (
+              {demoImages.map((item) => (
                 <button
-                  key={idx}
-                  onClick={() => handleSelectDemoImage(demo)}
-                  className="flex items-center gap-2 p-1.5 bg-cream hover:bg-[#EBEBE0] rounded border border-[#E2E2D8] text-left transition-colors"
+                  key={item.title}
+                  onClick={() => handleSelectDemoImage(item)}
+                  className="flex items-center gap-2 p-2 rounded-lg bg-surface-container hover:bg-surface-container-high border border-outline-variant/50 text-left transition-colors"
                 >
-                  <img src={demo.url} alt="" className="w-7 h-7 rounded object-cover" />
-                  <span className="text-[11px] font-medium text-charcoal truncate">
-                    {demo.title}
+                  <img
+                    src={item.url}
+                    alt={item.title}
+                    className="w-8 h-8 rounded object-cover shrink-0"
+                  />
+                  <span className="text-xs font-semibold text-primary truncate">
+                    {item.title}
                   </span>
                 </button>
               ))}
@@ -198,80 +204,95 @@ export const WasteScannerPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column: Diagnostic Output */}
-        <div className="md:col-span-7">
-          {scanResult ? (
-            <div className="bg-white rounded-lg border border-[#E2E2D8] p-6 space-y-5">
-              <div className="pb-3 border-b border-[#F0F0E6]">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-forest uppercase tracking-wider">
-                    {scanResult.category_name}
-                  </span>
-                  <span className="text-xs text-charcoal-muted">
-                    {scanResult.confidence}% confidence
+        {/* Right Col (7 cols): Analysis Results */}
+        <div className="md:col-span-7 space-y-4">
+          {!scanResult && !analyzing && (
+            <Card variant="flat" className="py-16 text-center space-y-2">
+              <div className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center mx-auto text-outline">
+                <Sparkles className="w-5 h-5 text-surface-tint" />
+              </div>
+              <h3 className="font-heading font-semibold text-title-md text-primary">
+                Awaiting Material Scan
+              </h3>
+              <p className="font-body-sm text-body-sm text-on-surface-variant max-w-sm mx-auto">
+                Select a photo on the left or try one of the Kerala test samples to view instant AI circular insights.
+              </p>
+            </Card>
+          )}
+
+          {scanResult && (
+            <Card variant="elevated" className="space-y-5 p-6 border border-outline-variant/70 shadow-sm">
+              <div className="flex items-start justify-between gap-3 border-b border-outline-variant/40 pb-4">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 font-label-sm text-label-sm text-primary font-bold bg-tertiary-fixed px-2.5 py-0.5 rounded-full mb-1">
+                    <Sparkles className="w-3 h-3" />
+                    {Math.round(scanResult.confidence * 100)}% Confidence Score
+                  </div>
+                  <h2 className="font-heading font-bold text-2xl text-primary">
+                    {scanResult.detected_material}
+                  </h2>
+                  <span className="font-label-sm text-xs text-secondary font-semibold">
+                    Category: {scanResult.category_name}
                   </span>
                 </div>
-                <h3 className="font-heading font-bold text-lg text-charcoal mt-0.5">
-                  {scanResult.detected_material}
-                </h3>
+
+                <div className="text-right">
+                  <span className="font-label-sm text-[10px] text-outline block uppercase">Recyclability</span>
+                  <span className="font-heading font-bold text-xl text-primary">
+                    {scanResult.recyclability_score}/100
+                  </span>
+                </div>
               </div>
 
-              {/* Recommendation */}
-              <div className="p-3.5 bg-cream rounded-md border border-[#E2E2D8] space-y-1 text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-charcoal">Recommended Purpose:</span>
-                  <span className="text-forest font-semibold capitalize">
-                    {scanResult.suggested_action}
-                  </span>
-                </div>
-                <p className="text-charcoal leading-relaxed pt-0.5">
+              {/* Action Recommendation */}
+              <div className="p-3.5 bg-surface-container rounded-lg border border-outline-variant/40 space-y-1">
+                <span className="font-label-sm text-label-sm text-outline uppercase tracking-wider block font-semibold">
+                  Recommended Circular Destination
+                </span>
+                <span className="font-heading font-bold text-title-md text-primary capitalize block">
+                  {scanResult.suggested_action.replace('_', ' ')}
+                </span>
+                <p className="font-body-sm text-body-sm text-on-surface-variant">
                   {scanResult.reasoning}
                 </p>
               </div>
 
-              {/* Safety */}
-              <div className="space-y-1.5 text-xs">
-                <span className="font-medium text-charcoal flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-forest" />
-                  <span>Handling & Safety Considerations:</span>
+              {/* Safe Handling Guidance */}
+              {scanResult.safety_guidance && scanResult.safety_guidance.length > 0 && (
+                <div className="space-y-1.5">
+                  <span className="font-label-sm text-label-sm text-outline uppercase tracking-wider block font-semibold">
+                    Handling & Storage Protocol
+                  </span>
+                  <ul className="space-y-1 text-body-sm text-on-surface-variant">
+                    {scanResult.safety_guidance.map((tip, idx) => (
+                      <li key={idx} className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-surface-tint shrink-0 mt-0.5" />
+                        <span>{tip}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Action CTA: Turn into Listing */}
+              <div className="pt-3 border-t border-outline-variant/40 flex items-center justify-between gap-3">
+                <span className="font-body-sm text-body-sm text-outline">
+                  Est. Batch: {scanResult.estimated_weight_range}
                 </span>
-                <ul className="space-y-1 text-charcoal-muted pl-5 list-disc">
-                  {scanResult.safety_guidance.map((tip, idx) => (
-                    <li key={idx} className="leading-relaxed">{tip}</li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Potential Recipients */}
-              <div className="text-xs text-charcoal p-3 bg-cream rounded-md border border-[#E2E2D8]">
-                <span className="font-medium">Potential Users: </span>
-                <span className="text-charcoal-muted">{scanResult.potential_matches_summary}</span>
-              </div>
-
-              {/* Convert Action */}
-              <div className="pt-2">
-                <button
+                <Button
+                  variant="primary"
+                  size="lg"
                   onClick={handleConvertToListing}
-                  className="w-full py-2.5 bg-forest hover:bg-forest-dark text-white rounded-md text-xs font-semibold transition-colors flex items-center justify-center gap-2"
+                  icon={<ArrowRight className="w-4 h-4" />}
+                  iconPosition="right"
                 >
-                  <FileCheck className="w-4 h-4" />
-                  <span>Create Listing from this Scan</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
+                  List This Material Now
+                </Button>
               </div>
-            </div>
-          ) : (
-            <div className="bg-white rounded-lg border border-[#E2E2D8] p-12 text-center text-xs space-y-2">
-              <Camera className="w-8 h-8 text-charcoal-muted mx-auto" />
-              <h3 className="font-heading font-semibold text-sm text-charcoal">
-                Awaiting Material Photo
-              </h3>
-              <p className="text-charcoal-muted max-w-sm mx-auto leading-relaxed">
-                Take a photograph or pick a sample on the left to see material classification and circular recommendations.
-              </p>
-            </div>
+            </Card>
           )}
         </div>
+
       </div>
     </div>
   );

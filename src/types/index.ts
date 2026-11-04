@@ -239,6 +239,44 @@ export interface SmartMatchResult {
   recommendation_reason: string;
 }
 
+export interface PublicWasteBin {
+  id: string;
+  name: string;
+  bin_type: 'organic_bio' | 'plastic_bottle' | 'e_waste_kiosk' | 'segregated_smart';
+  district: string;
+  locality: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  fill_percentage: number;
+  last_serviced: string;
+  status: 'active' | 'full' | 'maintenance';
+  managed_by: string;
+}
+
+export interface EnvironmentalReport {
+  id: string;
+  ticket_number: string;
+  reporter_id: string;
+  reporter_name: string;
+  issue_type: 'overflowing_bin' | 'illegal_dumping' | 'plastic_burning' | 'water_pollution';
+  title: string;
+  description: string;
+  district: string;
+  ward: string;
+  locality: string;
+  landmark: string;
+  latitude: number;
+  longitude: number;
+  photo_url?: string;
+  status: 'pending' | 'in_progress' | 'resolved';
+  assigned_team?: string;
+  assigned_vehicle?: string;
+  resolution_notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface SustainabilityMetrics {
   total_waste_diverted_kg: number;
   total_co2e_avoided_kg: number;
