@@ -23,3 +23,4 @@ describe('AI Waste Scanner Engine', () => {
     expect(result.suggested_action).toBe('safe_disposal');
   });
 });
+

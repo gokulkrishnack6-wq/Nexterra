@@ -342,3 +342,4 @@ export const ImpactDashboardPage: React.FC = () => {
     </div>
   );
 };
+

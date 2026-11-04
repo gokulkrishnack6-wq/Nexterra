@@ -53,3 +53,4 @@ To prevent fraudulent claims or phantom collections:
 
 ## 5. Audit Logging & Non-Repudiation
 All sensitive platform mutations (listing deletions, admin approvals, centre verifications, disputes) are captured in `public.audit_logs` with actor UUIDs, timestamps, and previous/new JSON states.
+

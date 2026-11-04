@@ -350,3 +350,4 @@ export const WasteScannerPage: React.FC = () => {
     </div>
   );
 };
+

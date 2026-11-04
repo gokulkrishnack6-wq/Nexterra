@@ -107,3 +107,4 @@ export const ImpactCharts: React.FC<ImpactChartsProps> = ({ metrics }) => {
     </div>
   );
 };
+

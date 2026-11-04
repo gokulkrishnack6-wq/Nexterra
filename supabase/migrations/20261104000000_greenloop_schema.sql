@@ -544,3 +544,4 @@ CREATE POLICY "Users can insert scans" ON public.ai_scan_history FOR INSERT WITH
 
 -- 13. Reports: Reporter can view own reports
 CREATE POLICY "Users can submit reports" ON public.reports FOR INSERT WITH CHECK (auth.uid() = reporter_id);
+

@@ -258,3 +258,4 @@ export interface SustainabilityMetrics {
     co2e_saved_kg: number;
   }[];
 }
+

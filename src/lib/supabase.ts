@@ -22,3 +22,4 @@ if (!isSupabaseConfigured) {
     'Configure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env to connect to live Supabase.'
   );
 }
+

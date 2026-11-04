@@ -191,3 +191,4 @@ export const KeralaCircularMap: React.FC<KeralaCircularMapProps> = ({ centres, l
     </div>
   );
 };
+

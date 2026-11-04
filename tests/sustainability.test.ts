@@ -20,3 +20,4 @@ describe('Sustainability Conversion Factors', () => {
     expect(co2Saved).toBe(45); // 25 * 1.80 = 45.0 kg CO2e
   });
 });
+
