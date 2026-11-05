@@ -1,7 +1,17 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { AIScanResult } from '../types';
+import { supabase, isSupabaseConfigured } from './supabase';
 
-// Read API key from env or sessionStorage if user provided it directly
+/**
+ * AI Waste Scanner Service
+ * Connects the frontend camera and image upload interface to the secure
+ * Supabase Edge Function: `analyze-waste-image`.
+ *
+ * The Gemini API key is kept secure inside the Supabase backend secret (GEMINI_API_KEY)
+ * and is NEVER exposed in the frontend client or Vite environment variables.
+ */
+
+// Optional session key (only if the user explicitly enters a key in UI for quick local testing)
 export function getGeminiApiKey(): string {
   if (typeof window !== 'undefined' && typeof window.sessionStorage !== 'undefined') {
     const sessionKey = window.sessionStorage.getItem('greenloop_user_gemini_key');
@@ -9,11 +19,7 @@ export function getGeminiApiKey(): string {
       return sessionKey.trim();
     }
   }
-  return (
-    import.meta.env.VITE_GEMINI_API_KEY || 
-    (import.meta.env as any).GEMINI_API_KEY || 
-    ''
-  );
+  return '';
 }
 
 export function setGeminiSessionKey(key: string) {
@@ -27,28 +33,18 @@ export function setGeminiSessionKey(key: string) {
 }
 
 export function isGeminiConfigured(): boolean {
-  const key = getGeminiApiKey();
-  return Boolean(key && !key.includes('your-gemini') && key.length > 20);
+  return Boolean(getGeminiApiKey());
 }
 
 /**
- * Genuine Multimodal AI Waste Material Classifier using Google Gemini Vision
- * Analyzes the actual base64 pixel data of the image.
- * Will throw genuine errors if the API key is unconfigured or if the image cannot be processed.
+ * Main Waste Image Analysis Entrypoint
+ * Invokes the Supabase Edge Function `analyze-waste-image`.
  */
 export async function analyzeWasteImage(
   imageBase64: string, 
   mimeType: string = 'image/jpeg'
 ): Promise<AIScanResult> {
-  const apiKey = getGeminiApiKey();
-
-  if (!apiKey || apiKey.length < 20 || apiKey.includes('your-gemini')) {
-    throw new Error(
-      'Gemini Vision API key is not configured. Please configure VITE_GEMINI_API_KEY in .env or enter your key in scanner settings to analyze real photos.'
-    );
-  }
-
-  if (!imageBase64 || imageBase64.length < 50) {
+  if (!imageBase64 || imageBase64.length < 10) {
     throw new Error('Invalid image data. Please capture or upload a valid photo.');
   }
 
@@ -57,8 +53,84 @@ export async function analyzeWasteImage(
     ? imageBase64.split(',')[1] 
     : imageBase64;
 
+  const sessionKey = getGeminiApiKey();
+
+  // 1. If user provided a local session key in UI, prioritize direct client call
+  if (sessionKey) {
+    return await analyzeDirectWithClient(cleanBase64, mimeType, sessionKey);
+  }
+
+  // 2. Primary Route: Secure Supabase Edge Function (holds GEMINI_API_KEY secret)
+  if (isSupabaseConfigured && typeof window !== 'undefined') {
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-waste-image', {
+        body: {
+          imageBase64: cleanBase64,
+          mimeType: mimeType || 'image/jpeg',
+        },
+      });
+
+      if (!error && data && data.detected_material) {
+        return data as AIScanResult;
+      }
+
+      if (error) {
+        let errorDetail = error.message || 'Edge Function call failed';
+
+        // Check if context has error JSON payload from the function
+        if ((error as any).context && typeof (error as any).context.json === 'function') {
+          try {
+            const errJson = await (error as any).context.json();
+            if (errJson?.error) {
+              errorDetail = errJson.error;
+            }
+            if (errJson?.hint) {
+              errorDetail += ` — ${errJson.hint}`;
+            }
+          } catch (_) {
+            // Keep default errorDetail
+          }
+        }
+
+        // Friendly guidance if the edge function is not deployed yet or secrets are missing
+        if (
+          errorDetail.includes('404') || 
+          errorDetail.includes('FunctionsFetchError') || 
+          errorDetail.includes('Failed to send a request') ||
+          errorDetail.includes('Failed to fetch')
+        ) {
+          throw new Error(
+            'The Supabase Edge Function "analyze-waste-image" is not deployed yet. Please deploy it using: npx supabase functions deploy analyze-waste-image --project-ref czytsaajiicpivjkrbey'
+          );
+        }
+
+        throw new Error(errorDetail);
+      }
+    } catch (err: any) {
+      if (err.message?.includes('analyze-waste-image') || err.message?.includes('GEMINI_API_KEY')) {
+        throw err;
+      }
+      throw new Error(
+        'Gemini Vision API key is not configured. Please ensure the Supabase Edge Function "analyze-waste-image" has secret GEMINI_API_KEY set, or enter your key in Scanner Settings.'
+      );
+    }
+  }
+
+  throw new Error(
+    'Gemini Vision API key is not configured. Please ensure the Supabase Edge Function "analyze-waste-image" has secret GEMINI_API_KEY set, or enter your key in Scanner Settings.'
+  );
+}
+
+/**
+ * Client-side fallback analyzer using GoogleGenerativeAI SDK
+ * (used when testing locally with a session key)
+ */
+async function analyzeDirectWithClient(
+  cleanBase64: string,
+  mimeType: string,
+  apiKey: string
+): Promise<AIScanResult> {
   const genAI = new GoogleGenerativeAI(apiKey);
-  // Prefer gemini-1.5-flash for speed and multimodal vision accuracy
   const model = genAI.getGenerativeModel({ 
     model: 'gemini-1.5-flash',
     generationConfig: {
@@ -68,7 +140,7 @@ export async function analyzeWasteImage(
   });
 
   const prompt = `
-You are an expert waste classification and circular materials engineer.
+You are an expert waste classification and circular materials engineer for GreenLoop in Kerala.
 Thoroughly examine the uploaded image pixels and perform real visual inspection of the material.
 
 1. Inspect the visual characteristics: colors, texture, shape, labels, transparency, rigidity, and signs of use/wear.
@@ -86,11 +158,11 @@ Thoroughly examine the uploaded image pixels and perform real visual inspection 
 
 Return ONLY a valid JSON object matching this schema without any markdown code fence wrappers:
 {
-  "detected_material": "Specific material name (e.g. Dry Coconut Husks, Corrugated Cardboard, Polyethylene Terephthalate Bottle)",
+  "detected_material": "Specific material name",
   "category_slug": "exact slug from the 8 categories above",
   "category_name": "Human-readable Category Title",
   "subcategory": "Specific subcategory or polymer/grade if applicable",
-  "confidence": 88.5,
+  "confidence": 92.0,
   "is_ambiguous": false,
   "ambiguity_reason": "",
   "visible_characteristics": [
@@ -100,7 +172,7 @@ Return ONLY a valid JSON object matching this schema without any markdown code f
   "suggested_action": "one of: composting, upcycling, recycling, safe_disposal, bio_methanation",
   "reasoning": "2-3 sentences based on what is visually evident in the image.",
   "recyclability_score": 85,
-  "estimated_weight_range": "e.g. 2 - 5 kg",
+  "estimated_weight_range": "e.g. 1 - 3 kg",
   "safety_guidance": [
     "Handling tip 1",
     "Handling tip 2"
@@ -109,7 +181,7 @@ Return ONLY a valid JSON object matching this schema without any markdown code f
     "Ecological reuse tip 1",
     "Carbon diversion impact"
   ],
-  "potential_matches_summary": "Recommended local recipients (e.g. Local vermicomposters, Haritha Karma Sena MCF, Coir artisans)"
+  "potential_matches_summary": "Recommended local recipients"
 }
 `;
 
@@ -127,7 +199,6 @@ Return ONLY a valid JSON object matching this schema without any markdown code f
     const response = await result.response;
     const rawText = response.text().trim();
     
-    // Clean markdown code blocks if the model wrapped it in ```json ... ```
     const cleanedJson = rawText
       .replace(/^```json\s*/i, '')
       .replace(/^```\s*/i, '')
@@ -136,7 +207,6 @@ Return ONLY a valid JSON object matching this schema without any markdown code f
 
     const parsed: AIScanResult = JSON.parse(cleanedJson);
 
-    // Validate essential fields
     if (!parsed.detected_material || !parsed.category_slug) {
       throw new Error('AI analysis produced an incomplete result. Please try another image.');
     }
@@ -144,10 +214,10 @@ Return ONLY a valid JSON object matching this schema without any markdown code f
     return parsed;
   } catch (err: any) {
     if (err.message?.includes('API_KEY_INVALID') || err.message?.includes('API key not valid')) {
-      throw new Error('Invalid Gemini API Key. Please verify your Gemini API key in .env or scanner settings.');
+      throw new Error('Invalid Gemini API Key. Please verify your Gemini API key in Supabase secrets or scanner settings.');
     }
     if (err.message?.includes('quota') || err.message?.includes('RESOURCE_EXHAUSTED')) {
-      throw new Error('Gemini API rate limit or quota exceeded. Please wait a moment or check your API quota.');
+      throw new Error('Gemini API rate limit or quota exceeded. Please wait a moment.');
     }
     if (err.name === 'SyntaxError') {
       throw new Error('Could not parse AI response. The model did not return a structured JSON response. Please retake the photo.');

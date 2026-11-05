@@ -12,6 +12,34 @@ describe('AI Waste Scanner Engine', () => {
     ).rejects.toThrow(/Gemini.*API key/i);
   });
 
+  it('rejects empty or corrupt image data', async () => {
+    await expect(
+      analyzeWasteImage('', 'image/jpeg')
+    ).rejects.toThrow(/Invalid image data/i);
+  });
+
+  it('handles ambiguous photo response properly', () => {
+    const ambiguousResponse = {
+      detected_material: 'Unidentified Fragment',
+      category_slug: 'plastics',
+      category_name: 'Mixed Plastics',
+      confidence: 0.35,
+      is_ambiguous: true,
+      ambiguity_reason: 'Image is too dark and blurry to clearly distinguish polymer resin code.',
+      suggested_action: 'safe_disposal',
+      reasoning: 'Visual cues are insufficient. Retaking in brighter natural light is advised.',
+      recyclability_score: 30,
+      estimated_weight_range: '< 100 g',
+      safety_guidance: ['Wear gloves if sharp fragments exist'],
+      circular_value_tips: ['Attempt to identify resin symbol embossed on underside'],
+      potential_matches_summary: 'Pending verification'
+    };
+
+    expect(ambiguousResponse.is_ambiguous).toBe(true);
+    expect(ambiguousResponse.ambiguity_reason).toContain('blurry');
+    expect(ambiguousResponse.confidence).toBeLessThan(0.5);
+  });
+
   it('detects and handles mock Gemini vision payload format cleanly', async () => {
     // Test that the expected AIScanResult structure handles categorization accurately
     const mockVisionResponse = {
