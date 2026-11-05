@@ -9,7 +9,11 @@ export function getGeminiApiKey(): string {
       return sessionKey.trim();
     }
   }
-  return import.meta.env.VITE_GEMINI_API_KEY || '';
+  return (
+    import.meta.env.VITE_GEMINI_API_KEY || 
+    (import.meta.env as any).GEMINI_API_KEY || 
+    ''
+  );
 }
 
 export function setGeminiSessionKey(key: string) {
