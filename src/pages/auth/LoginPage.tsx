@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -8,6 +8,8 @@ import { ArrowRight, Mail, Lock, AlertCircle } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as any)?.from || '/';
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,7 +26,7 @@ export const LoginPage: React.FC = () => {
       if (!res.success) {
         setError(res.error || 'Invalid email or password.');
       } else {
-        navigate('/dashboard');
+        navigate(from, { replace: true });
       }
     } catch (err: any) {
       setError(err?.message || 'Failed to sign in. Please check your credentials.');
@@ -34,7 +36,7 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto px-4 py-16 space-y-6">
+    <div className="max-w-md mx-auto px-4 py-8 space-y-6">
       <div className="text-center space-y-2">
         <div className="w-10 h-10 rounded-xl bg-primary-container text-on-primary flex items-center justify-center mx-auto shadow-sm">
           <span className="material-symbols-outlined text-[22px]">cyclone</span>

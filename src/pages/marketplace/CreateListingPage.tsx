@@ -130,7 +130,7 @@ export const CreateListingPage: React.FC = () => {
           <span>Back to Marketplace</span>
         </button>
 
-        <Link to="/scanner">
+        <Link to="/ai-scanner">
           <Button variant="secondary" size="sm" icon={<Sparkles className="w-4 h-4 text-primary" />}>
             Auto-fill with AI Scanner
           </Button>
@@ -152,6 +152,19 @@ export const CreateListingPage: React.FC = () => {
         <p className="font-body-sm text-body-sm text-on-surface-variant">
           Connect with nearby compost producers, terrace gardeners, upcyclers, or collection hubs.
         </p>
+
+        {!currentUser && (
+          <div className="mt-2 p-3 bg-secondary-container/40 rounded-lg text-xs text-primary flex items-center justify-between border border-primary/20">
+            <span>Listing as guest. Sign in to link this to your account and earn EcoPoints.</span>
+            <Link
+              to="/login"
+              state={{ from: '/marketplace/new' }}
+              className="font-bold underline hover:opacity-80 shrink-0 ml-2"
+            >
+              Sign In
+            </Link>
+          </div>
+        )}
       </div>
 
       <Card variant="elevated" className="p-6 sm:p-8 space-y-6">

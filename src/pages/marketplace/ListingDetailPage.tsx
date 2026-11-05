@@ -57,6 +57,12 @@ export const ListingDetailPage: React.FC = () => {
 
   const handleRequestSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!currentUser) {
+      navigate('/login', { state: { from: `/marketplace/${listing.id}` } });
+      return;
+    }
+
     if (requestedQuantity <= 0 || requestedQuantity > listing.quantity) {
       alert(`Please enter a quantity between 1 and ${listing.quantity} ${listing.unit}`);
       return;
@@ -72,7 +78,7 @@ export const ListingDetailPage: React.FC = () => {
       );
       setSuccessMessage('Exchange request sent. The material generator will review your proposal.');
       setTimeout(() => {
-        navigate('/dashboard/exchanges');
+        navigate('/exchanges');
       }, 1500);
     } catch (err: any) {
       alert(err.message || 'Failed to submit exchange proposal');
@@ -250,7 +256,7 @@ export const ListingDetailPage: React.FC = () => {
               <Button
                 variant="secondary"
                 fullWidth
-                onClick={() => navigate('/dashboard/exchanges')}
+                onClick={() => navigate('/exchanges')}
               >
                 View My Exchanges
               </Button>
@@ -260,6 +266,19 @@ export const ListingDetailPage: React.FC = () => {
               <h3 className="font-heading font-semibold text-title-md text-primary">
                 Propose Material Exchange
               </h3>
+
+              {!currentUser && (
+                <div className="p-3 bg-secondary-container/40 rounded-lg text-xs text-primary flex items-center justify-between border border-primary/20">
+                  <span>Sign in to request this material and earn EcoPoints.</span>
+                  <Link
+                    to="/login"
+                    state={{ from: `/marketplace/${listing.id}` }}
+                    className="font-bold underline hover:opacity-80 shrink-0 ml-2"
+                  >
+                    Sign In
+                  </Link>
+                </div>
+              )}
 
               {successMessage ? (
                 <div className="p-4 bg-secondary-container text-primary rounded-lg text-body-sm font-medium border border-primary/20 space-y-1">

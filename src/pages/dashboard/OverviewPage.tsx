@@ -104,7 +104,7 @@ export const OverviewPage: React.FC = () => {
             </Button>
 
             <Button
-              onClick={() => navigate('/scanner')}
+              onClick={() => navigate('/ai-scanner')}
               variant="subtle"
               icon={<ScanLine className="w-4 h-4 text-primary" />}
             >
@@ -197,7 +197,7 @@ export const OverviewPage: React.FC = () => {
                   Smart Material Matches
                 </h2>
               </div>
-              <Link to="/smart-match" className="font-label-md text-label-md text-primary hover:underline flex items-center gap-1">
+              <Link to="/matches" className="font-label-md text-label-md text-primary hover:underline flex items-center gap-1">
                 <span>View all matches</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
@@ -275,7 +275,7 @@ export const OverviewPage: React.FC = () => {
                   Active Exchanges Pipeline
                 </h2>
               </div>
-              <Link to="/dashboard/exchanges" className="font-label-md text-label-md text-primary hover:underline flex items-center gap-0.5">
+              <Link to="/exchanges" className="font-label-md text-label-md text-primary hover:underline flex items-center gap-0.5">
                 <span>View all ({myExchanges.length})</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
@@ -324,7 +324,7 @@ export const OverviewPage: React.FC = () => {
                         size="sm"
                         variant="primary"
                         icon={<QrCode className="w-3.5 h-3.5" />}
-                        onClick={() => navigate('/dashboard/exchanges')}
+                        onClick={() => navigate('/exchanges')}
                       >
                         Manage Exchange
                       </Button>

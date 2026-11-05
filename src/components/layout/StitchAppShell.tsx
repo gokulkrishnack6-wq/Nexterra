@@ -57,14 +57,14 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   const navLinks = [
-    { label: 'Overview', path: '/dashboard', icon: LayoutDashboard, exact: true },
+    { label: 'Overview', path: '/', icon: LayoutDashboard, exact: true },
     { label: 'Waste Marketplace', path: '/marketplace', icon: Store },
     { label: 'Find Waste Bins', path: '/bins', icon: MapPin },
     { label: 'Report an Issue', path: '/report-issue', icon: AlertTriangle },
-    { label: 'AI Waste Scanner', path: '/scanner', icon: ScanLine },
-    { label: 'Smart Matches', path: '/smart-match', icon: Sparkles },
-    { label: 'My Exchanges', path: '/dashboard/exchanges', icon: Repeat },
-    { label: 'Recycling Directory', path: '/map', icon: Recycle },
+    { label: 'AI Waste Scanner', path: '/ai-scanner', icon: ScanLine },
+    { label: 'Smart Matches', path: '/matches', icon: Sparkles },
+    { label: 'My Exchanges', path: '/exchanges', icon: Repeat },
+    { label: 'Recycling Directory', path: '/recycling-directory', icon: Recycle },
     { label: 'EcoPoints & Impact', path: '/impact', icon: Award },
     { label: 'Community Drives', path: '/community', icon: Users },
   ];
@@ -74,8 +74,8 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
   }
 
   const isLinkActive = (path: string, exact?: boolean) => {
-    if (exact) {
-      return location.pathname === path || (path === '/dashboard' && location.pathname === '/');
+    if (exact || path === '/') {
+      return location.pathname === '/' || location.pathname === '/dashboard';
     }
     return location.pathname.startsWith(path);
   };
@@ -366,7 +366,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                   <button
                     onClick={() => {
                       setCreateMenuOpen(false);
-                      navigate('/scanner');
+                      navigate('/ai-scanner');
                     }}
                     className="w-full text-left px-3 py-2 text-xs text-on-surface hover:bg-surface-container flex items-center gap-2"
                   >
@@ -505,7 +505,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
 
                       <div className="py-1">
                         <Link
-                          to="/dashboard"
+                          to="/"
                           onClick={() => setUserMenuOpen(false)}
                           className="flex items-center gap-2.5 px-4 py-2 text-xs text-on-surface hover:bg-surface-container"
                         >
@@ -513,7 +513,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                           <span>My Overview</span>
                         </Link>
                         <Link
-                          to="/dashboard/exchanges"
+                          to="/exchanges"
                           onClick={() => setUserMenuOpen(false)}
                           className="flex items-center gap-2.5 px-4 py-2 text-xs text-on-surface hover:bg-surface-container"
                         >

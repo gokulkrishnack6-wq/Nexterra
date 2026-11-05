@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserRole } from '../../types';
 import { KERALA_DISTRICT_COORDS } from '../../hooks/useGeolocation';
@@ -10,6 +10,8 @@ import { Home, Building2, Sprout, Recycle, Users, ArrowRight, AlertCircle } from
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as any)?.from || '/';
   const { signUp } = useAuth();
 
   const [name, setName] = useState('');
@@ -38,7 +40,7 @@ export const RegisterPage: React.FC = () => {
       if (!res.success) {
         setError(res.error || 'Registration failed.');
       } else {
-        navigate('/dashboard');
+        navigate(from, { replace: true });
       }
     } catch (err: any) {
       setError(err?.message || 'Registration error occurred. Please try again.');
@@ -56,7 +58,7 @@ export const RegisterPage: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-12 space-y-6">
+    <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
       <div className="text-center space-y-2">
         <div className="w-10 h-10 rounded-xl bg-primary-container text-on-primary flex items-center justify-center mx-auto shadow-sm">
           <span className="material-symbols-outlined text-[22px]">cyclone</span>
