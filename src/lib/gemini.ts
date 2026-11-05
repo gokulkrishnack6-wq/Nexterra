@@ -33,8 +33,7 @@ export function setGeminiSessionKey(key: string) {
 }
 
 export function isGeminiConfigured(): boolean {
-  // Edge Function handles Gemini via Supabase backend secret GEMINI_API_KEY
-  return isSupabaseConfigured || Boolean(getGeminiApiKey());
+  return Boolean(getGeminiApiKey());
 }
 
 /**
@@ -45,7 +44,7 @@ export async function analyzeWasteImage(
   imageBase64: string,
   mimeType: string = 'image/jpeg'
 ): Promise<AIScanResult> {
-  if (!imageBase64 || imageBase64.length < 50) {
+  if (!imageBase64 || imageBase64.length < 10) {
     throw new Error('Invalid image data. Please capture or upload a valid photo.');
   }
 

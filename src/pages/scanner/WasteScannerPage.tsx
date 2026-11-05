@@ -5,18 +5,21 @@ import {
   Upload, 
   Check, 
   ArrowRight, 
+  Sparkles, 
+  AlertCircle, 
+  X, 
+  RefreshCw, 
   RotateCw,
-  Sparkles,
-  AlertCircle,
-  X,
-  RefreshCw,
-  Key,
-  ShieldAlert,
-  CheckCircle2,
-  SlidersHorizontal,
-  Eye
+  ShieldAlert, 
+  CheckCircle2, 
+  Eye,
+  AlertTriangle,
+  Layers,
+  Recycle,
+  Lightbulb,
+  ShieldCheck
 } from 'lucide-react';
-import { analyzeWasteImage, isGeminiConfigured, getGeminiApiKey, setGeminiSessionKey } from '../../lib/gemini';
+import { analyzeWasteImage } from '../../lib/gemini';
 import { AIScanResult } from '../../types';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -42,16 +45,33 @@ export const WasteScannerPage: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  // API Key Setting Modal
-  const [showKeyModal, setShowKeyModal] = useState(false);
-  const [apiKeyInput, setApiKeyInput] = useState(getGeminiApiKey());
-  const [hasKey, setHasKey] = useState(isGeminiConfigured());
+  // Backend Edge Function status
+  const [backendStatus, setBackendStatus] = useState<'checking' | 'ready' | 'pending'>('checking');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
+  // Probe backend Edge Function deployment health
   useEffect(() => {
-    setHasKey(isGeminiConfigured());
+    let isMounted = true;
+    async function probeBackend() {
+      try {
+        const res = await fetch('https://czytsaajiicpivjkrbey.supabase.co/functions/v1/analyze-waste-image', {
+          method: 'OPTIONS',
+        });
+        if (isMounted) {
+          if (res.ok || res.status === 200 || res.status === 204) {
+            setBackendStatus('ready');
+          } else {
+            setBackendStatus('pending');
+          }
+        }
+      } catch (_) {
+        if (isMounted) setBackendStatus('pending');
+      }
+    }
+    probeBackend();
+    return () => { isMounted = false; };
   }, []);
 
   // Cleanup webcam stream when leaving or closing
@@ -164,13 +184,6 @@ export const WasteScannerPage: React.FC = () => {
     }
   };
 
-  const handleSaveApiKey = () => {
-    setGeminiSessionKey(apiKeyInput);
-    setHasKey(isGeminiConfigured());
-    setShowKeyModal(false);
-    setErrorMsg(null);
-  };
-
   const handleProceedToCreateListing = () => {
     if (!scanResult) return;
 
@@ -228,55 +241,18 @@ export const WasteScannerPage: React.FC = () => {
           </p>
         </div>
 
-        {/* API Key Status Pill / Setting */}
-        <button
-          onClick={() => setShowKeyModal(true)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-label-md transition-colors self-start sm:self-auto bg-surface-container hover:bg-surface-container-high border-outline-variant text-on-surface"
-        >
-          <Key className="w-3.5 h-3.5 text-primary" />
-          <span>{hasKey ? 'Gemini API Configured' : 'Configure Gemini API Key'}</span>
-        </button>
-      </div>
-
-      {/* API Key Modal */}
-      {showKeyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-on-surface/40 backdrop-blur-sm">
-          <Card variant="elevated" className="max-w-md w-full p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-outline-variant/60 pb-3">
-              <h3 className="font-heading font-semibold text-title-md text-primary">
-                Gemini Vision API Configuration
-              </h3>
-              <button onClick={() => setShowKeyModal(false)} className="text-outline hover:text-on-surface">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <p className="font-body-sm text-body-sm text-on-surface-variant">
-              To perform real visual classification, provide a Google Gemini API Key. You can get a free key from <a href="https://aistudio.google.com" target="_blank" rel="noreferrer" className="text-primary underline font-medium">Google AI Studio</a>.
-            </p>
-
-            <div className="space-y-1">
-              <label className="font-label-md text-xs text-on-surface block">Gemini API Key</label>
-              <input
-                type="password"
-                placeholder="AIzaSy..."
-                value={apiKeyInput}
-                onChange={(e) => setApiKeyInput(e.target.value)}
-                className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant rounded-lg font-mono text-xs focus:outline-none focus:border-primary-container"
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" size="sm" onClick={() => setShowKeyModal(false)}>
-                Cancel
-              </Button>
-              <Button variant="primary" size="sm" onClick={handleSaveApiKey}>
-                Save Key
-              </Button>
-            </div>
-          </Card>
+        {/* Backend Edge Function Status Badge */}
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-label-md transition-colors self-start sm:self-auto bg-surface-container border-outline-variant text-on-surface shadow-xs">
+          <span className={`w-2 h-2 rounded-full ${backendStatus === 'ready' ? 'bg-green-500 ring-2 ring-green-500/20' : 'bg-amber-500 animate-pulse'}`} />
+          <span className="font-medium">
+            {backendStatus === 'ready' 
+              ? 'Edge Function: Live (Gemini Vision)' 
+              : backendStatus === 'checking'
+                ? 'Connecting to AI Engine...'
+                : 'Edge Function: analyze-waste-image'}
+          </span>
         </div>
-      )}
+      </div>
 
       {/* Scanner Workspace */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
@@ -422,16 +398,6 @@ export const WasteScannerPage: React.FC = () => {
                 <span>AI Service Notice</span>
               </div>
               <p className="text-xs leading-relaxed">{errorMsg}</p>
-              {!hasKey && (
-                <Button
-                  size="sm"
-                  variant="subtle"
-                  onClick={() => setShowKeyModal(true)}
-                  className="mt-2 text-xs"
-                >
-                  Configure Gemini API Key Now
-                </Button>
-              )}
             </div>
           )}
 
@@ -454,6 +420,17 @@ export const WasteScannerPage: React.FC = () => {
           {scanResult && (
             <Card variant="elevated" className="p-6 space-y-5">
               
+              {/* Commercial Product / Non-Waste Alert */}
+              {scanResult.is_discarded_waste === false && (
+                <div className="p-3.5 bg-amber-500/10 text-amber-900 rounded-lg border border-amber-500/30 flex items-start gap-2.5 text-xs">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold block">Non-Waste / Commercial Item Detected</span>
+                    <span>{scanResult.product_vs_waste_notes || 'This item appears to be an intact commercial product or advertisement rather than discarded recyclable material.'}</span>
+                  </div>
+                </div>
+              )}
+
               {/* Ambiguity Warning Banner if image was blurry or uncertain */}
               {scanResult.is_ambiguous && (
                 <div className="p-3.5 bg-secondary-container/60 text-on-secondary-container rounded-lg border border-secondary/30 flex items-start gap-2.5 text-xs">
@@ -467,8 +444,8 @@ export const WasteScannerPage: React.FC = () => {
 
               {/* Title & Category Header */}
               <div className="flex items-start justify-between gap-3 border-b border-outline-variant/50 pb-4">
-                <div className="space-y-1 flex-1">
-                  <div className="flex items-center gap-2">
+                <div className="space-y-1.5 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="font-label-sm text-xs font-bold text-primary bg-tertiary-fixed px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
                       <Sparkles className="w-3 h-3" />
                       {Math.round(scanResult.confidence)}% Confidence
@@ -478,11 +455,26 @@ export const WasteScannerPage: React.FC = () => {
                         {scanResult.subcategory}
                       </span>
                     )}
+                    {scanResult.estimated_condition && (
+                      <span className="font-label-sm text-xs text-on-surface bg-surface-container px-2 py-0.5 rounded-full border border-outline-variant/40">
+                        Condition: {scanResult.estimated_condition}
+                      </span>
+                    )}
+                    {scanResult.recovery_status && (
+                      <span className="font-label-sm text-xs text-primary bg-secondary-container px-2 py-0.5 rounded-full capitalize font-semibold">
+                        {scanResult.recovery_status}
+                      </span>
+                    )}
                   </div>
 
                   <h2 className="font-heading font-bold text-2xl text-primary mt-1">
                     {scanResult.detected_material}
                   </h2>
+                  {scanResult.main_category && (
+                    <span className="text-xs text-outline block">
+                      Category: <strong className="text-on-surface">{scanResult.main_category}</strong>
+                    </span>
+                  )}
                 </div>
 
                 <div className="text-right shrink-0">
@@ -493,11 +485,29 @@ export const WasteScannerPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Multiple Materials Breakdown (if detected) */}
+              {scanResult.material_breakdown && scanResult.material_breakdown.length > 0 && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-xs text-outline font-semibold uppercase tracking-wider">
+                    <Layers className="w-3.5 h-3.5" />
+                    <span>Identified Material Composition</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {scanResult.material_breakdown.map((item, idx) => (
+                      <div key={idx} className="p-2 rounded-lg bg-surface-container-low border border-outline-variant/40 text-xs flex justify-between items-center">
+                        <span className="font-medium text-on-surface">{item.material}</span>
+                        <span className="text-primary font-bold">{item.estimated_percentage}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Manual Category Correction Dropdown */}
               <div className="p-3 bg-surface-container rounded-lg border border-outline-variant/40 space-y-2">
                 <div className="flex items-center justify-between text-xs">
                   <label className="font-label-md font-semibold text-on-surface">
-                    Assigned Category (Verify or Correct Manually):
+                    Assigned Marketplace Category (Verify or Correct Manually):
                   </label>
                   <span className="text-outline text-[11px]">User editable</span>
                 </div>
@@ -528,7 +538,7 @@ export const WasteScannerPage: React.FC = () => {
                 </div>
               )}
 
-              {/* Reasoning & Circular Destination */}
+              {/* Reasoning & Circular Pathway */}
               <div className="p-3.5 bg-surface-container-low rounded-lg border border-outline-variant/40 space-y-1">
                 <span className="font-label-sm text-xs text-outline uppercase tracking-wider block font-semibold">
                   Circular Pathway Recommendation
@@ -541,14 +551,51 @@ export const WasteScannerPage: React.FC = () => {
                 </p>
               </div>
 
-              {/* Safety & Handling Warnings */}
-              {scanResult.safety_guidance && scanResult.safety_guidance.length > 0 && (
+              {/* Reuse Recommendations */}
+              {scanResult.reuse_recommendations && scanResult.reuse_recommendations.length > 0 && (
                 <div className="space-y-1.5">
-                  <span className="font-label-sm text-xs text-outline uppercase tracking-wider block font-semibold">
-                    Safety & Handling Protocol
-                  </span>
+                  <div className="flex items-center gap-1.5 text-xs text-outline font-semibold uppercase tracking-wider">
+                    <Lightbulb className="w-3.5 h-3.5 text-primary" />
+                    <span>Reuse Recommendations</span>
+                  </div>
                   <ul className="space-y-1 text-body-sm text-on-surface-variant">
-                    {scanResult.safety_guidance.map((tip, idx) => (
+                    {scanResult.reuse_recommendations.map((tip, idx) => (
+                      <li key={idx} className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-surface-tint shrink-0 mt-0.5" />
+                        <span>{tip}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Certified Recycling & Handling Methods */}
+              {scanResult.recycling_methods && scanResult.recycling_methods.length > 0 && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-xs text-outline font-semibold uppercase tracking-wider">
+                    <Recycle className="w-3.5 h-3.5 text-primary" />
+                    <span>Recycling & Aggregation Protocol</span>
+                  </div>
+                  <ul className="space-y-1 text-body-sm text-on-surface-variant">
+                    {scanResult.recycling_methods.map((method, idx) => (
+                      <li key={idx} className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-surface-tint shrink-0 mt-0.5" />
+                        <span>{method}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Safety & Handling Warnings */}
+              {(scanResult.safety_warnings || scanResult.safety_guidance) && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-xs text-outline font-semibold uppercase tracking-wider">
+                    <ShieldCheck className="w-3.5 h-3.5 text-secondary" />
+                    <span>Safety Protocols</span>
+                  </div>
+                  <ul className="space-y-1 text-body-sm text-on-surface-variant">
+                    {(scanResult.safety_warnings || scanResult.safety_guidance || []).map((tip, idx) => (
                       <li key={idx} className="flex items-start gap-2">
                         <Check className="w-4 h-4 text-surface-tint shrink-0 mt-0.5" />
                         <span>{tip}</span>

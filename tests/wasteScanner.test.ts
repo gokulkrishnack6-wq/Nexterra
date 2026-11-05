@@ -6,10 +6,10 @@ describe('AI Waste Scanner Engine', () => {
     expect(isGeminiConfigured()).toBe(false);
   });
 
-  it('rejects image analysis with actionable guidance when API key is missing', async () => {
+  it('rejects image analysis with actionable guidance when Edge Function or API key is missing', async () => {
     await expect(
       analyzeWasteImage('dummy_base64_data', 'image/jpeg')
-    ).rejects.toThrow(/Gemini.*API key/i);
+    ).rejects.toThrow(/analyze-waste-image|Gemini.*API key/i);
   });
 
   it('rejects empty or corrupt image data', async () => {
