@@ -33,7 +33,8 @@ export function setGeminiSessionKey(key: string) {
 }
 
 export function isGeminiConfigured(): boolean {
-  return Boolean(getGeminiApiKey());
+  // Edge Function handles Gemini via Supabase backend secret GEMINI_API_KEY
+  return isSupabaseConfigured || Boolean(getGeminiApiKey());
 }
 
 /**
@@ -41,27 +42,20 @@ export function isGeminiConfigured(): boolean {
  * Invokes the Supabase Edge Function `analyze-waste-image`.
  */
 export async function analyzeWasteImage(
-  imageBase64: string, 
+  imageBase64: string,
   mimeType: string = 'image/jpeg'
 ): Promise<AIScanResult> {
-  if (!imageBase64 || imageBase64.length < 10) {
+  if (!imageBase64 || imageBase64.length < 50) {
     throw new Error('Invalid image data. Please capture or upload a valid photo.');
   }
 
   // Strip data:image/...;base64, prefix if present
-  const cleanBase64 = imageBase64.includes(',') 
-    ? imageBase64.split(',')[1] 
+  const cleanBase64 = imageBase64.includes(',')
+    ? imageBase64.split(',')[1]
     : imageBase64;
 
-  const sessionKey = getGeminiApiKey();
-
-  // 1. If user provided a local session key in UI, prioritize direct client call
-  if (sessionKey) {
-    return await analyzeDirectWithClient(cleanBase64, mimeType, sessionKey);
-  }
-
-  // 2. Primary Route: Secure Supabase Edge Function (holds GEMINI_API_KEY secret)
-  if (isSupabaseConfigured && typeof window !== 'undefined') {
+  // 1. Primary Route: Secure Supabase Edge Function
+  if (isSupabaseConfigured) {
     try {
       const { data, error } = await supabase.functions.invoke('analyze-waste-image', {
         body: {
@@ -92,10 +86,17 @@ export async function analyzeWasteImage(
           }
         }
 
+        // If a local session key is provided in UI, fallback to client-side call
+        const sessionKey = getGeminiApiKey();
+        if (sessionKey) {
+          console.warn('Edge Function unreachable, falling back to session key:', errorDetail);
+          return await analyzeDirectWithClient(cleanBase64, mimeType, sessionKey);
+        }
+
         // Friendly guidance if the edge function is not deployed yet or secrets are missing
         if (
-          errorDetail.includes('404') || 
-          errorDetail.includes('FunctionsFetchError') || 
+          errorDetail.includes('404') ||
+          errorDetail.includes('FunctionsFetchError') ||
           errorDetail.includes('Failed to send a request') ||
           errorDetail.includes('Failed to fetch')
         ) {
@@ -107,13 +108,18 @@ export async function analyzeWasteImage(
         throw new Error(errorDetail);
       }
     } catch (err: any) {
-      if (err.message?.includes('analyze-waste-image') || err.message?.includes('GEMINI_API_KEY')) {
-        throw err;
+      const sessionKey = getGeminiApiKey();
+      if (sessionKey) {
+        return await analyzeDirectWithClient(cleanBase64, mimeType, sessionKey);
       }
-      throw new Error(
-        'Gemini Vision API key is not configured. Please ensure the Supabase Edge Function "analyze-waste-image" has secret GEMINI_API_KEY set, or enter your key in Scanner Settings.'
-      );
+      throw err;
     }
+  }
+
+  // 2. Secondary Route: Client-side with user session key if Supabase is unconfigured
+  const sessionKey = getGeminiApiKey();
+  if (sessionKey) {
+    return await analyzeDirectWithClient(cleanBase64, mimeType, sessionKey);
   }
 
   throw new Error(
@@ -131,7 +137,7 @@ async function analyzeDirectWithClient(
   apiKey: string
 ): Promise<AIScanResult> {
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ 
+  const model = genAI.getGenerativeModel({
     model: 'gemini-1.5-flash',
     generationConfig: {
       temperature: 0.2,
@@ -198,7 +204,7 @@ Return ONLY a valid JSON object matching this schema without any markdown code f
 
     const response = await result.response;
     const rawText = response.text().trim();
-    
+
     const cleanedJson = rawText
       .replace(/^```json\s*/i, '')
       .replace(/^```\s*/i, '')
