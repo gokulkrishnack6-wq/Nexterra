@@ -56,9 +56,9 @@ describe('GreenLoop Dynamic Location-Based Marketplace Demo System', () => {
       expect(mat4.purpose).toContain('Composting and agricultural reuse');
     });
 
-    it('ensures each material template provides a realistic photograph URL', () => {
+    it('ensures each material template provides a realistic photograph URL or local path', () => {
       DEMO_MATERIALS.forEach((mat) => {
-        expect(mat.image).toMatch(/^https:\/\/images\.unsplash\.com\//);
+        expect(mat.image).toMatch(/^(\/images\/materials\/|https:\/\/)/);
       });
     });
   });

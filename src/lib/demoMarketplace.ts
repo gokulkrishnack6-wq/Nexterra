@@ -215,7 +215,7 @@ export const DEMO_MATERIALS: DemoMaterialTemplate[] = [
     condition: 'Dry',
     purpose: 'Coir production, gardening and composting. Sun-dried raw coconut husks accumulated from domestic harvesting. Clean and fiber-intact, ideal for coir yarn spinning, potting medium, or organic mulch.',
     suggested_action: 'Coir production, gardening and composting',
-    image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=800&q=80',
+    image: '/images/materials/coconut-husk-waste.jpg',
   },
   {
     id: 'demo-cardboard-boxes',
@@ -228,7 +228,7 @@ export const DEMO_MATERIALS: DemoMaterialTemplate[] = [
     condition: 'Clean and dry',
     purpose: 'Recycling and packaging reuse. Assorted corrugated shipping and delivery cartons. Clean, flattened, free of tape and contaminants, suitable for reuse or pulp recycling.',
     suggested_action: 'Recycling and packaging reuse',
-    image: 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=800&q=80',
+    image: '/images/materials/used-cardboard-boxes.jpg',
   },
   {
     id: 'demo-plastic-bottles',
@@ -241,7 +241,7 @@ export const DEMO_MATERIALS: DemoMaterialTemplate[] = [
     condition: 'Clean and sorted',
     purpose: 'Plastic recycling. Clean, rinsed, and compacted clear PET bottles and containers. Sorted by polymer grade, ready for mechanical flaking and fiber extrusion.',
     suggested_action: 'Plastic recycling',
-    image: 'https://images.unsplash.com/photo-1528323273322-d81458248d40?auto=format&fit=crop&w=800&q=80',
+    image: '/images/materials/used-plastic-bottles.jpg',
   },
   {
     id: 'demo-vegetable-fruit',
@@ -254,7 +254,7 @@ export const DEMO_MATERIALS: DemoMaterialTemplate[] = [
     condition: 'Fresh and segregated',
     purpose: 'Composting and agricultural reuse. Daily segregated wet organic scraps from raw vegetable trims and fruit discards. Suitable for decentralized biogas digesters or aerobic windrow composting.',
     suggested_action: 'Composting and agricultural reuse',
-    image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80',
+    image: '/images/materials/vegetable-fruit-waste.jpg',
   },
 ];
 
