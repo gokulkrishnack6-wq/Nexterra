@@ -20,7 +20,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
 
 export const LandingPage: React.FC = () => {
-  const { listings, metrics } = useData();
+  const { listings, allMarketplaceListings, metrics } = useData();
 
   useEffect(() => {
     if (window.location.hash === '#how-it-works') {
@@ -29,7 +29,8 @@ export const LandingPage: React.FC = () => {
     }
   }, []);
 
-  const previewListings = listings.filter((l) => l.status === 'active').slice(0, 4);
+  const availableListings = allMarketplaceListings && allMarketplaceListings.length > 0 ? allMarketplaceListings : listings;
+  const previewListings = availableListings.filter((l) => l.status === 'active').slice(0, 4);
 
   return (
     <div className="space-y-16 pb-20">
@@ -74,7 +75,7 @@ export const LandingPage: React.FC = () => {
 
               <Link to="/scanner">
                 <Button size="lg" variant="secondary" icon={<ScanLine className="w-4 h-4 text-primary" />}>
-                  Scan with AI
+                  Scan Material
                 </Button>
               </Link>
             </div>
@@ -211,14 +212,14 @@ export const LandingPage: React.FC = () => {
                 2
               </div>
               <h3 className="font-heading font-bold text-lg text-primary mb-1">
-                AI circular guidance
+                Smart circular guidance
               </h3>
               <p className="font-body-sm text-body-sm text-on-surface-variant">
-                Camera AI classifies the material, estimates weight, gives handling guidance, and suggests composting or recycling.
+                Smart camera classification identifies the material, estimates weight, gives handling guidance, and suggests composting or recycling.
               </p>
             </div>
             <div className="pt-4 mt-4 border-t border-outline-variant/40 text-[11px] text-outline">
-              Vision AI Powered
+              Automated Material Analysis
             </div>
           </Card>
 
@@ -272,7 +273,7 @@ export const LandingPage: React.FC = () => {
           </div>
           <Link to="/marketplace">
             <Button variant="secondary" size="sm" icon={<ArrowRight className="w-4 h-4" />} iconPosition="right">
-              View All Materials ({listings.length})
+              View All Materials ({availableListings.length})
             </Button>
           </Link>
         </div>
@@ -384,7 +385,7 @@ export const LandingPage: React.FC = () => {
               </Link>
               <Link to="/scanner">
                 <Button size="lg" variant="outline" className="border-on-primary-container text-on-primary hover:bg-primary">
-                  Try AI Scanner
+                  Try Waste Scanner
                 </Button>
               </Link>
             </div>

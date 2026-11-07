@@ -27,7 +27,7 @@ import {
 
 export const OverviewPage: React.FC = () => {
   const { currentUser } = useAuth();
-  const { listings, exchangeRequests, metrics, challenges, reports, isLoading } = useData();
+  const { listings, allMarketplaceListings, exchangeRequests, metrics, challenges, reports, isLoading } = useData();
   const {
     district: userDistrict,
     locality: userLocality,
@@ -59,8 +59,9 @@ export const OverviewPage: React.FC = () => {
   const recentReports = reports.slice(0, 3);
 
   // Smart suggestions from available listings in other categories
-  const suggestedListings = listings.filter((l) => l.user_id !== currentUserId && l.status === 'active').slice(0, 2);
-  const activeMarketplaceCount = listings.filter((l) => l.status === 'active').length;
+  const marketplaceInventory = allMarketplaceListings && allMarketplaceListings.length > 0 ? allMarketplaceListings : listings;
+  const suggestedListings = marketplaceInventory.filter((l) => l.user_id !== currentUserId && l.status === 'active').slice(0, 2);
+  const activeMarketplaceCount = marketplaceInventory.filter((l) => l.status === 'active').length;
 
   if (isLoading) {
     return (
@@ -131,7 +132,7 @@ export const OverviewPage: React.FC = () => {
               className="inline-flex items-center gap-2 px-4 py-2.5 bg-gl-cream hover:bg-white text-gl-forest border border-gl-sand rounded-lg text-sm font-semibold transition-all active:scale-[0.98]"
             >
               <ScanLine className="w-4 h-4 text-gl-olive" />
-              <span>AI Waste Scanner</span>
+              <span>Waste Scanner</span>
             </button>
 
             <button

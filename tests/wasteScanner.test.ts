@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { analyzeWasteImage, isGeminiConfigured, getGeminiApiKey } from '../src/lib/gemini';
 
-describe('AI Waste Scanner Engine', () => {
+describe('Smart Waste Scanner Engine', () => {
   it('correctly reports unconfigured state when no API key is provided', () => {
     expect(isGeminiConfigured()).toBe(false);
   });
@@ -40,7 +40,7 @@ describe('AI Waste Scanner Engine', () => {
     expect(ambiguousResponse.confidence).toBeLessThan(0.5);
   });
 
-  it('detects and handles mock Gemini vision payload format cleanly', async () => {
+  it('detects and handles mock vision payload format cleanly', async () => {
     // Test that the expected AIScanResult structure handles categorization accurately
     const mockVisionResponse = {
       detected_material: 'Corrugated Cardboard Box',

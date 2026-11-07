@@ -38,7 +38,7 @@ export const CreateListingPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  // Check for pre-filled scan from AI Scanner
+  // Check for pre-filled scan from Material Scanner
   useEffect(() => {
     const prefill = sessionStorage.getItem('greenloop_prefill_scan');
     if (prefill) {
@@ -139,7 +139,7 @@ export const CreateListingPage: React.FC = () => {
 
         <Link to="/ai-scanner">
           <Button variant="secondary" size="sm" icon={<Sparkles className="w-4 h-4 text-primary" />}>
-            Auto-fill with AI Scanner
+            Auto-fill with Smart Scanner
           </Button>
         </Link>
       </div>
@@ -149,7 +149,7 @@ export const CreateListingPage: React.FC = () => {
           <Badge variant="brand">List Material</Badge>
           {aiClassified && (
             <Badge variant="active" icon={<Sparkles className="w-3 h-3" />}>
-              AI Pre-Filled
+              Scanner Pre-Filled
             </Badge>
           )}
         </div>
@@ -334,7 +334,7 @@ export const CreateListingPage: React.FC = () => {
               placeholder="https://... (or leave empty for default material photo)"
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
-              helperText="Paste an image link or use the AI Waste Scanner to snap a photo directly."
+              helperText="Paste an image link or use the Waste Scanner to snap a photo directly."
             />
           </div>
 

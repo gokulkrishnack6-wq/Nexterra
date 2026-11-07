@@ -10,9 +10,11 @@ import { Card } from '../../components/ui/Card';
 import { EmptyState, ListingCardSkeleton } from '../../components/ui/Skeleton';
 
 export const MarketplacePage: React.FC = () => {
-  const { listings, categories, isLoading } = useData();
+  const { listings, demoListings, allMarketplaceListings, categories, isLoading } = useData();
   const { coords, district: detectedDistrict } = useGeolocation();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const sourceListings = allMarketplaceListings && allMarketplaceListings.length > 0 ? allMarketplaceListings : listings;
 
   const selectedCategory = searchParams.get('category') || 'all';
   const [searchTerm, setSearchTerm] = useState('');
@@ -33,7 +35,7 @@ export const MarketplacePage: React.FC = () => {
   };
 
   const filteredListings = useMemo(() => {
-    const list = listings.filter((listing) => {
+    const list = sourceListings.filter((listing) => {
       // 1. Category Filter
       if (selectedCategory !== 'all') {
         const cat = categories.find((c) => c.slug === selectedCategory);
@@ -50,7 +52,7 @@ export const MarketplacePage: React.FC = () => {
         return false;
       }
 
-      // 4. AI Verified Filter
+      // 4. Material Verified Filter
       if (onlyAiVerified && !listing.ai_classified) {
         return false;
       }
@@ -68,11 +70,13 @@ export const MarketplacePage: React.FC = () => {
       return true;
     });
 
+    const refCoords = coords || (selectedDistrict && selectedDistrict !== 'All Kerala' && KERALA_DISTRICT_COORDS[selectedDistrict]) || null;
+
     // Sort order
     return list.sort((a, b) => {
-      if (sortBy === 'nearest' && coords) {
-        const distA = a.latitude && a.longitude ? calculateDistanceKm(coords.latitude, coords.longitude, a.latitude, a.longitude) : 9999;
-        const distB = b.latitude && b.longitude ? calculateDistanceKm(coords.latitude, coords.longitude, b.latitude, b.longitude) : 9999;
+      if (sortBy === 'nearest' && refCoords) {
+        const distA = a.latitude && a.longitude ? calculateDistanceKm(refCoords.latitude, refCoords.longitude, a.latitude, a.longitude) : 9999;
+        const distB = b.latitude && b.longitude ? calculateDistanceKm(refCoords.latitude, refCoords.longitude, b.latitude, b.longitude) : 9999;
         return distA - distB;
       }
       if (sortBy === 'quantity') {
@@ -81,19 +85,28 @@ export const MarketplacePage: React.FC = () => {
       // default: newest
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
-  }, [listings, categories, selectedCategory, selectedDistrict, selectedPricing, onlyAiVerified, searchTerm, sortBy, coords]);
+  }, [sourceListings, categories, selectedCategory, selectedDistrict, selectedPricing, onlyAiVerified, searchTerm, sortBy, coords]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 space-y-6 text-left">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-1.5 mb-1">
+          <div className="inline-flex items-center gap-1.5 mb-1 flex-wrap">
             <Badge variant="brand">Circular Marketplace</Badge>
             <span className="text-outline text-xs">•</span>
             <span className="font-label-sm text-label-sm text-secondary">
               {filteredListings.length} materials in Kerala circulation
             </span>
+            {demoListings?.length > 0 && (
+              <>
+                <span className="text-outline text-xs">•</span>
+                <span className="bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300/80 px-2 py-0.5 rounded-full font-label-sm text-[11px] font-medium inline-flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-amber-600" />
+                  4 Location-Adapted Sample Listings (Demo)
+                </span>
+              </>
+            )}
           </div>
           <h1 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight">
             Waste Marketplace
@@ -195,11 +208,11 @@ export const MarketplacePage: React.FC = () => {
                 : 'bg-surface-container text-on-surface hover:bg-surface-container-high border border-outline-variant/50'
             }`}
           >
-            All Categories ({listings.length})
+            All Categories ({sourceListings.length})
           </button>
 
           {categories.map((cat) => {
-            const count = listings.filter((l) => l.category_id === cat.id).length;
+            const count = sourceListings.filter((l) => l.category_id === cat.id).length;
             const isSelected = selectedCategory === cat.slug;
             return (
               <button

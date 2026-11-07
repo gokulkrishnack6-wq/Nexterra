@@ -27,7 +27,7 @@ export const Navbar: React.FC = () => {
     { name: 'Dashboard', path: '/dashboard' },
     { name: 'Explore Materials', path: '/marketplace' },
     { name: 'Find Waste Bins', path: '/bins' },
-    { name: 'AI Scanner', path: '/scanner' },
+    { name: 'Waste Scanner', path: '/scanner' },
     { name: 'Directory Map', path: '/map' },
     { name: 'Impact', path: '/impact' },
     { name: 'Community', path: '/community' },

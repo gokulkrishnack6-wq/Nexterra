@@ -48,7 +48,7 @@ export const Footer: React.FC = () => {
               </li>
               <li>
                 <Link to="/scanner" className="hover:text-on-primary transition-colors">
-                  AI Waste Scanner
+                  Waste Scanner
                 </Link>
               </li>
               <li>

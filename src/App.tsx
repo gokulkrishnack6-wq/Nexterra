@@ -129,7 +129,7 @@ export const App: React.FC = () => {
               }
             />
 
-            {/* 5. AI Waste Scanner */}
+            {/* 5. Smart Waste Scanner */}
             <Route
               path="/ai-scanner"
               element={
@@ -183,6 +183,7 @@ export const App: React.FC = () => {
               }
             />
             <Route path="/dashboard/impact" element={<Navigate to="/impact" replace />} />
+            <Route path="/ecopoints" element={<Navigate to="/impact" replace />} />
 
             {/* 10. Community Drives */}
             <Route

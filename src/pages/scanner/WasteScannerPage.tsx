@@ -180,7 +180,7 @@ export const WasteScannerPage: React.FC = () => {
       setDetectedMaterialName(result.detected_material);
       setSelectedCategory(result.category_slug);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to process image with AI service.');
+      setErrorMsg(err.message || 'Failed to process image with material analysis service.');
     } finally {
       setAnalyzing(false);
     }
@@ -246,7 +246,7 @@ export const WasteScannerPage: React.FC = () => {
             }`} />
             <span className="font-semibold text-primary">
               {backendStatus === 'ready'
-                ? 'Edge Function: Live (Gemini Vision)'
+                ? 'Material Analysis: Online'
                 : backendStatus === 'checking'
                 ? 'Checking Edge Function Deployment...'
                 : 'Edge Function: Deployment Required'}
@@ -264,10 +264,10 @@ export const WasteScannerPage: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-space-md pt-space-xs">
           <div className="max-w-3xl">
             <h1 className="font-heading font-bold text-2xl sm:text-3xl lg:text-headline-lg text-primary tracking-tight">
-              AI Waste &amp; Material Scanner
+              Smart Waste &amp; Material Scanner
             </h1>
             <p className="font-body-lg text-body-md text-on-surface-variant mt-1 leading-relaxed">
-              Upload or capture photographs of unsegregated waste, industrial byproducts, or agricultural residues. The Gemini Vision model inspects physical material composition, purity grade, local circular reuse pathways, and pre-fills your marketplace listing.
+              Upload or capture photographs of unsegregated waste, industrial byproducts, or agricultural residues. Our material analysis system inspects physical material composition, purity grade, local circular reuse pathways, and pre-fills your marketplace listing.
             </p>
           </div>
           <div className="flex items-center gap-space-sm">
@@ -304,7 +304,7 @@ export const WasteScannerPage: React.FC = () => {
           <div className="flex items-start gap-2.5">
             <AlertTriangle className="w-4 h-4 text-error shrink-0 mt-0.5" />
             <div className="flex flex-col gap-0.5">
-              <span className="font-heading font-bold text-error">AI Analysis Error</span>
+              <span className="font-heading font-bold text-error">Material Analysis Error</span>
               <p className="leading-relaxed">{errorMsg}</p>
             </div>
           </div>
@@ -476,7 +476,7 @@ export const WasteScannerPage: React.FC = () => {
                   ) : (
                     <>
                       <Sparkles className="w-4 h-4 text-tertiary-fixed" />
-                      <span>Re-Analyze with Gemini</span>
+                      <span>Re-Analyze Material</span>
                     </>
                   )}
                 </button>

@@ -16,10 +16,14 @@ import {
 import { INITIAL_CATEGORIES } from '../lib/mockData';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useAuth } from './AuthContext';
+import { useLocationContext } from './LocationContext';
+import { generateDynamicDemoListings, isDemoListing } from '../lib/demoMarketplace';
 
 interface DataContextType {
   categories: WasteCategory[];
   listings: WasteListing[];
+  demoListings: WasteListing[];
+  allMarketplaceListings: WasteListing[];
   exchangeRequests: ExchangeRequest[];
   transactions: Transaction[];
   ecoPointsLedger: EcoPointRecord[];
@@ -54,6 +58,7 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser } = useAuth();
+  const { coords, locality, district, city } = useLocationContext();
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Taxonomy standard categories for Kerala circular materials
@@ -286,6 +291,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }));
   }, [listings, categories, currentUser]);
 
+  // Dynamic location-aware competition demonstration listings
+  const demoListings = useMemo(() => {
+    return generateDynamicDemoListings(coords, locality, district, city, categories);
+  }, [coords, locality, district, city, categories]);
+
+  // Combined marketplace inventory (genuine user listings + location-aware sample listings)
+  const allMarketplaceListings = useMemo(() => {
+    return [...populatedListings, ...demoListings];
+  }, [populatedListings, demoListings]);
+
   // Sustainability Metrics: calculated strictly from real completed transactions
   const metrics = useMemo<SustainabilityMetrics>(() => {
     let totalWaste = 0;
@@ -333,7 +348,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       total_co2e_avoided_kg: Math.round(totalCo2e * 10) / 10,
       total_methane_avoided_kg: Math.round(totalWaste * 0.085 * 10) / 10,
       total_landfill_area_saved_sqm: Math.round(totalLandfill * 0.0014 * 100) / 100,
-      total_active_listings: listings.filter((l) => l.status === 'active').length,
+      total_active_listings: listings.filter((l) => l.status === 'active' && !l.is_demo).length,
       total_completed_exchanges: transactions.length,
       total_ecopoints_circulated: ecoPointsLedger.reduce((acc, curr) => acc + (curr.points > 0 ? curr.points : 0), 0),
       category_breakdown,
@@ -438,6 +453,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     proposedAction: string,
     message: string
   ): string => {
+    if (isDemoListing(listingId)) {
+      throw new Error('This is a competition demonstration listing. Genuine exchange proposals can be submitted on authentic community materials.');
+    }
+
     const targetListing = listings.find((l) => l.id === listingId);
     if (!targetListing) throw new Error('Listing not found');
 
@@ -774,6 +793,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         categories,
         listings: populatedListings,
+        demoListings,
+        allMarketplaceListings,
         exchangeRequests,
         transactions,
         ecoPointsLedger,

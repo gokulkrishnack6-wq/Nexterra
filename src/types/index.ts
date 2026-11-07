@@ -36,7 +36,8 @@ export type EcoPointsAction =
   | 'challenge_completed'
   | 'verified_donation'
   | 'daily_streak'
-  | 'referral';
+  | 'referral'
+  | 'reward_redeemed';
 
 export type OperatorType = 
   | 'haritha_karma_sena'
@@ -107,6 +108,7 @@ export interface WasteListing {
   ai_confidence?: number;
   suggested_action?: string;
   expiry_date?: string;
+  is_demo?: boolean;
   created_at: string;
   updated_at?: string;
   // Joins

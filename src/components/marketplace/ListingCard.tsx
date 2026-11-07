@@ -58,9 +58,14 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
           loading="lazy"
         />
 
-        {/* Pricing tag */}
-        <div className="absolute top-2.5 left-2.5">
+        {/* Pricing & Demo tag */}
+        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
           {getPricingBadge()}
+          {listing.is_demo && (
+            <span className="font-label-sm text-[10px] uppercase font-bold text-amber-800 bg-amber-100/95 dark:bg-amber-950/90 dark:text-amber-300 border border-amber-300 px-2 py-0.5 rounded-full shadow-sm backdrop-blur-sm">
+              Demo Sample
+            </span>
+          )}
         </div>
 
         {/* Save button */}
@@ -89,15 +94,22 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
       <div className="p-3.5 flex-1 flex flex-col justify-between">
         <div>
           <div className="flex items-center justify-between text-[11px] text-outline mb-1 font-label-sm">
-            <span>{listing.category?.name || 'Recyclable'}</span>
-            <span className="font-semibold text-primary">{listing.quantity} {listing.unit}</span>
+            <span className="truncate">{listing.category?.name || 'Recyclable'}</span>
+            <span className="font-semibold text-primary shrink-0 ml-1">{listing.quantity} {listing.unit}</span>
           </div>
 
           <h3 className="font-heading font-semibold text-body-md text-on-surface group-hover:text-primary transition-colors line-clamp-1">
             {listing.title}
           </h3>
 
-          <p className="font-body-sm text-body-sm text-on-surface-variant mt-1 line-clamp-2 leading-relaxed">
+          <div className="flex items-center gap-1.5 mt-1 text-[11px] font-label-sm text-secondary">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+            <span className="font-medium text-emerald-700 dark:text-emerald-400">Available</span>
+            <span className="text-outline">•</span>
+            <span className="truncate text-on-surface-variant font-medium">{listing.condition}</span>
+          </div>
+
+          <p className="font-body-sm text-body-sm text-on-surface-variant mt-1.5 line-clamp-2 leading-relaxed">
             {listing.description}
           </p>
         </div>

@@ -8,7 +8,7 @@ import { Card } from '../../components/ui/Card';
 import { EmptyState } from '../../components/ui/Skeleton';
 
 export const MapPage: React.FC = () => {
-  const { recyclingCentres, listings, wasteBins } = useData();
+  const { recyclingCentres, listings, allMarketplaceListings, wasteBins } = useData();
   const { district: userDistrict } = useGeolocation();
   const [selectedDistrict, setSelectedDistrict] = useState(userDistrict || 'All Kerala');
   const [searchTerm, setSearchTerm] = useState('');
@@ -80,10 +80,10 @@ export const MapPage: React.FC = () => {
       </div>
 
       {/* Map Component with Segregated Layers */}
-      <KeralaCircularMap 
-        centres={filteredCentres} 
-        listings={listings} 
-        wasteBins={filteredBins} 
+      <KeralaCircularMap
+        centres={filteredCentres}
+        listings={allMarketplaceListings || listings}
+        wasteBins={filteredBins}
       />
 
       {/* Public Waste Bins Section */}

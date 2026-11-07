@@ -10,12 +10,14 @@ import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/Skeleton';
 
 export const SmartMatchPage: React.FC = () => {
-  const { listings } = useData();
+  const { listings, allMarketplaceListings } = useData();
   const { currentUser } = useAuth();
 
+  const sourceListings = allMarketplaceListings || listings;
+
   const smartMatches = useMemo(() => {
-    return calculateSmartMatches(listings, currentUser);
-  }, [listings, currentUser]);
+    return calculateSmartMatches(sourceListings, currentUser);
+  }, [sourceListings, currentUser]);
 
   const userRole = currentUser?.role || 'individual';
   const userDistrict = currentUser?.district || 'Kerala';

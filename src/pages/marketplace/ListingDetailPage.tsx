@@ -21,11 +21,12 @@ import { Input, Textarea } from '../../components/ui/Input';
 export const ListingDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { listings, createExchangeRequest, favourites, toggleFavourite, categories } = useData();
+  const { listings, allMarketplaceListings, createExchangeRequest, favourites, toggleFavourite, categories } = useData();
   const { currentUser } = useAuth();
   const { coords } = useGeolocation();
 
-  const listing = listings.find((l) => l.id === id);
+  const sourceListings = allMarketplaceListings && allMarketplaceListings.length > 0 ? allMarketplaceListings : listings;
+  const listing = sourceListings.find((l) => l.id === id);
 
   const [requestedQuantity, setRequestedQuantity] = useState<number>(listing?.quantity || 1);
   const [proposedAction, setProposedAction] = useState('Composting & organic soil amendment');
@@ -70,6 +71,14 @@ export const ListingDetailPage: React.FC = () => {
 
     setSubmitting(true);
     try {
+      if (listing.is_demo) {
+        setSuccessMessage('Demo Mode: Exchange proposal simulated successfully for competition review! Real exchange requests are enabled on authentic community listings.');
+        setTimeout(() => {
+          navigate('/marketplace');
+        }, 2500);
+        return;
+      }
+
       createExchangeRequest(
         listing.id,
         requestedQuantity,
@@ -122,6 +131,20 @@ export const ListingDetailPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Col (7 cols): Images & Description */}
         <div className="lg:col-span-7 space-y-6">
+          {listing.is_demo && (
+            <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 rounded-xl p-4 flex items-start gap-3 shadow-sm">
+              <Sparkles className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <h4 className="font-heading font-semibold text-sm text-amber-900 dark:text-amber-200">
+                  Location-Aware Competition Demonstration Listing
+                </h4>
+                <p className="font-body-sm text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                  This sample material has been dynamically assigned to an authentic locality ({listing.locality}, {listing.district}) based on your current geographic reference point ({distanceKm !== null ? `${distanceKm} km away` : 'nearby'}). It demonstrates how local circular resources are surfaced to nearby residents.
+                </p>
+              </div>
+            </div>
+          )}
+
           <Card variant="elevated" className="overflow-hidden p-0 border border-outline-variant/70">
             <div className="aspect-[16/10] w-full bg-surface-container-low overflow-hidden relative">
               <img
@@ -135,7 +158,7 @@ export const ListingDetailPage: React.FC = () => {
                 </span>
                 {listing.ai_classified && (
                   <span className="font-label-sm text-label-sm text-on-primary bg-primary-container px-3 py-1 rounded-full flex items-center gap-1 shadow-sm font-semibold">
-                    <Sparkles className="w-3 h-3" /> AI Verified
+                    <Sparkles className="w-3 h-3" /> Verified Material
                   </span>
                 )}
               </div>
@@ -187,7 +210,7 @@ export const ListingDetailPage: React.FC = () => {
                 </p>
               </div>
 
-              {/* AI Guidance if present */}
+              {/* Circular Guidance if present */}
               {listing.suggested_action && (
                 <div className="p-3.5 rounded-lg bg-surface-container-low border border-outline-variant/60 flex items-start gap-3">
                   <div className="p-2 rounded-lg bg-secondary-container text-primary mt-0.5">
@@ -195,7 +218,7 @@ export const ListingDetailPage: React.FC = () => {
                   </div>
                   <div>
                     <span className="font-heading font-semibold text-body-md text-primary block">
-                      AI Circular Suggestion
+                      Smart Circular Suggestion
                     </span>
                     <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
                       Suggested Action: <strong className="capitalize text-primary">{listing.suggested_action.replace('_', ' ')}</strong>

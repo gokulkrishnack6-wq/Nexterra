@@ -69,7 +69,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
     { label: 'Waste Marketplace', path: '/marketplace', icon: Store },
     { label: 'Find Waste Bins', path: '/bins', icon: MapPin },
     { label: 'Report an Issue', path: '/report-issue', icon: AlertTriangle },
-    { label: 'AI Waste Scanner', path: '/ai-scanner', icon: ScanLine },
+    { label: 'Waste Scanner', path: '/ai-scanner', icon: ScanLine },
     { label: 'Smart Matches', path: '/matches', icon: Sparkles },
     { label: 'My Exchanges', path: '/exchanges', icon: Repeat },
     { label: 'Recycling Directory', path: '/recycling-directory', icon: Recycle },
@@ -461,7 +461,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                   >
                     <ScanLine className="w-4 h-4 text-primary" />
                     <div>
-                      <span className="font-semibold block">Scan with AI Camera</span>
+                      <span className="font-semibold block">Scan Material</span>
                       <span className="text-[10px] text-outline">Recognise material from image</span>
                     </div>
                   </button>
@@ -663,7 +663,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
             {[
               { label: 'Overview', path: '/', icon: LayoutDashboard, exact: true },
               { label: 'Market', path: '/marketplace', icon: Store },
-              { label: 'AI Scanner', path: '/ai-scanner', icon: ScanLine },
+              { label: 'Scanner', path: '/ai-scanner', icon: ScanLine },
               { label: 'Matches', path: '/matches', icon: Sparkles },
               { label: 'Bins', path: '/bins', icon: MapPin },
             ].map((tab) => {

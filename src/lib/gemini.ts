@@ -3,7 +3,7 @@ import { AIScanResult } from '../types';
 import { supabase, isSupabaseConfigured } from './supabase';
 
 /**
- * AI Waste Scanner Service
+ * Material Scanner Service
  * Connects the frontend camera and image upload interface to the secure
  * Supabase Edge Function: `analyze-waste-image`.
  *
@@ -122,7 +122,7 @@ export async function analyzeWasteImage(
   }
 
   throw new Error(
-    'Gemini Vision API key is not configured. Please ensure the Supabase Edge Function "analyze-waste-image" has secret GEMINI_API_KEY set, or enter your key in Scanner Settings.'
+    'Material analysis service is not configured. Please ensure the Supabase Edge Function "analyze-waste-image" has secret GEMINI_API_KEY set, or enter your key in Scanner Settings.'
   );
 }
 
@@ -213,20 +213,20 @@ Return ONLY a valid JSON object matching this schema without any markdown code f
     const parsed: AIScanResult = JSON.parse(cleanedJson);
 
     if (!parsed.detected_material || !parsed.category_slug) {
-      throw new Error('AI analysis produced an incomplete result. Please try another image.');
+      throw new Error('Material analysis produced an incomplete result. Please try another image.');
     }
 
     return parsed;
   } catch (err: any) {
     if (err.message?.includes('API_KEY_INVALID') || err.message?.includes('API key not valid')) {
-      throw new Error('Invalid Gemini API Key. Please verify your Gemini API key in Supabase secrets or scanner settings.');
+      throw new Error('Invalid material analysis credentials. Please verify your credentials in Supabase secrets or scanner settings.');
     }
     if (err.message?.includes('quota') || err.message?.includes('RESOURCE_EXHAUSTED')) {
-      throw new Error('Gemini API rate limit or quota exceeded. Please wait a moment.');
+      throw new Error('Material analysis rate limit or quota exceeded. Please wait a moment.');
     }
     if (err.name === 'SyntaxError') {
-      throw new Error('Could not parse AI response. The model did not return a structured JSON response. Please retake the photo.');
+      throw new Error('Could not parse material analysis response. The system did not return a structured response. Please retake the photo.');
     }
-    throw new Error(err.message || 'Failed to analyze image with Gemini AI.');
+    throw new Error(err.message || 'Failed to analyze image with material analysis system.');
   }
 }
