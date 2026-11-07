@@ -546,18 +546,13 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                   )}
                 </>
               ) : (
-                <div className="flex items-center gap-2 pl-2 border-l border-outline-variant/40">
+                <div className="flex items-center pl-2 border-l border-outline-variant/40">
                   <Link
                     to="/login"
-                    className="px-3 py-1.5 text-xs font-semibold text-primary hover:bg-surface-container rounded-lg transition-colors"
+                    className="px-3.5 py-1.5 text-xs font-semibold text-on-primary bg-primary-container hover:bg-primary rounded-lg transition-colors shadow-sm flex items-center gap-1.5"
                   >
-                    Sign In
-                  </Link>
-                  <Link
-                    to="/register"
-                    className="px-3 py-1.5 text-xs font-semibold text-on-primary bg-primary-container hover:bg-primary rounded-lg transition-colors"
-                  >
-                    Register
+                    <LogIn className="w-3.5 h-3.5" />
+                    <span>Sign In</span>
                   </Link>
                 </div>
               )}
@@ -566,9 +561,46 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
         </header>
 
         {/* Dynamic Route Content */}
-        <main className="w-full pt-16 flex-1 px-4 sm:px-space-lg py-space-lg">
+        <main className="w-full pt-16 pb-24 lg:pb-space-lg flex-1 px-4 sm:px-space-lg py-space-lg">
           {children}
         </main>
+
+        {/* Mobile Fixed Bottom Navigation Bar (Stitch Mobile Loop Hub 1:1) */}
+        <nav 
+          aria-label="Mobile Navigation"
+          className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-surface/95 backdrop-blur-xl border-t border-outline-variant/60 shadow-[0_-2px_12px_rgba(0,0,0,0.04)]"
+        >
+          <div className="flex justify-around items-center h-16 px-2">
+            {[
+              { label: 'Overview', path: '/', icon: LayoutDashboard, exact: true },
+              { label: 'Market', path: '/marketplace', icon: Store },
+              { label: 'AI Scanner', path: '/ai-scanner', icon: ScanLine },
+              { label: 'Matches', path: '/matches', icon: Sparkles },
+              { label: 'Bins', path: '/bins', icon: MapPin },
+            ].map((tab) => {
+              const active = isLinkActive(tab.path, tab.exact);
+              const Icon = tab.icon;
+              return (
+                <Link
+                  key={tab.path}
+                  to={tab.path}
+                  className={`flex flex-col items-center justify-center min-w-[52px] min-h-[44px] px-1 py-1 rounded-lg transition-colors ${
+                    active
+                      ? 'text-primary font-bold'
+                      : 'text-on-surface-variant hover:text-on-surface'
+                  }`}
+                >
+                  <div className={`p-1 rounded-full ${active ? 'bg-primary-container text-on-primary' : ''}`}>
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <span className="font-label-sm text-[10px] uppercase tracking-wider mt-0.5 leading-tight">
+                    {tab.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
       </div>
     </div>
   );

@@ -4,8 +4,8 @@
 
 @layer base {
   body {
-    background-color: #F5FBF3;
-    color: #171D18;
+    background-color: #EEFDF0;
+    color: #111E17;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -14,7 +14,7 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Manrope', 'Inter', sans-serif;
     letter-spacing: -0.015em;
-    color: #093420;
+    color: #003522;
   }
 
   p {

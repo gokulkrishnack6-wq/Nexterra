@@ -137,7 +137,7 @@ async function analyzeDirectWithClient(
 ): Promise<AIScanResult> {
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-flash-lite-latest',
     generationConfig: {
       temperature: 0.2,
       topP: 0.8,
