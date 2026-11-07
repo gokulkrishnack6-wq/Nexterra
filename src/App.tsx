@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { LocationProvider } from './contexts/LocationContext';
 import { DataProvider } from './contexts/DataContext';
 import { StitchAppShell } from './components/layout/StitchAppShell';
 
@@ -25,7 +26,8 @@ export const App: React.FC = () => {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <DataProvider>
+        <LocationProvider>
+          <DataProvider>
           <Routes>
             {/* 1. Default Homepage is the Application Dashboard */}
             <Route
@@ -190,8 +192,9 @@ export const App: React.FC = () => {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </DataProvider>
-      </AuthProvider>
-    </BrowserRouter>
+      </LocationProvider>
+    </AuthProvider>
+  </BrowserRouter>
   );
 };
 

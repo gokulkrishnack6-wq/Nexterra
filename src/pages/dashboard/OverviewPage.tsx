@@ -28,7 +28,14 @@ import {
 export const OverviewPage: React.FC = () => {
   const { currentUser } = useAuth();
   const { listings, exchangeRequests, metrics, challenges, reports, isLoading } = useData();
-  const { district: userDistrict, locality: userLocality } = useGeolocation();
+  const {
+    district: userDistrict,
+    locality: userLocality,
+    loading: geoLoading,
+    source: geoSource,
+    isKeralaBased: geoKeralaBased,
+    approximateDistrict: geoApproxDistrict,
+  } = useGeolocation();
   const navigate = useNavigate();
 
   // User-specific data slices (safely handled when unauthenticated or freshly signed up)
@@ -86,7 +93,15 @@ export const OverviewPage: React.FC = () => {
               <span className="text-gl-sand">•</span>
               <span className="font-mono text-[11px] text-gl-charcoal-muted flex items-center gap-1">
                 <Compass className="w-3.5 h-3.5 text-gl-olive" />
-                {userLocality ? `${userLocality}, ${userDistrict}` : `${userDistrict} Regional Node`}
+                {userDistrict
+                  ? (userLocality && userLocality !== userDistrict ? `${userLocality}, ${userDistrict}` : `${userDistrict} Regional Node`)
+                  : (geoLoading
+                      ? 'Detecting Regional Node...'
+                      : (geoSource === 'gps' && !geoKeralaBased
+                          ? (userLocality ? `${userLocality} (Outside Kerala)` : 'Outside Kerala')
+                          : (geoSource === 'approximate' && geoApproxDistrict
+                              ? `Near ${geoApproxDistrict} (Unconfirmed)`
+                              : 'Location Undetected • Select District')))}
               </span>
             </div>
 

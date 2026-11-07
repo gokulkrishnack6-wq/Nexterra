@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
   AlertTriangle, 
@@ -30,7 +30,7 @@ export const ReportIssuePage: React.FC = () => {
   const [issueType, setIssueType] = useState<'overflowing_bin' | 'illegal_dumping' | 'plastic_burning' | 'water_pollution'>('overflowing_bin');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [district, setDistrict] = useState(currentUser?.district || geoDistrict || 'Ernakulam');
+  const [district, setDistrict] = useState(currentUser?.district || geoDistrict || '');
   const [ward, setWard] = useState('Ward 12');
   const [locality, setLocality] = useState(geoLocality || '');
   const [landmark, setLandmark] = useState('');
@@ -38,6 +38,16 @@ export const ReportIssuePage: React.FC = () => {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [createdTicket, setCreatedTicket] = useState<string | null>(null);
+
+  // Sync with detected district and locality if not manually set
+  useEffect(() => {
+    if (geoDistrict && !district) {
+      setDistrict(geoDistrict);
+    }
+    if (geoLocality && !locality) {
+      setLocality(geoLocality);
+    }
+  }, [geoDistrict, geoLocality]);
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -56,6 +66,10 @@ export const ReportIssuePage: React.FC = () => {
     e.preventDefault();
     if (!title || !description) {
       alert('Please fill out all required fields.');
+      return;
+    }
+    if (!district) {
+      alert('Please select a Kerala district where the incident occurred.');
       return;
     }
 
@@ -250,7 +264,9 @@ export const ReportIssuePage: React.FC = () => {
                     value={district}
                     onChange={(e) => setDistrict(e.target.value)}
                     className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-3 transition-all"
+                    required
                   >
+                    <option value="">Select Kerala District</option>
                     {keralaDistricts.map((d) => (
                       <option key={d} value={d}>{d}</option>
                     ))}

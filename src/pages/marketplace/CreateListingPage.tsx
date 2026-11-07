@@ -28,7 +28,7 @@ export const CreateListingPage: React.FC = () => {
   const [listingType, setListingType] = useState<ListingPricing>('free');
   const [price, setPrice] = useState<number>(0);
   const [condition, setCondition] = useState('clean/dry');
-  const [district, setDistrict] = useState(currentUser?.district || geoDistrict || 'Ernakulam');
+  const [district, setDistrict] = useState(currentUser?.district || geoDistrict || '');
   const [locality, setLocality] = useState(geoLocality || '');
   const [address, setAddress] = useState('');
   const [imageUrl, setImageUrl] = useState('');
@@ -64,15 +64,22 @@ export const CreateListingPage: React.FC = () => {
 
   // Sync with detected district if not manually set
   useEffect(() => {
-    if (geoDistrict && !locality) {
+    if (geoDistrict && !district) {
       setDistrict(geoDistrict);
-      setLocality(geoLocality || `${geoDistrict} Central`);
+    }
+    if (geoLocality && !locality) {
+      setLocality(geoLocality);
     }
   }, [geoDistrict, geoLocality]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (!district) {
+      setError('Please select a Kerala district for pickup.');
+      return;
+    }
 
     if (!title || !description || quantity <= 0) {
       setError('Please fill all required fields.');
@@ -294,7 +301,9 @@ export const CreateListingPage: React.FC = () => {
                   value={district}
                   onChange={(e) => setDistrict(e.target.value)}
                   className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-3 transition-all"
+                  required
                 >
+                  <option value="">Select Kerala District</option>
                   {keralaDistricts.map((d) => (
                     <option key={d} value={d}>{d}</option>
                   ))}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Phone, Clock, MapPin, Trash2, ShieldCheck, Recycle } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { useGeolocation, KERALA_DISTRICT_COORDS } from '../../hooks/useGeolocation';
@@ -12,6 +12,12 @@ export const MapPage: React.FC = () => {
   const { district: userDistrict } = useGeolocation();
   const [selectedDistrict, setSelectedDistrict] = useState(userDistrict || 'All Kerala');
   const [searchTerm, setSearchTerm] = useState('');
+
+  useEffect(() => {
+    if (userDistrict) {
+      setSelectedDistrict(userDistrict);
+    }
+  }, [userDistrict]);
 
   const keralaDistricts = Object.keys(KERALA_DISTRICT_COORDS);
 

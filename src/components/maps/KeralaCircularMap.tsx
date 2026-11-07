@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import React, { useState, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { RecyclingCentre, WasteListing, PublicWasteBin } from '../../types';
 import { useGeolocation } from '../../hooks/useGeolocation';
@@ -12,6 +12,16 @@ interface KeralaCircularMapProps {
   wasteBins?: PublicWasteBin[];
   initialFilter?: 'all' | 'centres' | 'bins' | 'listings';
 }
+
+const MapViewSync: React.FC<{ coords: { latitude: number; longitude: number } | null }> = ({ coords }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (coords) {
+      map.flyTo([coords.latitude, coords.longitude], 12, { duration: 1.2 });
+    }
+  }, [coords?.latitude, coords?.longitude, map]);
+  return null;
+};
 
 export const KeralaCircularMap: React.FC<KeralaCircularMapProps> = ({ 
   centres, 
@@ -148,6 +158,7 @@ export const KeralaCircularMap: React.FC<KeralaCircularMapProps> = ({
         scrollWheelZoom={false}
         className="w-full h-full"
       >
+        <MapViewSync coords={coords} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

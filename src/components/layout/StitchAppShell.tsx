@@ -38,6 +38,14 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
   const {
     district: currentDistrict,
     locality: currentLocality,
+    state: currentState,
+    country: currentCountry,
+    postcode: currentPostcode,
+    coords: currentCoords,
+    source: geoSource,
+    isKeralaBased: geoKeralaBased,
+    approximateDistrict: geoApproxDistrict,
+    permissionStatus: geoPermission,
     loading: geoLoading,
     error: geoError,
     detectLocation,
@@ -281,29 +289,110 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                   <Navigation className="w-3.5 h-3.5 text-secondary" />
                 )}
                 <span className="truncate max-w-[130px] sm:max-w-xs">
-                  {geoLoading ? 'Detecting Location...' : (currentLocality || currentDistrict)}
+                  {geoLoading
+                    ? 'Detecting Location...'
+                    : (currentLocality
+                        ? `${currentLocality}${currentDistrict && currentDistrict !== currentLocality ? `, ${currentDistrict}` : ''}`
+                        : (currentDistrict || (geoSource === 'approximate' ? (geoApproxDistrict ? `Near ${geoApproxDistrict}` : 'GPS Detected') : 'Select Location')))}
                 </span>
                 <ChevronDown className="w-3 h-3 text-outline" />
               </button>
 
               {locationMenuOpen && (
-                <div className="absolute left-0 mt-2 w-72 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-dropdown py-2 z-50">
+                <div className="absolute left-0 mt-2 w-80 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-dropdown py-2 z-50">
+                  {/* Current Active Location Summary */}
+                  <div className="px-3.5 py-2.5 border-b border-outline-variant/40 bg-surface-container-low/40">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-outline flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-primary" /> Location Status
+                      </span>
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                        geoSource === 'gps' && geoKeralaBased
+                          ? 'bg-secondary-container text-primary'
+                          : geoSource === 'gps' && !geoKeralaBased
+                          ? 'bg-blue-100 text-blue-800'
+                          : geoSource === 'approximate'
+                          ? 'bg-amber-100 text-amber-800'
+                          : geoSource === 'manual'
+                          ? 'bg-surface-container-high text-on-surface'
+                          : 'bg-surface-container text-outline'
+                      }`}>
+                        {geoSource === 'gps' && geoKeralaBased
+                          ? 'GPS Verified'
+                          : geoSource === 'gps' && !geoKeralaBased
+                          ? 'Outside Kerala'
+                          : geoSource === 'approximate'
+                          ? 'Approximate GPS'
+                          : geoSource === 'manual'
+                          ? 'Manual Selection'
+                          : 'Undetected'}
+                      </span>
+                    </div>
+
+                    {geoSource === 'undetected' ? (
+                      <>
+                        <p className="text-xs font-bold text-on-surface">No Location Selected</p>
+                        <p className="text-[11px] text-on-surface-variant">
+                          Click Detect GPS or choose your Kerala district below.
+                        </p>
+                      </>
+                    ) : geoSource === 'approximate' ? (
+                      <>
+                        <p className="text-xs font-bold text-on-surface">
+                          {geoApproxDistrict ? `Near ${geoApproxDistrict} (Unconfirmed)` : 'GPS Position Detected'}
+                        </p>
+                        <p className="text-[11px] text-on-surface-variant">
+                          Reverse geocoding unavailable. Please select your official district below.
+                        </p>
+                        {currentCoords && (
+                          <p className="text-[10px] font-mono text-outline mt-0.5">
+                            {currentCoords.latitude.toFixed(4)}°N, {currentCoords.longitude.toFixed(4)}°E
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-xs font-bold text-on-surface">
+                          {currentLocality ? `${currentLocality}${currentDistrict && currentDistrict !== currentLocality ? `, ${currentDistrict}` : ''}` : currentDistrict}
+                        </p>
+                        <p className="text-[11px] text-on-surface-variant">
+                          {currentState || 'Kerala'}, {currentCountry || 'India'}
+                          {currentPostcode ? ` • PIN ${currentPostcode}` : ''}
+                        </p>
+                        {currentCoords && (
+                          <p className="text-[10px] font-mono text-outline mt-0.5">
+                            {currentCoords.latitude.toFixed(4)}°N, {currentCoords.longitude.toFixed(4)}°E
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  {/* Actions & Alerts */}
                   <div className="px-3 py-2 border-b border-outline-variant/40">
                     <button
                       onClick={() => {
-                        detectLocation();
+                        detectLocation({ force: true });
                         setLocationMenuOpen(false);
                       }}
                       disabled={geoLoading}
                       className="w-full inline-flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg bg-primary-container text-on-primary text-xs font-semibold hover:bg-primary transition-colors disabled:opacity-50"
                     >
-                      {geoLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Navigation className="w-3.5 h-3.5" />}
-                      <span>Detect My GPS Location</span>
+                      {geoLoading ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Navigation className="w-3.5 h-3.5" />
+                      )}
+                      <span>{geoPermission === 'denied' ? 'Retry GPS Location' : 'Detect My GPS Location'}</span>
                     </button>
+
                     {geoError && (
-                      <p className="text-[11px] text-error mt-1.5 leading-snug">
-                        {geoError}
-                      </p>
+                      <div className="mt-2 p-2 rounded-lg bg-error-container/40 border border-error/20 text-error">
+                        <p className="text-[11px] leading-snug flex items-start gap-1.5">
+                          <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-error" />
+                          <span>{geoError}</span>
+                        </p>
+                      </div>
                     )}
                   </div>
 
