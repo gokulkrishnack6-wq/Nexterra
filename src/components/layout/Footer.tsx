@@ -11,7 +11,7 @@ export const Footer: React.FC = () => {
           <div className="space-y-3 md:col-span-1">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-primary-container flex items-center justify-center text-on-primary">
-                <span className="material-symbols-outlined text-[18px]">cyclone</span>
+                <img src="/logo.png" alt="GreenLoop" className="w-5 h-5 object-contain" />
               </div>
               <span className="font-heading font-bold text-lg text-on-primary tracking-tight">
                 GREENLOOP

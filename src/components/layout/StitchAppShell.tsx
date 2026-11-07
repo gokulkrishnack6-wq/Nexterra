@@ -92,7 +92,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
           {/* Logo Brand Header */}
           <Link to="/" className="px-space-md pb-space-sm flex items-center gap-space-sm hover:opacity-90 transition-opacity">
             <div className="w-9 h-9 rounded-lg bg-primary-container text-on-primary flex items-center justify-center font-bold shadow-sm">
-              <span className="material-symbols-outlined text-[20px]">cyclone</span>
+              <img src="/logo.png" alt="GreenLoop" className="w-6 h-6 object-contain" />
             </div>
             <div className="flex flex-col">
               <span className="font-heading font-bold text-title-md text-primary tracking-tight leading-none">
@@ -184,7 +184,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
               <div className="flex items-center justify-between pb-space-md border-b border-outline-variant/40 px-2">
                 <Link to="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-primary-container text-on-primary flex items-center justify-center font-bold">
-                    <span className="material-symbols-outlined text-[18px]">cyclone</span>
+                    <img src="/logo.png" alt="GreenLoop" className="w-5 h-5 object-contain" />
                   </div>
                   <div>
                     <span className="font-heading font-bold text-title-md text-primary">GREENLOOP</span>
@@ -308,7 +308,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                   </div>
 
                   <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-outline font-semibold">
-                    Or Select Kerala District
+                    Or Select District Manually
                   </div>
                   <div className="max-h-56 overflow-y-auto">
                     {keralaDistricts.map((district) => (

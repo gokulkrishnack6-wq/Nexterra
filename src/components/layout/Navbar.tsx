@@ -55,7 +55,7 @@ export const Navbar: React.FC = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-primary-container text-on-primary flex items-center justify-center shadow-sm">
-              <span className="material-symbols-outlined text-[18px]">cyclone</span>
+              <img src="/logo.png" alt="GreenLoop" className="w-6 h-6 object-contain" />
             </div>
             <div>
               <span className="font-heading font-bold text-lg tracking-tight text-primary block leading-none">

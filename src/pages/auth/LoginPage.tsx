@@ -39,7 +39,7 @@ export const LoginPage: React.FC = () => {
     <div className="max-w-md mx-auto px-4 py-8 space-y-6">
       <div className="text-center space-y-2">
         <div className="w-10 h-10 rounded-xl bg-primary-container text-on-primary flex items-center justify-center mx-auto shadow-sm">
-          <span className="material-symbols-outlined text-[22px]">cyclone</span>
+          <img src="/logo.png" alt="GreenLoop" className="w-6 h-6 object-contain" />
         </div>
         <h1 className="font-heading font-bold text-2xl text-primary tracking-tight">
           Sign In to GreenLoop
