@@ -7,7 +7,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Base Design Tokens mapped to the refined Earthy Green palette
+        // Base Design Tokens mapped to the refined Earthy Green palette (Stitch / greenloop-updates)
         "surface": "#F6F3EB",
         "surface-dim": "#EDE8DC",
         "surface-bright": "#FAF8F3",
@@ -42,6 +42,18 @@ export default {
         "on-error": "#FFFFFF",
         "error-container": "#FFDAD6",
         "on-error-container": "#93000A",
+        "primary-fixed": "#E2EAE0",
+        "primary-fixed-dim": "#8A9E88",
+        "on-primary-fixed": "#0C2B1C",
+        "on-primary-fixed-variant": "#173D2B",
+        "secondary-fixed": "#E2EAE0",
+        "secondary-fixed-dim": "#8A9E88",
+        "on-secondary-fixed": "#173D2B",
+        "on-secondary-fixed-variant": "#526B4D",
+        "tertiary-fixed": "#F7EDE8",
+        "tertiary-fixed-dim": "#C8B69A",
+        "on-tertiary-fixed": "#6D3823",
+        "on-tertiary-fixed-variant": "#B96F50",
         "background": "#F6F3EB",
         "on-background": "#303A32",
 

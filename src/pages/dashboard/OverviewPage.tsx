@@ -4,22 +4,25 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import { EmptyState, MetricCardSkeleton } from '../../components/ui/Skeleton';
-import { 
-  Package, 
-  Repeat, 
-  Award, 
-  Leaf, 
-  Sparkles, 
-  ArrowRight, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Calendar, 
-  ScanLine, 
-  Plus, 
-  QrCode, 
-  Clock, 
+import { ExchangeRequest } from '../../types';
+import {
+  Package,
+  Repeat,
+  Award,
+  Leaf,
+  Sparkles,
+  ArrowRight,
+  CheckCircle2,
+  AlertTriangle,
+  Calendar,
+  ScanLine,
+  Plus,
+  QrCode,
+  Clock,
   Compass,
-  ShieldCheck
+  ShieldCheck,
+  Eye,
+  MapPin
 } from 'lucide-react';
 
 export const OverviewPage: React.FC = () => {
@@ -30,13 +33,16 @@ export const OverviewPage: React.FC = () => {
 
   // User-specific data slices (safely handled when unauthenticated or freshly signed up)
   const currentUserId = currentUser?.id || '';
-  const myListings = listings.filter((l) => l.user_id === currentUserId);
+  const myListings = listings.filter((l) => l.user_id === currentUserId && l.status === 'active');
   const myExchanges = exchangeRequests.filter(
     (r) => r.requester_id === currentUserId || r.listing?.user_id === currentUserId
   );
   const activeExchanges = myExchanges.filter(
     (r) => r.status === 'accepted' || r.status === 'pending'
   );
+
+  // Digital Handover Pass Modal State
+  const [selectedExchangeForPass, setSelectedExchangeForPass] = useState<ExchangeRequest | null>(null);
 
   // Available community challenge or spotlight drive
   const spotlightDrive = challenges[0] || null;
@@ -51,7 +57,7 @@ export const OverviewPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col w-full gap-8 pb-12 max-w-7xl mx-auto">
+      <div className="flex flex-col w-full gap-8 pb-12 max-w-7xl mx-auto" aria-busy="true">
         <div className="h-28 rounded-xl bg-white border border-gl-border animate-pulse p-6" />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCardSkeleton />
@@ -65,11 +71,11 @@ export const OverviewPage: React.FC = () => {
 
   return (
     <div className="flex flex-col w-full gap-8 pb-14 max-w-7xl mx-auto text-left">
-      
+
       {/* 1. EDITORIAL PLATFORM MASTHEAD (Grounded & Integrated, Not a Floating Box) */}
       <header className="border-b border-gl-border/80 pb-7 pt-1">
         <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
-          
+
           {/* Brand Introduction & Context */}
           <div className="flex flex-col gap-2.5 max-w-2xl">
             <div className="inline-flex flex-wrap items-center gap-2 text-xs">
@@ -128,7 +134,7 @@ export const OverviewPage: React.FC = () => {
 
       {/* 2. OPERATIONAL TELEMETRY HORIZON (Connected Stat Band with Clear Hierarchy) */}
       <section className="bg-white border border-gl-border rounded-xl shadow-card overflow-hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-gl-border/70">
-        
+
         {/* Metric 1: Verified Material Diverted (The North Star Metric) */}
         <div className="p-5 sm:p-6 flex flex-col justify-between">
           <div className="flex items-center justify-between">
@@ -265,10 +271,10 @@ export const OverviewPage: React.FC = () => {
 
       {/* 3. MAIN WORKFLOW GRID (8 Cols + 4 Cols) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
+
         {/* Left Column (8 Cols): Material Marketplace & Operational Custody */}
         <div className="lg:col-span-8 flex flex-col gap-8">
-          
+
           {/* Section A: Smart Material Matches (Marketplace Engine) */}
           <section className="flex flex-col gap-3.5">
             <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 pb-1">
@@ -286,8 +292,8 @@ export const OverviewPage: React.FC = () => {
                 </p>
               </div>
 
-              <Link 
-                to="/matches" 
+              <Link
+                to="/matches"
                 className="text-xs font-semibold text-gl-forest hover:text-gl-dark hover:underline flex items-center gap-1 transition-colors self-start sm:self-auto"
               >
                 <span>Browse Marketplace ({activeMarketplaceCount})</span>
@@ -378,8 +384,8 @@ export const OverviewPage: React.FC = () => {
                 </p>
               </div>
 
-              <Link 
-                to="/exchanges" 
+              <Link
+                to="/exchanges"
                 className="text-xs font-semibold text-gl-forest hover:text-gl-dark hover:underline flex items-center gap-1 transition-colors self-start sm:self-auto"
               >
                 <span>View Full Ledger ({myExchanges.length})</span>
@@ -415,8 +421,8 @@ export const OverviewPage: React.FC = () => {
                             ({req.requested_quantity} {req.listing?.unit || 'kg'})
                           </span>
                           <span className={`font-mono text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
-                            req.status === 'accepted' 
-                              ? 'bg-gl-sage-light text-gl-forest' 
+                            req.status === 'accepted'
+                              ? 'bg-gl-sage-light text-gl-forest'
                               : 'bg-gl-cream text-gl-charcoal'
                           }`}>
                             {req.status === 'accepted' ? 'Accepted • Ready for Pickup' : 'Pending Generator Confirmation'}
@@ -438,13 +444,23 @@ export const OverviewPage: React.FC = () => {
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => navigate('/exchanges')}
-                      className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-gl-forest hover:bg-gl-dark text-white text-xs font-semibold shadow-sm transition-colors shrink-0 self-end md:self-center"
-                    >
-                      <QrCode className="w-3.5 h-3.5" />
-                      <span>Manage Transfer</span>
-                    </button>
+                    <div className="flex items-center gap-2 self-end md:self-center shrink-0">
+                      <button
+                        onClick={() => setSelectedExchangeForPass(req)}
+                        className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-gl-ivory hover:bg-gl-cream text-gl-forest border border-gl-border text-xs font-semibold shadow-sm transition-colors"
+                        type="button"
+                      >
+                        <QrCode className="w-3.5 h-3.5 text-gl-olive" />
+                        <span>Digital Pass</span>
+                      </button>
+
+                      <button
+                        onClick={() => navigate('/exchanges')}
+                        className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-gl-forest hover:bg-gl-dark text-white text-xs font-semibold shadow-sm transition-colors"
+                      >
+                        <span>Manage Transfer</span>
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -482,7 +498,7 @@ export const OverviewPage: React.FC = () => {
                       {cat.diverted_kg} kg
                     </span>
                     <div className="mt-2.5 w-full bg-gl-cream h-1.5 rounded-full overflow-hidden">
-                      <div 
+                      <div
                         className="bg-gl-forest h-full rounded-full"
                         style={{ width: `${Math.min(100, Math.max(8, cat.percentage))}%` }}
                       />
@@ -500,7 +516,7 @@ export const OverviewPage: React.FC = () => {
 
         {/* Right Column (4 Cols): Regional Mobilization & Civic Surveillance */}
         <div className="lg:col-span-4 flex flex-col gap-8">
-          
+
           {/* Section D: Regional Community Spotlight (Editorial & Human) */}
           {spotlightDrive ? (
             <aside className="bg-gl-cream border border-gl-sand rounded-xl p-5 sm:p-6 shadow-card flex flex-col gap-4">
@@ -576,8 +592,8 @@ export const OverviewPage: React.FC = () => {
                   Local Incident Logs
                 </h3>
               </div>
-              <Link 
-                to="/reports" 
+              <Link
+                to="/reports"
                 className="text-xs font-semibold text-gl-forest hover:text-gl-dark hover:underline flex items-center gap-0.5 transition-colors"
               >
                 <span>Tracker</span>
@@ -600,9 +616,9 @@ export const OverviewPage: React.FC = () => {
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className={`font-mono text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${
-                        report.status === 'resolved' 
-                          ? 'bg-gl-sage-light text-gl-forest' 
-                          : report.status === 'in_progress' 
+                        report.status === 'resolved'
+                          ? 'bg-gl-sage-light text-gl-forest'
+                          : report.status === 'in_progress'
                           ? 'bg-gl-cream text-gl-charcoal'
                           : 'bg-gl-clay-light text-gl-clay'
                       }`}>
@@ -641,9 +657,92 @@ export const OverviewPage: React.FC = () => {
             </button>
           </aside>
 
+          {/* Section F: Honest Community Verification */}
+          <aside className="bg-gl-ivory rounded-xl p-4 border border-gl-cream flex flex-col gap-1.5">
+            <span className="font-heading font-semibold text-xs text-gl-forest flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-gl-forest" />
+              Community Circular Verification
+            </span>
+            <p className="font-body text-xs text-gl-charcoal-muted leading-relaxed">
+              Every verified handover on GreenLoop is confirmed through bilateral custody transfer codes, keeping reusable biomass, glass, paper, and polymers out of unmanaged landfills.
+            </p>
+          </aside>
+
         </div>
 
       </div>
+
+      {/* Digital Handover Pass Modal */}
+      {selectedExchangeForPass && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="bg-white rounded-2xl border border-gl-border p-6 max-w-sm w-full shadow-2xl flex flex-col items-center text-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-gl-sage-light text-gl-forest flex items-center justify-center">
+              <QrCode className="w-6 h-6" />
+            </div>
+
+            <h3 className="font-heading font-bold text-lg text-gl-dark">
+              GreenLoop Digital Handover Pass
+            </h3>
+
+            <p className="font-body text-xs text-gl-charcoal-muted">
+              Generated by GreenLoop to verify bilateral material custody between exchange partners.
+            </p>
+
+            <div className="p-4 bg-gl-ivory rounded-xl border border-gl-cream flex flex-col items-center w-full my-1">
+              <div className="w-36 h-36 bg-white p-2 rounded-lg flex items-center justify-center shadow-inner border border-gl-border-subtle">
+                {/* SVG QR Code */}
+                <svg className="w-full h-full text-gl-forest" viewBox="0 0 100 100" fill="currentColor">
+                  <rect x="10" y="10" width="25" height="25" />
+                  <rect x="15" y="15" width="15" height="15" fill="white" />
+                  <rect x="18" y="18" width="9" height="9" />
+                  <rect x="65" y="10" width="25" height="25" />
+                  <rect x="70" y="15" width="15" height="15" fill="white" />
+                  <rect x="73" y="18" width="9" height="9" />
+                  <rect x="10" y="65" width="25" height="25" />
+                  <rect x="15" y="70" width="15" height="15" fill="white" />
+                  <rect x="18" y="73" width="9" height="9" />
+                  <rect x="45" y="15" width="10" height="10" />
+                  <rect x="45" y="45" width="10" height="10" />
+                  <rect x="15" y="45" width="10" height="10" />
+                  <rect x="75" y="45" width="10" height="10" />
+                  <rect x="45" y="75" width="10" height="10" />
+                  <rect x="65" y="65" width="10" height="10" />
+                  <rect x="80" y="80" width="10" height="10" />
+                </svg>
+              </div>
+              <span className="font-heading font-bold text-base text-gl-forest tracking-widest mt-2 font-mono">
+                {selectedExchangeForPass.completion_code || selectedExchangeForPass.id.slice(0, 8).toUpperCase()}
+              </span>
+              <span className="font-body text-[11px] text-gl-charcoal-muted">
+                {selectedExchangeForPass.listing?.title || 'Material Handover'}
+              </span>
+            </div>
+
+            <div className="text-[11px] text-gl-charcoal w-full bg-gl-ivory p-2.5 rounded-lg text-left space-y-1 border border-gl-cream">
+              <div className="flex justify-between">
+                <span className="text-gl-charcoal-muted">Quantity:</span>
+                <span className="font-semibold text-gl-dark">{selectedExchangeForPass.requested_quantity} {selectedExchangeForPass.listing?.unit || 'units'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gl-charcoal-muted">Status:</span>
+                <span className="font-semibold text-gl-forest capitalize">{selectedExchangeForPass.status}</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setSelectedExchangeForPass(null)}
+              className="w-full py-2 bg-gl-forest text-white rounded-lg text-xs font-semibold hover:bg-gl-dark transition-colors mt-2 shadow-sm"
+              type="button"
+            >
+              Close Handover Pass
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );

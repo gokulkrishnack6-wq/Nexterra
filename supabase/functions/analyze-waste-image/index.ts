@@ -64,9 +64,60 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // 5. Parse and Validate Request Payload
+    // 5. Parse Request Payload
     const body = await req.json().catch(() => null);
-    if (!body || !body.imageBase64) {
+    if (!body) {
+      return new Response(
+        JSON.stringify({ error: 'Empty or invalid JSON body.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Diagnostic Action: Test single model
+    if (body.action === 'test-model') {
+      const model = body.model || 'gemini-2.5-flash';
+      const testUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
+      const start = Date.now();
+      const testRes = await fetch(testUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: 'Hello, reply with JSON: {"status":"ok"}' }] }],
+          generationConfig: { responseMimeType: 'application/json' }
+        })
+      });
+      const duration = Date.now() - start;
+      const text = await testRes.text();
+      return new Response(
+        JSON.stringify({ model, status: testRes.status, durationMs: duration, response: text }),
+        { status: testRes.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (body.action === 'list-models') {
+      const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${geminiApiKey}`;
+      const listRes = await fetch(listUrl);
+      if (!listRes.ok) {
+        const errText = await listRes.text();
+        return new Response(
+          JSON.stringify({ error: `Failed to list models: ${listRes.status} ${errText}` }),
+          { status: listRes.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const listData = await listRes.json();
+      const models = (listData.models || []).map((m: any) => ({
+        name: m.name,
+        displayName: m.displayName,
+        supportedGenerationMethods: m.supportedGenerationMethods,
+        description: m.description,
+      }));
+      return new Response(
+        JSON.stringify({ count: models.length, models }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate imageBase64 presence
+    if (!body.imageBase64) {
       return new Response(
         JSON.stringify({ error: 'Missing required field: imageBase64 in request body.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -197,9 +248,15 @@ Return ONLY a valid JSON object without markdown code blocks, matching this exac
 }
 `;
 
-    // 7. Invoke Gemini Vision API via Google Generative Language REST Endpoint
-    // Using gemini-1.5-flash for fast multimodal image understanding
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
+    // 7. Resolve the optimal available Gemini vision model dynamically
+    // Verified against Google Generative Language API on user's active GEMINI_API_KEY
+    const verifiedCandidateModels = [
+      'gemini-flash-lite-latest',
+      'gemini-3.1-flash-lite',
+      'gemini-3.8-flash',
+      'gemini-flash-latest',
+      'gemini-2.5-pro',
+    ];
 
     const geminiPayload = {
       contents: [
@@ -219,58 +276,78 @@ Return ONLY a valid JSON object without markdown code blocks, matching this exac
         temperature: 0.15,
         topP: 0.8,
         maxOutputTokens: 2048,
+        responseMimeType: 'application/json',
       },
     };
 
-    const geminiResponse = await fetch(geminiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(geminiPayload),
-    });
+    let geminiResponse: Response | null = null;
+    let selectedModel = '';
+    const modelErrors: string[] = [];
 
-    if (!geminiResponse.ok) {
-      const errText = await geminiResponse.text();
-      let errMsg = `Gemini API returned status ${geminiResponse.status}`;
+    for (const modelCandidate of verifiedCandidateModels) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelCandidate}:generateContent?key=${geminiApiKey}`;
       try {
-        const errJson = JSON.parse(errText);
-        if (errJson.error?.message) {
-          errMsg = errJson.error.message;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(geminiPayload),
+        });
+
+        if (res.ok) {
+          geminiResponse = res;
+          selectedModel = modelCandidate;
+          break;
         }
-      } catch (_) {
-        errMsg = errText || errMsg;
+
+        const errText = await res.text();
+        modelErrors.push(`${modelCandidate} (${res.status}): ${errText}`);
+        console.warn(`Model ${modelCandidate} failed (${res.status}):`, errText);
+
+        if (res.status === 400 && errText.includes('API_KEY_INVALID')) {
+          return new Response(
+            JSON.stringify({ error: 'The GEMINI_API_KEY saved in Supabase Secrets is invalid or expired. Please verify your Gemini API key in Google AI Studio.' }),
+            { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        if (res.status === 429) {
+          console.warn(`Model ${modelCandidate} rate-limited (429), attempting next candidate...`);
+        }
+
+      } catch (fetchErr: any) {
+        modelErrors.push(`${modelCandidate}: ${fetchErr.message}`);
       }
+    }
 
-      console.error('Gemini Vision API Error:', errMsg);
-
-      if (geminiResponse.status === 400 && errMsg.includes('API_KEY_INVALID')) {
-        return new Response(
-          JSON.stringify({ error: 'The GEMINI_API_KEY saved in Supabase Secrets is invalid or expired. Please verify your Gemini API key in Google AI Studio.' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      if (geminiResponse.status === 429 || errMsg.includes('RESOURCE_EXHAUSTED')) {
-        return new Response(
-          JSON.stringify({ error: 'Gemini API quota or rate limit exceeded. Please wait a moment before trying again.' }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
+    if (!geminiResponse || !geminiResponse.ok) {
+      console.error('All candidate Gemini models failed:', modelErrors.join(' | '));
       return new Response(
-        JSON.stringify({ error: `AI analysis service error: ${errMsg}` }),
+        JSON.stringify({ error: `AI analysis service error: ${modelErrors.join(' || ')}` }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const geminiData = await geminiResponse.json();
-    const candidateText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const parts = geminiData.candidates?.[0]?.content?.parts || [];
+    let candidateText = '';
+    for (const part of parts) {
+      if (part.text && !part.thought) {
+        candidateText += part.text;
+      }
+    }
+    if (!candidateText && parts.length > 0) {
+      candidateText = parts[parts.length - 1].text || '';
+    }
 
-    // Strip markdown code fences if wrapped by the model
-    const cleanedJsonText = candidateText
-      .replace(/^```json\s*/i, '')
-      .replace(/^```\s*/i, '')
-      .replace(/\s*```$/i, '')
-      .trim();
+    // Extract JSON substring from first '{' to last '}' to strip any stray markdown fences or preamble
+    const firstBrace = candidateText.indexOf('{');
+    const lastBrace = candidateText.lastIndexOf('}');
+    const cleanedJsonText = (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace)
+      ? candidateText.substring(firstBrace, lastBrace + 1)
+      : candidateText
+          .replace(/^```(?:json)?\s*/i, '')
+          .replace(/\s*```$/i, '')
+          .trim();
 
     if (!cleanedJsonText) {
       return new Response(
@@ -298,6 +375,9 @@ Return ONLY a valid JSON object without markdown code blocks, matching this exac
       );
     }
 
+    // Attach metadata about the model that served the inference
+    parsedResult.model_used = selectedModel;
+
     // Ensure backwards compatibility with frontend AIScanResult interface
     parsedResult.confidence = typeof parsedResult.confidence === 'number' 
       ? Math.min(100, Math.max(0, parsedResult.confidence)) 
@@ -308,12 +388,39 @@ Return ONLY a valid JSON object without markdown code blocks, matching this exac
       : 75;
 
     // Map reuse_recommendations and recycling_methods to frontend fields
-    if (!parsedResult.safety_guidance && parsedResult.safety_warnings) {
-      parsedResult.safety_guidance = parsedResult.safety_warnings;
-    }
-    if (!parsedResult.circular_value_tips && parsedResult.reuse_recommendations) {
-      parsedResult.circular_value_tips = parsedResult.reuse_recommendations;
-    }
+    parsedResult.safety_guidance = Array.isArray(parsedResult.safety_guidance) && parsedResult.safety_guidance.length > 0
+      ? parsedResult.safety_guidance
+      : (Array.isArray(parsedResult.safety_warnings) && parsedResult.safety_warnings.length > 0
+          ? parsedResult.safety_warnings
+          : ['Handle with standard hygiene precautions and keep clean/dry before handover.']);
+
+    parsedResult.circular_value_tips = Array.isArray(parsedResult.circular_value_tips) && parsedResult.circular_value_tips.length > 0
+      ? parsedResult.circular_value_tips
+      : (Array.isArray(parsedResult.reuse_recommendations) && parsedResult.reuse_recommendations.length > 0
+          ? parsedResult.reuse_recommendations
+          : ['Segregate at source to maintain high value for local recyclers.']);
+
+    parsedResult.visible_characteristics = Array.isArray(parsedResult.visible_characteristics)
+      ? parsedResult.visible_characteristics
+      : [];
+
+    parsedResult.reuse_recommendations = Array.isArray(parsedResult.reuse_recommendations)
+      ? parsedResult.reuse_recommendations
+      : [];
+
+    parsedResult.recycling_methods = Array.isArray(parsedResult.recycling_methods)
+      ? parsedResult.recycling_methods
+      : [];
+
+    parsedResult.is_discarded_waste = typeof parsedResult.is_discarded_waste === 'boolean'
+      ? parsedResult.is_discarded_waste
+      : true;
+
+    parsedResult.is_ambiguous = typeof parsedResult.is_ambiguous === 'boolean'
+      ? parsedResult.is_ambiguous
+      : false;
+
+    parsedResult.ambiguity_reason = parsedResult.ambiguity_reason || '';
 
     // 8. Return Genuine Structured Result
     return new Response(

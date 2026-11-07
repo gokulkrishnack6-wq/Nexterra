@@ -12,6 +12,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, name: string, role?: UserRole, district?: string) => Promise<{ success: boolean; error?: string }>;
   loginUser: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signIn: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -317,6 +318,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const resetPassword = async (email: string): Promise<{ success: boolean; error?: string }> => {
+    if (!isSupabaseConfigured || !supabase) {
+      return { success: false, error: 'Supabase is not configured.' };
+    }
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/login`,
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Password reset request failed.' };
+    }
+  };
+
   const signIn = async (email: string, password: string) => loginUser(email, password);
 
   const signUp = async (
@@ -341,6 +362,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signUp,
         loginUser,
         signIn,
+        resetPassword,
         logout,
         signOut,
       }}
