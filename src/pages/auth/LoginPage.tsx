@@ -20,26 +20,30 @@ import {
   Sprout,
   Recycle,
   Users,
-  KeyRound
+  KeyRound,
+  RefreshCw,
+  Send,
+  Inbox
 } from 'lucide-react';
 
 export interface LoginPageProps {
-  initialMode?: 'signin' | 'register' | 'forgot_password';
+  initialMode?: 'signin' | 'register' | 'forgot_password' | 'check_email';
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ initialMode }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as any)?.from || '/';
-  const { signIn, signUp, resetPassword, currentUser, loading: authLoading } = useAuth();
+  const { signIn, signUp, resetPassword, resendConfirmation, currentUser, loading: authLoading } = useAuth();
 
-  // Mode state: 'signin' | 'register' | 'forgot_password'
-  const [mode, setMode] = useState<'signin' | 'register' | 'forgot_password'>(() => {
+  // Mode state: 'signin' | 'register' | 'forgot_password' | 'check_email'
+  const [mode, setMode] = useState<'signin' | 'register' | 'forgot_password' | 'check_email'>(() => {
     if (initialMode) return initialMode;
     const searchParams = new URLSearchParams(location.search);
     const modeParam = searchParams.get('mode');
     if (modeParam === 'register') return 'register';
     if (modeParam === 'forgot' || modeParam === 'forgot_password') return 'forgot_password';
+    if (modeParam === 'check_email') return 'check_email';
     if (location.pathname === '/register') return 'register';
     return 'signin';
   });
@@ -66,6 +70,43 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode }) => {
   const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Email confirmation & unconfirmed account states
+  const [pendingConfirmationEmail, setPendingConfirmationEmail] = useState('');
+  const [showUnconfirmedNotice, setShowUnconfirmedNotice] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendNotice, setResendNotice] = useState('');
+
+  // Handle URL query parameters on load
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const emailParam = searchParams.get('email');
+    if (emailParam) {
+      setEmail(emailParam);
+      setPendingConfirmationEmail(emailParam);
+    }
+
+    if (searchParams.get('verified') === 'true' || searchParams.get('confirmed') === 'true') {
+      setSuccessMsg('Your email address has been successfully verified! You can now sign in.');
+    }
+
+    const errorCode = searchParams.get('error_code');
+    const errorParam = searchParams.get('error');
+    if (errorCode === 'otp_expired' || errorParam === 'otp_expired') {
+      setError('Your verification link has expired or was already used. Please request a new confirmation email below.');
+      setShowUnconfirmedNotice(true);
+    }
+  }, [location.search]);
+
+  // Cooldown timer effect
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
   const keralaDistricts = Object.keys(KERALA_DISTRICT_COORDS);
 
   const roleOptions: { role: UserRole; title: string; desc: string; icon: any }[] = [
@@ -77,12 +118,43 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode }) => {
   ];
 
   // Reset notifications on mode switch
-  const switchMode = (newMode: 'signin' | 'register' | 'forgot_password') => {
+  const switchMode = (newMode: 'signin' | 'register' | 'forgot_password' | 'check_email') => {
     setError('');
     setSuccessMsg('');
+    setResendNotice('');
+    setShowUnconfirmedNotice(false);
     setShowPassword(false);
     setShowConfirmPassword(false);
     setMode(newMode);
+  };
+
+  // Resend confirmation email handler with rate limit cooldown
+  const handleResendConfirmation = async (targetEmail?: string) => {
+    const toSend = (targetEmail || pendingConfirmationEmail || email).trim();
+    if (!toSend) {
+      setError('Please provide your email address to receive a new confirmation link.');
+      return;
+    }
+
+    if (resendCooldown > 0 || resendLoading) return;
+
+    setResendLoading(true);
+    setError('');
+    setResendNotice('');
+
+    try {
+      const res = await resendConfirmation(toSend);
+      if (!res.success) {
+        setError(res.error || 'Failed to resend confirmation email. Please verify the address.');
+      } else {
+        setResendNotice(`A fresh confirmation link has been sent to ${toSend}. Please check your inbox.`);
+        setResendCooldown(60);
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Error requesting confirmation link.');
+    } finally {
+      setResendLoading(false);
+    }
   };
 
   // 1. Handle Sign In
@@ -90,12 +162,22 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode }) => {
     e.preventDefault();
     setError('');
     setSuccessMsg('');
+    setResendNotice('');
+    setShowUnconfirmedNotice(false);
     setLoading(true);
 
     try {
       const res = await signIn(email.trim(), password);
       if (!res.success) {
-        setError(res.error || 'Invalid email or password.');
+        if (res.isEmailUnconfirmed) {
+          setShowUnconfirmedNotice(true);
+          setPendingConfirmationEmail(email.trim());
+          setError(
+            res.error || 'Your email has not been verified yet. Please check your inbox or request a new confirmation email below.'
+          );
+        } else {
+          setError(res.error || 'Invalid email or password.');
+        }
       } else {
         navigate(from, { replace: true });
       }
@@ -111,6 +193,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode }) => {
     e.preventDefault();
     setError('');
     setSuccessMsg('');
+    setResendNotice('');
 
     if (!name.trim()) {
       setError('Please enter your full name or organization name.');
@@ -133,13 +216,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode }) => {
       const res = await signUp(email.trim(), password, name.trim(), role, district);
       if (!res.success) {
         setError(res.error || 'Registration failed.');
+      } else if (res.requiresEmailConfirmation) {
+        // Transition to clear post-registration "Check your email" view
+        setPendingConfirmationEmail(email.trim());
+        setMode('check_email');
       } else {
-        setSuccessMsg(
-          'Account created successfully! If your account requires email confirmation, please check your inbox before logging in.'
-        );
-        // If session is already created immediately, redirect
+        // Immediate session created
         if (currentUser) {
           navigate(from, { replace: true });
+        } else {
+          setSuccessMsg('Account created successfully! You can now sign in.');
+          setMode('signin');
         }
       }
     } catch (err: any) {
@@ -154,6 +241,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode }) => {
     e.preventDefault();
     setError('');
     setSuccessMsg('');
+    setResendNotice('');
 
     if (!email.trim()) {
       setError('Please enter your email address to receive password reset instructions.');
@@ -192,12 +280,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode }) => {
           {mode === 'signin' && 'Sign In to GreenLoop'}
           {mode === 'register' && 'Create Your GreenLoop Account'}
           {mode === 'forgot_password' && 'Reset Your Password'}
+          {mode === 'check_email' && 'Check Your Email'}
         </h1>
 
         <p className="font-body-sm text-body-sm text-on-surface-variant max-w-md mx-auto">
           {mode === 'signin' && "Access Kerala's circular resource exchange network."}
           {mode === 'register' && "Join households, businesses, farmers, and recycling networks across Kerala."}
           {mode === 'forgot_password' && "Enter your registered email address and we'll send you a link to reset your password."}
+          {mode === 'check_email' && "We've sent a verification link to your email. Confirm your account to start trading resources."}
         </p>
       </div>
 
@@ -206,7 +296,45 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode }) => {
         {error && (
           <div className="p-3 bg-error-container text-on-error-container rounded-lg text-body-sm font-medium border border-error/20 flex items-start gap-2.5">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-error" />
-            <span className="leading-snug">{error}</span>
+            <div className="leading-snug space-y-1">
+              <span>{error}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Unconfirmed Account Resend Banner (Triggered during failed login with unconfirmed email) */}
+        {showUnconfirmedNotice && mode === 'signin' && (
+          <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg text-amber-900 dark:text-amber-200 text-body-sm space-y-2.5">
+            <div className="flex items-start gap-2">
+              <Mail className="w-4 h-4 shrink-0 mt-0.5 text-amber-700 dark:text-amber-400" />
+              <p className="font-medium text-xs sm:text-sm">
+                Need another confirmation link for <strong>{pendingConfirmationEmail || email}</strong>?
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                loading={resendLoading}
+                disabled={resendCooldown > 0}
+                onClick={() => handleResendConfirmation(pendingConfirmationEmail || email)}
+                icon={<RefreshCw className={`w-3.5 h-3.5 ${resendLoading ? 'animate-spin' : ''}`} />}
+              >
+                {resendCooldown > 0
+                  ? `Resend in ${resendCooldown}s`
+                  : resendLoading
+                  ? 'Sending...'
+                  : 'Resend Confirmation Email'}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {resendNotice && (
+          <div className="p-3 bg-secondary-container/60 text-primary rounded-lg text-body-sm font-medium border border-primary/20 flex items-start gap-2.5">
+            <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-primary" />
+            <span className="leading-snug">{resendNotice}</span>
           </div>
         )}
 
@@ -214,6 +342,70 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode }) => {
           <div className="p-3 bg-secondary-container/60 text-primary rounded-lg text-body-sm font-medium border border-primary/20 flex items-start gap-2.5">
             <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-primary" />
             <span className="leading-snug">{successMsg}</span>
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------- */}
+        {/* CHECK EMAIL (POST-REGISTRATION) SCREEN                        */}
+        {/* ------------------------------------------------------------- */}
+        {mode === 'check_email' && (
+          <div className="space-y-6 text-center py-2">
+            <div className="w-16 h-16 rounded-2xl bg-secondary-container/80 text-primary flex items-center justify-center mx-auto ring-8 ring-secondary-container/30">
+              <Inbox className="w-8 h-8 text-primary" />
+            </div>
+
+            <div className="space-y-2">
+              <h2 className="font-heading font-semibold text-lg text-on-surface">
+                Verify Your Email Address
+              </h2>
+              <p className="font-body-sm text-body-sm text-on-surface-variant max-w-sm mx-auto leading-relaxed">
+                We sent a confirmation link to:
+              </p>
+              <div className="inline-block px-3.5 py-1.5 bg-surface-container rounded-lg font-mono text-body-sm font-semibold text-primary border border-outline-variant">
+                {pendingConfirmationEmail || email}
+              </div>
+            </div>
+
+            <div className="bg-surface-container-low rounded-xl p-4 text-left border border-outline-variant/60 space-y-2 text-xs sm:text-sm text-on-surface-variant">
+              <p className="font-semibold text-on-surface flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-primary" />
+                Next steps:
+              </p>
+              <ol className="list-decimal list-inside space-y-1.5 pl-1 leading-relaxed">
+                <li>Check your inbox (and spam or junk folder).</li>
+                <li>Click the confirmation link inside the email.</li>
+                <li>You'll be verified and ready to exchange materials on GreenLoop!</li>
+              </ol>
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                fullWidth
+                size="md"
+                disabled={resendCooldown > 0 || resendLoading}
+                loading={resendLoading}
+                onClick={() => handleResendConfirmation(pendingConfirmationEmail || email)}
+                icon={<RefreshCw className={`w-4 h-4 ${resendLoading ? 'animate-spin' : ''}`} />}
+              >
+                {resendCooldown > 0
+                  ? `Resend link available in ${resendCooldown}s`
+                  : 'Resend Confirmation Email'}
+              </Button>
+
+              <Button
+                type="button"
+                variant="primary"
+                fullWidth
+                size="md"
+                onClick={() => switchMode('signin')}
+                icon={<ArrowRight className="w-4 h-4" />}
+                iconPosition="right"
+              >
+                Proceed to Sign In
+              </Button>
+            </div>
           </div>
         )}
 
@@ -479,6 +671,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode }) => {
           )}
 
           {mode === 'forgot_password' && (
+            <button
+              type="button"
+              onClick={() => switchMode('signin')}
+              className="inline-flex items-center gap-1.5 font-semibold text-xs text-primary hover:underline transition-colors focus:outline-none"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back to Sign In</span>
+            </button>
+          )}
+
+          {mode === 'check_email' && (
             <button
               type="button"
               onClick={() => switchMode('signin')}

@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { LocationProvider } from './contexts/LocationContext';
 import { DataProvider } from './contexts/DataContext';
@@ -21,10 +21,44 @@ import { ReportIssuePage } from './pages/reports/ReportIssuePage';
 import { ReportTrackingPage } from './pages/reports/ReportTrackingPage';
 import { LoginPage } from './pages/auth/LoginPage';
 import { RegisterPage } from './pages/auth/RegisterPage';
+import { AuthCallbackPage } from './pages/auth/AuthCallbackPage';
+
+/**
+ * Top-Level Auth Callback Detector:
+ * Ensures email confirmation and PKCE callbacks are never silently discarded
+ * regardless of whether the incoming redirect landed on '/', '/login', or another route.
+ */
+const AuthCallbackDetector: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (location.pathname !== '/auth/callback' && location.pathname !== '/auth/verify') {
+      const search = window.location.search || '';
+      const hash = window.location.hash || '';
+
+      const hasCallbackIndicators =
+        search.includes('code=') ||
+        search.includes('token_hash=') ||
+        search.includes('error_code=') ||
+        search.includes('error=') ||
+        hash.includes('access_token=') ||
+        hash.includes('error_code=') ||
+        hash.includes('error=');
+
+      if (hasCallbackIndicators) {
+        navigate(`/auth/callback${search}${hash}`, { replace: true });
+      }
+    }
+  }, [location.pathname, navigate]);
+
+  return null;
+};
 
 export const App: React.FC = () => {
   return (
     <BrowserRouter>
+      <AuthCallbackDetector />
       <AuthProvider>
         <LocationProvider>
           <DataProvider>
@@ -184,6 +218,22 @@ export const App: React.FC = () => {
               element={
                 <StitchAppShell>
                   <RegisterPage />
+                </StitchAppShell>
+              }
+            />
+            <Route
+              path="/auth/callback"
+              element={
+                <StitchAppShell>
+                  <AuthCallbackPage />
+                </StitchAppShell>
+              }
+            />
+            <Route
+              path="/auth/verify"
+              element={
+                <StitchAppShell>
+                  <AuthCallbackPage />
                 </StitchAppShell>
               }
             />
