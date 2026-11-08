@@ -50,9 +50,5 @@ export {
  * Hook to access and interact with GreenLoop's global location state.
  */
 export function useGeolocation() {
-  const context = useLocationContext();
-
-  return {
-    ...context,
-  };
+  return useLocationContext();
 }

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 export interface LocationCoords {
   latitude: number;
@@ -812,16 +812,19 @@ export const LocationProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [requestBrowserPosition]);
 
+  const contextValue = useMemo<LocationContextType>(
+    () => ({
+      ...state,
+      detectLocation,
+      setManualDistrict,
+      setManualLocation,
+      clearError,
+    }),
+    [state, detectLocation, setManualDistrict, setManualLocation, clearError]
+  );
+
   return (
-    <LocationContext.Provider
-      value={{
-        ...state,
-        detectLocation,
-        setManualDistrict,
-        setManualLocation,
-        clearError,
-      }}
-    >
+    <LocationContext.Provider value={contextValue}>
       {children}
     </LocationContext.Provider>
   );

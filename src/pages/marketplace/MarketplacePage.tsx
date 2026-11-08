@@ -17,7 +17,7 @@ export const MarketplacePage: React.FC = () => {
   // Fresh data from Supabase on mount
   useEffect(() => {
     refreshData();
-  }, [refreshData]);
+  }, []);
 
   const sourceListings = allMarketplaceListings && allMarketplaceListings.length > 0 ? allMarketplaceListings : listings;
 
@@ -320,7 +320,7 @@ export const MarketplacePage: React.FC = () => {
       </Card>
 
       {/* Loading Skeletons */}
-      {isLoading ? (
+      {isLoading && sourceListings.length === 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           <ListingCardSkeleton />
           <ListingCardSkeleton />

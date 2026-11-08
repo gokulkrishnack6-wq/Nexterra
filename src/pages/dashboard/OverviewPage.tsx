@@ -63,7 +63,7 @@ export const OverviewPage: React.FC = () => {
   const suggestedListings = marketplaceInventory.filter((l) => l.user_id !== currentUserId && l.status === 'active').slice(0, 2);
   const activeMarketplaceCount = marketplaceInventory.filter((l) => l.status === 'active').length;
 
-  if (isLoading) {
+  if (isLoading && listings.length === 0 && exchangeRequests.length === 0) {
     return (
       <div className="flex flex-col w-full gap-8 pb-12 max-w-7xl mx-auto" aria-busy="true">
         <div className="h-28 rounded-xl bg-white border border-gl-border animate-pulse p-6" />

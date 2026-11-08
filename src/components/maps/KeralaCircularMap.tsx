@@ -15,9 +15,19 @@ interface KeralaCircularMapProps {
 
 const MapViewSync: React.FC<{ coords: { latitude: number; longitude: number } | null }> = ({ coords }) => {
   const map = useMap();
+  const lastTargetRef = React.useRef<{ lat: number; lng: number } | null>(null);
+
   useEffect(() => {
-    if (coords) {
-      map.flyTo([coords.latitude, coords.longitude], 12, { duration: 1.2 });
+    if (coords && coords.latitude && coords.longitude) {
+      const prev = lastTargetRef.current;
+      if (
+        !prev ||
+        Math.abs(prev.lat - coords.latitude) > 0.001 ||
+        Math.abs(prev.lng - coords.longitude) > 0.001
+      ) {
+        lastTargetRef.current = { lat: coords.latitude, lng: coords.longitude };
+        map.flyTo([coords.latitude, coords.longitude], 12, { duration: 1.0 });
+      }
     }
   }, [coords?.latitude, coords?.longitude, map]);
   return null;

@@ -524,25 +524,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = logout;
 
+  const contextValue = React.useMemo<AuthContextType>(
+    () => ({
+      currentUser,
+      loading,
+      isAuthenticated: Boolean(currentUser),
+      updateProfile,
+      uploadAvatar,
+      registerUser,
+      signUp,
+      loginUser,
+      signIn,
+      resetPassword,
+      resendConfirmation,
+      refreshSession,
+      logout,
+      signOut,
+    }),
+    [currentUser, loading]
+  );
+
   return (
-    <AuthContext.Provider
-      value={{
-        currentUser,
-        loading,
-        isAuthenticated: Boolean(currentUser),
-        updateProfile,
-        uploadAvatar,
-        registerUser,
-        signUp,
-        loginUser,
-        signIn,
-        resetPassword,
-        resendConfirmation,
-        refreshSession,
-        logout,
-        signOut,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

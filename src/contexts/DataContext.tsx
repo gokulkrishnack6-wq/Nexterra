@@ -137,15 +137,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const currentUserRef = React.useRef(currentUser);
   currentUserRef.current = currentUser;
 
+  const hasLoadedOnceRef = React.useRef(false);
+  const isFetchingRef = React.useRef(false);
+  const prevUserIdRef = React.useRef<string | undefined>(undefined);
+
   const { coords, locality, district, city } = useLocationContext();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [dataError, setDataError] = useState<string | null>(null);
 
   // Taxonomy standard categories for Kerala circular materials
   const [categories, setCategories] = useState<WasteCategory[]>(INITIAL_CATEGORIES);
+  const categoriesRef = React.useRef(categories);
+  categoriesRef.current = categories;
 
   // Real marketplace listings — sourced SOLELY from Supabase (never from localStorage)
   const [listings, setListings] = useState<WasteListing[]>([]);
+  const listingsRef = React.useRef(listings);
+  listingsRef.current = listings;
 
   // Proactively purge any stale legacy listing arrays from localStorage
   useEffect(() => {
@@ -266,16 +274,32 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    setIsLoading(true);
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+
+    // Only set full-screen loading skeleton on initial cold boot before data arrives
+    if (!hasLoadedOnceRef.current) {
+      setIsLoading(true);
+    }
+
     try {
       // 1. Fetch categories
-      let activeCategories = categories;
+      let activeCategories = categoriesRef.current;
       const { data: dbCategories, error: catError } = await supabase
         .from('waste_categories')
         .select('*');
       if (!catError && dbCategories && dbCategories.length > 0) {
         activeCategories = dbCategories as WasteCategory[];
-        setCategories(activeCategories);
+        setCategories((prev) => {
+          if (
+            prev.length === activeCategories.length &&
+            prev[0]?.id === activeCategories[0]?.id &&
+            prev[prev.length - 1]?.id === activeCategories[activeCategories.length - 1]?.id
+          ) {
+            return prev;
+          }
+          return activeCategories;
+        });
       }
 
       // 2. Fetch public listings from Supabase (sole authoritative source of truth)
@@ -300,7 +324,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (listError) {
         console.error('Supabase listings fetch error:', listError);
         setDataError(`Marketplace synchronization error: ${listError.message}`);
-        // Do not silently preserve stale or fabricated listing records
         setListings([]);
       } else if (rawListings) {
         setDataError(null);
@@ -312,7 +335,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           category: item.category || activeCategories.find((c) => c.id === item.category_id || c.slug === item.category_id),
         }));
 
-        setListings(mappedListings);
+        setListings((prev) => {
+          if (prev.length === mappedListings.length) {
+            const isSame = prev.every((item, idx) => {
+              const next = mappedListings[idx];
+              return (
+                item.id === next.id &&
+                item.status === next.status &&
+                item.updated_at === next.updated_at &&
+                item.quantity === next.quantity &&
+                item.price === next.price
+              );
+            });
+            if (isSame) return prev;
+          }
+          return mappedListings;
+        });
       }
 
       // 3. Fetch recycling centres
@@ -320,7 +358,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('recycling_centres')
         .select('*');
       if (!centreError && dbCentres) {
-        setRecyclingCentres(dbCentres as RecyclingCentre[]);
+        const newCentres = dbCentres as RecyclingCentre[];
+        setRecyclingCentres((prev) => {
+          if (
+            prev.length === newCentres.length &&
+            prev[0]?.id === newCentres[0]?.id &&
+            prev[prev.length - 1]?.id === newCentres[newCentres.length - 1]?.id
+          ) {
+            return prev;
+          }
+          return newCentres;
+        });
       }
 
       // 4. Fetch exchange requests
@@ -334,7 +382,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           prev.forEach((item) => {
             if (!map.has(item.id)) map.set(item.id, item);
           });
-          return Array.from(map.values());
+          const merged = Array.from(map.values());
+          if (
+            prev.length === merged.length &&
+            prev[0]?.id === merged[0]?.id &&
+            prev[prev.length - 1]?.id === merged[merged.length - 1]?.id
+          ) {
+            return prev;
+          }
+          return merged;
         });
       }
 
@@ -343,7 +399,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('transactions')
         .select('*, listing:listings(*), category:waste_categories(*)');
       if (!txError && dbTransactions) {
-        setTransactions(dbTransactions as Transaction[]);
+        const newTxs = dbTransactions as Transaction[];
+        setTransactions((prev) => {
+          if (
+            prev.length === newTxs.length &&
+            prev[0]?.id === newTxs[0]?.id &&
+            prev[prev.length - 1]?.id === newTxs[newTxs.length - 1]?.id
+          ) {
+            return prev;
+          }
+          return newTxs;
+        });
       }
 
       // 6. Fetch environmental reports
@@ -357,7 +423,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           prev.forEach((item) => {
             if (!map.has(item.id)) map.set(item.id, item);
           });
-          return Array.from(map.values());
+          const merged = Array.from(map.values());
+          if (
+            prev.length === merged.length &&
+            prev[0]?.id === merged[0]?.id &&
+            prev[prev.length - 1]?.id === merged[merged.length - 1]?.id
+          ) {
+            return prev;
+          }
+          return merged;
         });
       }
 
@@ -366,20 +440,36 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('challenges')
         .select('*');
       if (!chalError && dbChallenges) {
-        setChallenges(dbChallenges as Challenge[]);
+        const newChallenges = dbChallenges as Challenge[];
+        setChallenges((prev) => {
+          if (
+            prev.length === newChallenges.length &&
+            prev[0]?.id === newChallenges[0]?.id &&
+            prev[prev.length - 1]?.id === newChallenges[newChallenges.length - 1]?.id
+          ) {
+            return prev;
+          }
+          return newChallenges;
+        });
       }
     } catch (err: any) {
       console.error('Supabase live fetch exception:', err);
       setDataError(err?.message || 'Failed to fetch live marketplace data');
     } finally {
+      hasLoadedOnceRef.current = true;
       setIsLoading(false);
+      isFetchingRef.current = false;
     }
-  }, [categories]);
+  }, []);
 
   // Fetch data after auth session is restored and whenever authenticated user changes
   useEffect(() => {
     if (!authLoading) {
-      fetchData();
+      const currId = currentUser?.id;
+      if (!hasLoadedOnceRef.current || prevUserIdRef.current !== currId) {
+        prevUserIdRef.current = currId;
+        fetchData();
+      }
     }
   }, [authLoading, currentUser?.id, fetchData]);
 
@@ -387,7 +477,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (!isSupabaseConfigured) return;
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') {
         fetchData();
       }
     });
@@ -982,42 +1072,77 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
   };
 
+  const contextValue = useMemo<DataContextType>(
+    () => ({
+      categories,
+      listings: populatedListings,
+      demoListings,
+      allMarketplaceListings,
+      exchangeRequests,
+      transactions,
+      ecoPointsLedger,
+      challenges,
+      recyclingCentres,
+      notifications,
+      favourites,
+      metrics,
+      wasteBins,
+      reports,
+      isLoading,
+      dataError,
+      refreshData: fetchData,
+      addListing,
+      updateListing,
+      deleteListing,
+      createExchangeRequest,
+      acceptExchangeRequest,
+      rejectExchangeRequest,
+      cancelExchangeRequest,
+      confirmHandover,
+      toggleFavourite,
+      joinChallenge,
+      markNotificationAsRead,
+      markAllNotificationsAsRead,
+      submitReport,
+      updateReportStatus,
+    }),
+    [
+      categories,
+      populatedListings,
+      demoListings,
+      allMarketplaceListings,
+      exchangeRequests,
+      transactions,
+      ecoPointsLedger,
+      challenges,
+      recyclingCentres,
+      notifications,
+      favourites,
+      metrics,
+      wasteBins,
+      reports,
+      isLoading,
+      dataError,
+      fetchData,
+      addListing,
+      updateListing,
+      deleteListing,
+      createExchangeRequest,
+      acceptExchangeRequest,
+      rejectExchangeRequest,
+      cancelExchangeRequest,
+      confirmHandover,
+      toggleFavourite,
+      joinChallenge,
+      markNotificationAsRead,
+      markAllNotificationsAsRead,
+      submitReport,
+      updateReportStatus,
+    ]
+  );
+
   return (
-    <DataContext.Provider
-      value={{
-        categories,
-        listings: populatedListings,
-        demoListings,
-        allMarketplaceListings,
-        exchangeRequests,
-        transactions,
-        ecoPointsLedger,
-        challenges,
-        recyclingCentres,
-        notifications,
-        favourites,
-        metrics,
-        wasteBins,
-        reports,
-        isLoading,
-        dataError,
-        refreshData: fetchData,
-        addListing,
-        updateListing,
-        deleteListing,
-        createExchangeRequest,
-        acceptExchangeRequest,
-        rejectExchangeRequest,
-        cancelExchangeRequest,
-        confirmHandover,
-        toggleFavourite,
-        joinChallenge,
-        markNotificationAsRead,
-        markAllNotificationsAsRead,
-        submitReport,
-        updateReportStatus,
-      }}
-    >
+    <DataContext.Provider value={contextValue}>
       {children}
     </DataContext.Provider>
   );
