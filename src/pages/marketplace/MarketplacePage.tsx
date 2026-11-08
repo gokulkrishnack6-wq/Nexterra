@@ -47,7 +47,8 @@ export const MarketplacePage: React.FC = () => {
     if (detectedDistrict && KERALA_DISTRICT_COORDS[detectedDistrict]) {
       return KERALA_DISTRICT_COORDS[detectedDistrict];
     }
-    return KERALA_DISTRICT_COORDS['Ernakulam'];
+    // No reliable user location: do not pretend Ernakulam is the user's reference point.
+    return null;
   }, [coords, selectedDistrict, detectedDistrict]);
 
   const handleCategoryChange = (slug: string) => {
@@ -86,17 +87,25 @@ export const MarketplacePage: React.FC = () => {
       }
 
       // 3. Search Radius Filter (Haversine distance calculation)
-      if (selectedRadius !== 'all' && refCoords) {
+      if (selectedRadius !== 'all') {
         const maxRadius = parseFloat(selectedRadius);
-        if (!isNaN(maxRadius) && listing.latitude && listing.longitude) {
-          const dist = calculateDistanceKm(
-            refCoords.latitude,
-            refCoords.longitude,
-            listing.latitude,
-            listing.longitude
-          );
-          if (dist > maxRadius) return false;
-        }
+        const hasCoordinates =
+          Number.isFinite(Number(listing.latitude)) &&
+          Number.isFinite(Number(listing.longitude)) &&
+          listing.latitude !== null && listing.latitude !== undefined &&
+          listing.longitude !== null && listing.longitude !== undefined &&
+          Number(listing.latitude) !== 0 && Number(listing.longitude) !== 0;
+
+        // A radius filter cannot truthfully include records with missing coordinates.
+        if (!refCoords || !hasCoordinates || Number.isNaN(maxRadius)) return false;
+
+        const dist = calculateDistanceKm(
+          refCoords.latitude,
+          refCoords.longitude,
+          Number(listing.latitude),
+          Number(listing.longitude)
+        );
+        if (dist > maxRadius) return false;
       }
 
       // 4. Pricing Filter
