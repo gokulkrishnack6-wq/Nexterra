@@ -136,6 +136,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { currentUser, loading: authLoading } = useAuth();
   const currentUserRef = React.useRef(currentUser);
   currentUserRef.current = currentUser;
+  const fetchSequenceRef = React.useRef(0);
 
   const { coords, locality, district, city } = useLocationContext();
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -261,12 +262,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Fetch real data from live Supabase backend
   const fetchData = useCallback(async () => {
+    const requestSequence = ++fetchSequenceRef.current;
     if (!isSupabaseConfigured) {
+      setListings([]);
+      setDataError('Marketplace is unavailable because Supabase is not configured.');
       setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
+    setDataError(null);
     try {
       // 1. Fetch categories
       let activeCategories = categories;
@@ -297,15 +302,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('listings')
         .select('*, category:waste_categories(*)');
       
+      if (requestSequence !== fetchSequenceRef.current) return;
       if (listError) {
         console.error('Supabase listings fetch error:', listError);
         setDataError(`Marketplace synchronization error: ${listError.message}`);
-        // Do not silently preserve stale or fabricated listing records
+        // Never retain stale data when the authoritative query fails.
         setListings([]);
-      } else if (rawListings) {
-        setDataError(null);
+      } else {
         const currUser = currentUserRef.current;
-        const mappedListings: WasteListing[] = rawListings.map((item: any) => ({
+        const mappedListings: WasteListing[] = (rawListings || []).map((item: any) => ({
           ...item,
           is_demo: false,
           user: pubProfilesMap.get(item.user_id) || (currUser && item.user_id === currUser.id ? currUser : undefined),
@@ -370,9 +375,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (err: any) {
       console.error('Supabase live fetch exception:', err);
-      setDataError(err?.message || 'Failed to fetch live marketplace data');
+      if (requestSequence === fetchSequenceRef.current) {
+        setDataError(err?.message || 'Failed to fetch live marketplace data');
+        setListings([]);
+      }
     } finally {
-      setIsLoading(false);
+      if (requestSequence === fetchSequenceRef.current) setIsLoading(false);
     }
   }, [categories]);
 
@@ -500,6 +508,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!currentUser) {
       throw new Error('Authentication required: You must be signed in to publish a waste listing.');
     }
+    if (!isSupabaseConfigured) {
+      throw new Error('Marketplace publishing is unavailable because Supabase is not configured. No listing was saved.');
+    }
 
     const id = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
       ? crypto.randomUUID()
@@ -546,47 +557,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Synchronize database records immediately into memory
       await fetchData();
-    } else {
-      // Offline fallback only when Supabase is completely unconfigured
-      const offlineListing: WasteListing = {
-        ...listingData,
-        id,
-        user_id: currentUser.id,
-        created_at: new Date().toISOString(),
-        user: currentUser,
-        is_demo: false,
-      };
-      setListings((prev) => [offlineListing, ...prev]);
     }
 
-    // EcoPoints for listing creation are awarded automatically and authoritatively
-    // by the database trigger 'trg_award_listing_ecopoints' upon listing insert.
-    const pointsAwarded = 30;
-
-    const newPointRecord: EcoPointRecord = {
-      id: `pt-${Date.now()}`,
-      user_id: currentUser.id,
-      points: pointsAwarded,
-      action_type: 'listing_created',
-      reference_id: id,
-      description: `Created new listing: ${listingData.title}`,
-      created_at: new Date().toISOString(),
-    };
-    setEcoPointsLedger((prev) => [newPointRecord, ...prev]);
-
-    // Notification
-    const newNotif: NotificationItem = {
-      id: `notif-${Date.now()}`,
-      user_id: currentUser.id,
-      title: 'Listing Published',
-      message: `"${listingData.title}" is now published and discoverable across Kerala. +${pointsAwarded} EcoPoints earned.`,
-      type: 'points',
-      link: `/marketplace/${id}`,
-      is_read: false,
-      created_at: new Date().toISOString(),
-    };
-    setNotifications((prev) => [newNotif, ...prev]);
-
+    // The database is authoritative for EcoPoints. Do not fabricate a client-side
+    // ledger entry or claim points until the server confirms an award.
     return id;
   };
 
@@ -597,23 +571,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Unauthorized: Only the creator of this listing can edit it.');
     }
 
-    if (isSupabaseConfigured) {
-      const { error } = await supabase
-        .from('listings')
-        .update(updates)
-        .eq('id', id)
-        .eq('user_id', currentUser.id);
+    if (!isSupabaseConfigured) throw new Error('Marketplace is unavailable because Supabase is not configured.');
 
-      if (error) {
-        console.error('Supabase listing update failed:', error);
-        throw new Error(error.message);
-      }
-      await fetchData();
-    } else {
-      setListings((prev) =>
-        prev.map((l) => (l.id === id ? { ...l, ...updates, updated_at: new Date().toISOString() } : l))
-      );
+    const { data, error } = await supabase
+      .from('listings')
+      .update(updates)
+      .eq('id', id)
+      .eq('user_id', currentUser.id)
+      .select('id')
+      .maybeSingle();
+
+    if (error) {
+      console.error('Supabase listing update failed:', error);
+      throw new Error(error.message);
     }
+    if (!data) throw new Error('Listing was not updated. It may not exist or you may not own it.');
+    await fetchData();
   };
 
   const deleteListing = async (id: string): Promise<void> => {
@@ -623,21 +596,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Unauthorized: Only the creator of this listing can delete it.');
     }
 
-    if (isSupabaseConfigured) {
-      const { error } = await supabase
-        .from('listings')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', currentUser.id);
+    if (!isSupabaseConfigured) throw new Error('Marketplace is unavailable because Supabase is not configured.');
 
-      if (error) {
-        console.error('Supabase listing delete failed:', error);
-        throw new Error(error.message);
-      }
-      await fetchData();
-    } else {
-      setListings((prev) => prev.filter((l) => l.id !== id));
+    const { data, error } = await supabase
+      .from('listings')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', currentUser.id)
+      .select('id')
+      .maybeSingle();
+
+    if (error) {
+      console.error('Supabase listing delete failed:', error);
+      throw new Error(error.message);
     }
+    if (!data) throw new Error('Listing was not deleted. It may not exist or you may not own it.');
+    await fetchData();
   };
 
   // Action: Create Exchange Request

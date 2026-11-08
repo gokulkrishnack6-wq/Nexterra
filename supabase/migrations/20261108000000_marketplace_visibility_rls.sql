@@ -679,6 +679,7 @@ CREATE TRIGGER trg_award_listing_ecopoints
   FOR EACH ROW
   EXECUTE FUNCTION public.award_listing_ecopoints();
 
+
 -- ------------------------------------------------------------------------------
 -- 9. SAFE BACKFILL & BALANCE PARITY RECONCILER FOR EXISTING USERS
 -- ------------------------------------------------------------------------------
