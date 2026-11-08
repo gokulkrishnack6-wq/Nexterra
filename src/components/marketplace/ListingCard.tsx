@@ -1,9 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Heart, ArrowRight } from 'lucide-react';
+import { MapPin, Heart, ArrowRight, Sparkles } from 'lucide-react';
 import { WasteListing } from '../../types';
 import { useData } from '../../contexts/DataContext';
 import { useGeolocation, calculateDistanceKm } from '../../hooks/useGeolocation';
+import { isAiGeneratedImage } from '../../services/imageGeneration';
 
 interface ListingCardProps {
   listing: WasteListing;
@@ -76,12 +77,20 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, referenceCoor
           loading="lazy"
         />
 
-        {/* Pricing & Demo tag */}
+        {/* Pricing, Demo & AI Illustrative tags */}
         <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
           {getPricingBadge()}
           {listing.is_demo && (
             <span className="font-label-sm text-[10px] uppercase font-bold text-amber-800 bg-amber-100/95 dark:bg-amber-950/90 dark:text-amber-300 border border-amber-300 px-2 py-0.5 rounded-full shadow-sm backdrop-blur-sm">
               Demo Sample
+            </span>
+          )}
+          {isAiGeneratedImage(listing) && (
+            <span
+              className="font-label-sm text-[10px] font-semibold text-white bg-black/65 backdrop-blur-xs px-2 py-0.5 rounded-full border border-white/20 flex items-center gap-1 shadow-sm"
+              title="AI-generated illustrative depiction (not actual seller photo)"
+            >
+              <Sparkles className="w-2.5 h-2.5 text-secondary" /> AI Image
             </span>
           )}
         </div>

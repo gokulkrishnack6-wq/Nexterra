@@ -119,6 +119,7 @@ export interface WasteListing {
   category?: WasteCategory;
   user?: UserProfile;
   images?: string[];
+  is_ai_image?: boolean;
 }
 
 export interface ExchangeRequest {

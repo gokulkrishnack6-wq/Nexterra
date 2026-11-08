@@ -2,6 +2,8 @@
 // Multimodal Circular Waste Material Classifier using Google Gemini Vision
 // Reads GEMINI_API_KEY securely from Supabase Environment Secrets (Deno.env.get("GEMINI_API_KEY"))
 
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -112,6 +114,130 @@ Deno.serve(async (req: Request) => {
       }));
       return new Response(
         JSON.stringify({ count: models.length, models }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Action: Generate AI Illustrative Waste Listing Image
+    if (body.action === 'generate-listing-image' || body.generateImage) {
+      const {
+        title = 'Recyclable Waste Material',
+        category = 'other',
+        material_type = '',
+        description = '',
+        listing_id = '',
+      } = body;
+
+      const cleanMaterial = (material_type || title).trim();
+      const promptParts = [
+        `A realistic authentic photograph of clean ${title.trim()}`,
+        cleanMaterial && cleanMaterial.toLowerCase() !== title.trim().toLowerCase() ? `(${cleanMaterial})` : '',
+        'collected materials for recycling and circular reuse',
+        'clean neutral surface background',
+        'natural studio diffuse lighting',
+        'sharp clear focus',
+        'high quality realistic texture',
+        'centered composition',
+        'no text',
+        'no labels',
+        'no watermarks',
+        'no logos',
+        'no humans'
+      ].filter(Boolean);
+
+      const fullPrompt = promptParts.join(', ');
+      const encodedPrompt = encodeURIComponent(fullPrompt);
+      const seed = Math.abs(
+        (title + category).split('').reduce((acc: number, char: string) => (acc << 5) - acc + char.charCodeAt(0), 0)
+      ) % 1000000;
+
+      const generationUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=600&model=flux&nologo=true&seed=${seed}`;
+
+      let imageBuffer: Uint8Array | null = null;
+      try {
+        const genRes = await fetch(generationUrl);
+        if (genRes.ok) {
+          const buf = await genRes.arrayBuffer();
+          if (buf.byteLength > 1000) imageBuffer = new Uint8Array(buf);
+        }
+      } catch (e) {
+        console.warn('Pollinations generation error in analyze-waste-image:', e);
+      }
+
+      // Try uploading to Supabase Storage if service role key exists
+      const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+
+      if (supabaseUrl && supabaseServiceKey && imageBuffer) {
+        try {
+          const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+          const { data: buckets } = await supabaseAdmin.storage.listBuckets();
+          if (!buckets?.some((b: any) => b.name === 'listing-images')) {
+            await supabaseAdmin.storage.createBucket('listing-images', {
+              public: true,
+              fileSizeLimit: 5242880,
+              allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
+            });
+          }
+
+          const safeId = listing_id || `item-${Date.now()}`;
+          const storagePath = `ai-generated/${safeId}-${Date.now()}.jpg`;
+
+          const { error: uploadError } = await supabaseAdmin.storage
+            .from('listing-images')
+            .upload(storagePath, imageBuffer, {
+              contentType: 'image/jpeg',
+              upsert: true,
+              cacheControl: '31536000',
+            });
+
+          if (!uploadError) {
+            const { data: publicUrlData } = supabaseAdmin.storage
+              .from('listing-images')
+              .getPublicUrl(storagePath);
+
+            if (publicUrlData?.publicUrl) {
+              return new Response(
+                JSON.stringify({
+                  success: true,
+                  image_url: publicUrlData.publicUrl,
+                  is_ai_image: true,
+                  provider: 'flux-schnell',
+                  storage_bucket: 'listing-images',
+                  storage_path: storagePath,
+                  prompt_used: fullPrompt,
+                }),
+                { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              );
+            }
+          }
+        } catch (storageErr) {
+          console.warn('Storage upload error in analyze-waste-image:', storageErr);
+        }
+      }
+
+      // If imageBuffer was obtained, return direct URL
+      if (imageBuffer) {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            image_url: generationUrl,
+            is_ai_image: true,
+            provider: 'flux-schnell',
+            prompt_used: fullPrompt,
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Fallback
+      return new Response(
+        JSON.stringify({
+          success: false,
+          image_url: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=800&q=80',
+          is_ai_image: true,
+          is_fallback: true,
+        }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

@@ -17,6 +17,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useGeolocation, KERALA_DISTRICT_COORDS, findNearestDistrict } from '../../hooks/useGeolocation';
 import { LocationAutocomplete } from '../../components/ui/LocationAutocomplete';
 import { LocationSuggestion, reverseGeocodeCoordinates } from '../../services/geocoding';
+import { generateListingImage, isAiGeneratedImage, CATEGORY_ILLUSTRATIVE_FALLBACKS } from '../../services/imageGeneration';
 import { ListingPricing, ScanPrefillData } from '../../types';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -60,6 +61,9 @@ export const CreateListingPage: React.FC = () => {
   const [isEditingLocationDetails, setIsEditingLocationDetails] = useState(false);
 
   const [imageUrl, setImageUrl] = useState('');
+  const [isAiImage, setIsAiImage] = useState(false);
+  const [publishingStage, setPublishingStage] = useState<'idle' | 'generating_image' | 'publishing'>('idle');
+  const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
   const [aiClassified, setAiClassified] = useState(false);
   const [aiConfidence, setAiConfidence] = useState<number | undefined>(undefined);
   const [suggestedAction, setSuggestedAction] = useState<string | undefined>(undefined);
@@ -207,6 +211,34 @@ export const CreateListingPage: React.FC = () => {
     setLocationSource(null);
   };
 
+    // Manual trigger for previewing AI image before publishing
+  const handleGenerateAiPreview = async () => {
+    if (!title || !title.trim()) {
+      setError('Please enter a Material Title before generating an AI illustration.');
+      return;
+    }
+    setError('');
+    setIsGeneratingPreview(true);
+    try {
+      const selectedCat = categories.find((c) => c.id === categoryId);
+      const res = await generateListingImage({
+        title: title.trim(),
+        category_id: categoryId,
+        category_slug: selectedCat?.slug || 'other',
+        material_type: materialType || title,
+        description: description.trim(),
+      });
+      if (res.image_url) {
+        setImageUrl(res.image_url);
+        setIsAiImage(true);
+      }
+    } catch (e: any) {
+      setError('Could not generate AI preview image. Default circular asset will be used upon publishing.');
+    } finally {
+      setIsGeneratingPreview(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -230,6 +262,51 @@ export const CreateListingPage: React.FC = () => {
     setSubmitting(true);
 
     try {
+      let finalImages: string[] = [];
+      let listingIsAiImage = isAiImage;
+
+      // FEATURE 1: Check whether user uploaded / provided an image
+      if (imageUrl && imageUrl.trim()) {
+        // User provided an image (uploaded photo, camera snapshot, or valid URL)
+        // Never replace user uploaded image
+        finalImages = [imageUrl.trim()];
+      } else {
+        // Automatically generate AI illustrative image
+        setPublishingStage('generating_image');
+        const selectedCat = categories.find((c) => c.id === categoryId);
+
+        try {
+          const aiImageResult = await generateListingImage({
+            title: title.trim(),
+            category_id: categoryId,
+            category_slug: selectedCat?.slug || 'other',
+            material_type: materialType || title,
+            description: description.trim(),
+            user_id: currentUser.id,
+          });
+
+          if (aiImageResult.image_url) {
+            finalImages = [aiImageResult.image_url];
+            listingIsAiImage = true;
+          } else {
+            const fallback =
+              CATEGORY_ILLUSTRATIVE_FALLBACKS[selectedCat?.slug || 'other'] ||
+              CATEGORY_ILLUSTRATIVE_FALLBACKS.other;
+            finalImages = [fallback];
+            listingIsAiImage = true;
+          }
+        } catch (genErr) {
+          console.warn('AI image generation fallback during publishing:', genErr);
+          const fallback =
+            CATEGORY_ILLUSTRATIVE_FALLBACKS[selectedCat?.slug || 'other'] ||
+            CATEGORY_ILLUSTRATIVE_FALLBACKS.other;
+          finalImages = [fallback];
+          listingIsAiImage = true;
+        }
+      }
+
+      setPublishingStage('publishing');
+
       const finalAddress = landmarkAddress.trim()
         ? `${landmarkAddress.trim()}, ${formattedAddress || locality}`
         : (formattedAddress || `${locality}, ${district}, Kerala`);
@@ -258,9 +335,8 @@ export const CreateListingPage: React.FC = () => {
         ai_classified: aiClassified,
         ai_confidence: aiConfidence,
         suggested_action: suggestedAction,
-        images: imageUrl ? [imageUrl] : [
-          'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=800&q=80'
-        ],
+        images: finalImages,
+        is_ai_image: listingIsAiImage,
       });
 
       // Clear prefill caches ONLY after confirmed successful insert in Supabase
@@ -272,7 +348,9 @@ export const CreateListingPage: React.FC = () => {
       navigate(`/marketplace/${newId}`);
     } catch (err: any) {
       setError(err?.message || 'Failed to create listing. Please try again.');
+    } finally {
       setSubmitting(false);
+      setPublishingStage('idle');
     }
   };
 
@@ -641,44 +719,85 @@ export const CreateListingPage: React.FC = () => {
             )}
           </div>
 
-          {/* Optional Photo or Scanned Material Photograph */}
+          {/* Optional Photo or Scanned / AI Material Photograph */}
           <div>
-            {imageUrl && imageUrl.startsWith('data:image/') ? (
+            {imageUrl ? (
               <div className="space-y-2">
-                <label className="block font-label-md text-label-md text-on-surface font-semibold">
-                  Scanned Material Photograph
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="block font-label-md text-label-md text-on-surface font-semibold">
+                    {isAiGeneratedImage({ images: [imageUrl], is_ai_image: isAiImage })
+                      ? 'AI-Generated Illustrative Image'
+                      : 'Material Photograph'}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImageUrl('');
+                      setIsAiImage(false);
+                    }}
+                    className="text-xs font-semibold text-error hover:underline flex items-center gap-1"
+                  >
+                    <X className="w-3.5 h-3.5" /> Remove photo
+                  </button>
+                </div>
                 <div className="relative inline-flex items-center gap-3.5 p-3 rounded-xl border border-outline-variant bg-surface-container-lowest shadow-xs">
                   <img
                     src={imageUrl}
-                    alt="AI Scanned Material"
+                    alt="Material illustration"
                     className="w-20 h-20 rounded-lg object-cover border border-outline-variant/60 shrink-0"
                   />
                   <div className="flex flex-col gap-1 min-w-0">
                     <span className="font-semibold text-xs text-primary flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-secondary shrink-0" /> Captured via Waste Scanner
+                      <Sparkles className="w-3.5 h-3.5 text-secondary shrink-0" />
+                      {isAiGeneratedImage({ images: [imageUrl], is_ai_image: isAiImage })
+                        ? 'AI Illustrative Depiction'
+                        : 'Attached Photograph'}
                     </span>
                     <span className="text-[11px] text-on-surface-variant leading-relaxed">
-                      Optimized photograph attached for circular verification and discovery.
+                      {isAiGeneratedImage({ images: [imageUrl], is_ai_image: isAiImage })
+                        ? 'Realistic AI-generated depiction based on material name and circular category.'
+                        : 'Optimized photograph attached for circular verification and discovery.'}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => setImageUrl('')}
-                      className="text-xs font-semibold text-error hover:underline self-start flex items-center gap-1 mt-0.5"
-                    >
-                      <X className="w-3.5 h-3.5" /> Remove photo
-                    </button>
                   </div>
                 </div>
               </div>
             ) : (
-              <Input
-                label="Photo Image URL (Optional)"
-                placeholder="https://... (or leave empty for default material photo)"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                helperText="Paste an image link or use the Waste Scanner to snap a photo directly."
-              />
+              <div className="space-y-3">
+                <Input
+                  label="Photo Image URL (Optional)"
+                  placeholder="https://... (or leave empty for automatic AI generation upon publishing)"
+                  value={imageUrl}
+                  onChange={(e) => {
+                    setImageUrl(e.target.value);
+                    setIsAiImage(false);
+                  }}
+                  helperText="Leave empty to automatically generate a realistic AI illustration upon publishing, or preview one below."
+                />
+
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleGenerateAiPreview}
+                    disabled={isGeneratingPreview || !title.trim()}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-label-md text-xs font-semibold border border-outline-variant/60 transition-colors disabled:opacity-50"
+                  >
+                    {isGeneratingPreview ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Generating illustrative preview...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5 text-secondary" />
+                        <span>Preview AI Generated Image</span>
+                      </>
+                    )}
+                  </button>
+                  <span className="text-[11px] text-on-surface-variant">
+                    (Automatically generated if left empty)
+                  </span>
+                </div>
+              </div>
             )}
           </div>
 
@@ -688,6 +807,7 @@ export const CreateListingPage: React.FC = () => {
               variant="outline"
               fullWidth
               className="sm:w-auto"
+              disabled={submitting}
               onClick={() => navigate(-1)}
             >
               Cancel
@@ -700,9 +820,22 @@ export const CreateListingPage: React.FC = () => {
               fullWidth
               className="sm:w-auto"
               loading={submitting}
-              icon={<Plus className="w-4 h-4" />}
+              disabled={submitting}
+              icon={
+                publishingStage === 'generating_image' ? (
+                  <Sparkles className="w-4 h-4 text-tertiary-fixed animate-spin" />
+                ) : (
+                  <Plus className="w-4 h-4" />
+                )
+              }
             >
-              {submitting ? 'Publishing...' : 'Publish Material Listing'}
+              {publishingStage === 'generating_image'
+                ? 'Generating listing image...'
+                : publishingStage === 'publishing'
+                ? 'Publishing Material Listing...'
+                : submitting
+                ? 'Publishing...'
+                : 'Publish Material Listing'}
             </Button>
           </div>
         </form>

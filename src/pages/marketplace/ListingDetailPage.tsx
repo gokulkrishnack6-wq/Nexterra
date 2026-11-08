@@ -20,6 +20,7 @@ import { Input, Textarea } from '../../components/ui/Input';
 import { supabase } from '../../lib/supabase';
 import { WasteListing } from '../../types';
 import { ListingCardSkeleton } from '../../components/ui/Skeleton';
+import { isAiGeneratedImage } from '../../services/imageGeneration';
 
 export const ListingDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -228,7 +229,7 @@ export const ListingDetailPage: React.FC = () => {
                 alt={listing.title}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute top-3 left-3 flex gap-2">
+              <div className="absolute top-3 left-3 flex gap-2 flex-wrap">
                 <span className="font-label-sm text-label-sm text-primary font-bold bg-secondary-container px-3 py-1 rounded-full shadow-sm">
                   {listing.listing_type === 'free' ? 'Free Claim' : listing.listing_type === 'exchange' ? 'Barter Exchange' : `₹${listing.price}`}
                 </span>
@@ -237,10 +238,24 @@ export const ListingDetailPage: React.FC = () => {
                     <Sparkles className="w-3 h-3" /> Verified Material
                   </span>
                 )}
+                {isAiGeneratedImage(listing) && (
+                  <span className="font-label-sm text-label-sm text-white bg-black/75 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm font-semibold border border-white/20">
+                    <Sparkles className="w-3 h-3 text-secondary" /> AI Illustrative Image
+                  </span>
+                )}
               </div>
             </div>
 
             <div className="p-space-md sm:p-space-lg space-y-4">
+              {isAiGeneratedImage(listing) && (
+                <div className="p-3 rounded-xl bg-surface-container/60 border border-outline-variant/60 text-xs text-on-surface-variant flex items-start gap-2.5 shadow-2xs">
+                  <Sparkles className="w-4 h-4 text-secondary shrink-0 mt-0.5" />
+                  <p className="leading-relaxed">
+                    <strong className="text-primary font-semibold">AI-Generated Illustrative Image: </strong>
+                    This image was automatically generated to help circular buyers identify the material type ({listing.material_type || listing.title}). It is an illustrative depiction and not an actual photograph of the seller's specific lot.
+                  </p>
+                </div>
+              )}
               <div>
                 <span className="font-label-sm text-label-sm text-secondary uppercase tracking-wider block font-semibold">
                   {category?.name || 'Recyclable Material'}

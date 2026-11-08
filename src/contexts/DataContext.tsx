@@ -19,6 +19,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { useLocationContext } from './LocationContext';
 import { generateDynamicDemoListings, isDemoListing } from '../lib/demoMarketplace';
+import { isAiGeneratedImage } from '../services/imageGeneration';
 
 interface DataContextType {
   categories: WasteCategory[];
@@ -514,7 +515,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [fetchData]);
 
-  // Enrich listings with category metadata
+  // Enrich listings with category metadata and AI image status
   const populatedListings = useMemo(() => {
     return listings.map((l) => ({
       ...l,
@@ -523,6 +524,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       is_demo: false,
       category: l.category || categories.find((c) => c.id === l.category_id || c.slug === l.category_id),
       user: l.user || (currentUser && l.user_id === currentUser.id ? currentUser : undefined),
+      is_ai_image: Boolean(l.is_ai_image || isAiGeneratedImage(l)),
     }));
   }, [listings, categories, currentUser]);
 
@@ -657,6 +659,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         created_at: new Date().toISOString(),
         user: currentUser,
         is_demo: false,
+        is_ai_image: Boolean(listingData.is_ai_image || isAiGeneratedImage(listingData)),
       };
       setListings((prev) => [offlineListing, ...prev]);
     }
