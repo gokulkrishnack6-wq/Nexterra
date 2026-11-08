@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
   MapPin, 
@@ -17,22 +17,98 @@ import { useGeolocation, calculateDistanceKm } from '../../hooks/useGeolocation'
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Input, Textarea } from '../../components/ui/Input';
+import { supabase } from '../../lib/supabase';
+import { WasteListing } from '../../types';
+import { ListingCardSkeleton } from '../../components/ui/Skeleton';
 
 export const ListingDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { listings, allMarketplaceListings, createExchangeRequest, favourites, toggleFavourite, categories, deleteListing, updateListing } = useData();
+  const { listings, allMarketplaceListings, createExchangeRequest, favourites, toggleFavourite, categories, deleteListing, updateListing, isLoading } = useData();
   const { currentUser } = useAuth();
   const { coords } = useGeolocation();
 
   const sourceListings = allMarketplaceListings && allMarketplaceListings.length > 0 ? allMarketplaceListings : listings;
-  const listing = sourceListings.find((l) => l.id === id);
+  const inMemoryListing = sourceListings.find((l) => l.id === id);
+
+  const [directListing, setDirectListing] = useState<WasteListing | null>(null);
+  const [directLoading, setDirectLoading] = useState(false);
+
+  useEffect(() => {
+    if (!inMemoryListing && id) {
+      let isMounted = true;
+      setDirectLoading(true);
+
+      (async () => {
+        try {
+          const { data, error } = await supabase
+            .from('listings')
+            .select('*, category:waste_categories(*)')
+            .eq('id', id)
+            .maybeSingle();
+
+          if (error || !data) {
+            if (isMounted) setDirectLoading(false);
+            return;
+          }
+
+          let sellerInfo = undefined;
+          if (data.user_id) {
+            const { data: prof } = await supabase
+              .from('public_profiles')
+              .select('id, full_name, avatar_url, role, district')
+              .eq('id', data.user_id)
+              .maybeSingle();
+            sellerInfo = prof || undefined;
+          }
+
+          if (isMounted) {
+            setDirectListing({
+              ...data,
+              user: sellerInfo,
+            });
+            setDirectLoading(false);
+          }
+        } catch {
+          if (isMounted) setDirectLoading(false);
+        }
+      })();
+
+      return () => {
+        isMounted = false;
+      };
+    }
+  }, [id, inMemoryListing]);
+
+  const listing = inMemoryListing || directListing;
 
   const [requestedQuantity, setRequestedQuantity] = useState<number>(listing?.quantity || 1);
   const [proposedAction, setProposedAction] = useState('Composting & organic soil amendment');
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+
+  // Keep requestedQuantity synced if listing loads asynchronously
+  useEffect(() => {
+    if (listing?.quantity) {
+      setRequestedQuantity(listing.quantity);
+    }
+  }, [listing?.quantity]);
+
+  if ((isLoading || directLoading) && !listing) {
+    return (
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="lg:col-span-7">
+            <ListingCardSkeleton />
+          </div>
+          <div className="lg:col-span-5">
+            <ListingCardSkeleton />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!listing) {
     return (
@@ -262,8 +338,8 @@ export const ListingDetailPage: React.FC = () => {
             </div>
 
             <div className="pt-2 border-t border-outline-variant/40 flex items-center justify-between text-body-sm text-on-surface-variant">
-              <span>EcoPoints Balance:</span>
-              <span className="font-semibold text-primary">{listing.user?.eco_points_balance ?? 0} PTS</span>
+              <span>Location:</span>
+              <span className="font-semibold text-primary">{listing.locality ? `${listing.locality}, ` : ''}{listing.district}</span>
             </div>
           </Card>
 
@@ -291,10 +367,10 @@ export const ListingDetailPage: React.FC = () => {
                 </Button>
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     if (window.confirm('Are you sure you want to remove this listing from the marketplace?')) {
                       try {
-                        deleteListing(listing.id);
+                        await deleteListing(listing.id);
                         navigate('/marketplace');
                       } catch (err: any) {
                         alert(err.message || 'Failed to delete listing');

@@ -73,9 +73,14 @@ export const CreateListingPage: React.FC = () => {
     }
   }, [geoDistrict, geoLocality]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (!currentUser) {
+      setError('Please sign in to publish your material listing to the marketplace.');
+      return;
+    }
 
     if (!district) {
       setError('Please select a Kerala district for pickup.');
@@ -112,19 +117,19 @@ export const CreateListingPage: React.FC = () => {
       const finalLat = lat !== undefined ? lat : (districtCoords?.latitude ?? 0);
       const finalLon = lon !== undefined ? lon : (districtCoords?.longitude ?? 0);
 
-      const newId = addListing({
-        user_id: currentUser ? currentUser.id : 'guest-user',
+      const newId = await addListing({
+        user_id: currentUser.id,
         category_id: categoryId || categories[0]?.id || 'cat-plastics',
-        title,
-        description,
+        title: title.trim(),
+        description: description.trim(),
         material_type: materialType || title,
         quantity,
         unit,
         listing_type: listingType,
         price: listingType === 'sale' ? price : 0,
         condition,
-        district,
-        locality: locality || district,
+        district: district.trim(),
+        locality: (locality || district).trim(),
         address: address || '',
         latitude: finalLat,
         longitude: finalLon,

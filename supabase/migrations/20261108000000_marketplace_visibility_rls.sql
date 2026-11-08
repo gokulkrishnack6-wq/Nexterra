@@ -127,7 +127,7 @@ GRANT SELECT ON public.public_profiles TO authenticated, anon;
 -- 5. WASTE CATEGORIES & MULTI-CONFLICT SAFE IDEMPOTENT SEEDING
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.waste_categories (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL UNIQUE,
   slug TEXT NOT NULL UNIQUE,
   description TEXT,
@@ -301,7 +301,7 @@ BEGIN
 END $$;
 
 CREATE TABLE IF NOT EXISTS public.eco_points (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   points INTEGER NOT NULL CHECK (points <> 0),
   action_type ecopoints_action NOT NULL,
@@ -567,7 +567,7 @@ CREATE TRIGGER trg_award_listing_ecopoints
 -- 8. LISTINGS TABLE & COMPLETE RLS AUDIT
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.listings (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   category_id UUID NOT NULL REFERENCES public.waste_categories(id) ON DELETE RESTRICT,
   title TEXT NOT NULL CHECK (char_length(title) >= 3),
@@ -688,7 +688,6 @@ INSERT INTO public.profiles (
   id,
   full_name,
   email,
-  role,
   district,
   state,
   eco_points_balance,
@@ -700,7 +699,6 @@ SELECT
   u.id,
   COALESCE(u.raw_user_meta_data->>'full_name', split_part(u.email, '@', 1), 'GreenLoop Member'),
   COALESCE(u.email, ''),
-  COALESCE(u.raw_user_meta_data->>'role', 'individual'),
   NULLIF(TRIM(u.raw_user_meta_data->>'district'), ''),
   'Kerala',
   0,

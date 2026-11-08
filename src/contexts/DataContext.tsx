@@ -38,9 +38,9 @@ interface DataContextType {
   refreshData: () => Promise<void>;
   
   // Actions
-  addListing: (listing: Omit<WasteListing, 'id' | 'created_at' | 'user' | 'category'>) => string;
-  updateListing: (id: string, updates: Partial<WasteListing>) => void;
-  deleteListing: (id: string) => void;
+  addListing: (listing: Omit<WasteListing, 'id' | 'created_at' | 'user' | 'category'>) => Promise<string>;
+  updateListing: (id: string, updates: Partial<WasteListing>) => Promise<void>;
+  deleteListing: (id: string) => Promise<void>;
   createExchangeRequest: (listingId: string, requestedQuantity: number, proposedAction: string, message: string) => string;
   acceptExchangeRequest: (requestId: string) => void;
   rejectExchangeRequest: (requestId: string) => void;
@@ -324,7 +324,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCategories(dbCategories as WasteCategory[]);
       }
 
-      // 2. Fetch public active listings (visible to all authenticated users across accounts)
+      // 2. Fetch public listings from Supabase (authoritative single source of truth)
       let dbListings: any[] | null = null;
       const pubProfilesMap = new Map<string, any>();
       try {
@@ -336,50 +336,34 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           pubProfiles.forEach((p: any) => pubProfilesMap.set(p.id, p));
         }
 
-        const { data: fullListings, error: listError } = await supabase
+        // Query listings with categories joined
+        const { data: rawListings, error: listError } = await supabase
           .from('listings')
-          .select('*, user:profiles(id, full_name, role, district, avatar_url, is_verified), category:waste_categories(*)')
-          .eq('status', 'active');
+          .select('*, category:waste_categories(*)');
         
-        if (!listError && fullListings) {
-          dbListings = fullListings;
+        if (!listError && rawListings) {
+          dbListings = rawListings;
         } else if (listError) {
-          // Graceful fallback to simple select if joins are not in schema cache
-          const { data: simpleListings } = await supabase
-            .from('listings')
-            .select('*')
-            .eq('status', 'active');
-          if (simpleListings) {
-            dbListings = simpleListings;
-          }
+          console.warn('Supabase listings fetch note:', listError.message);
         }
-      } catch {
-        // Fallback to active local state if table or PostgREST cache is pending
+      } catch (err) {
+        console.warn('Supabase listings fetch exception:', err);
       }
 
-      if (dbListings && dbListings.length > 0) {
-        // Merge Supabase listings with any locally staged ones
-        setListings((prev) => {
-          const map = new Map<string, WasteListing>();
-          // Remote listings first, with safe public profile hydration if private base profile is restricted by RLS
-          dbListings!.forEach((item: any) => {
-            const enriched = {
-              ...item,
-              user: item.user || pubProfilesMap.get(item.user_id) || undefined,
-            };
-            map.set(item.id, enriched as WasteListing);
-          });
-          // Local override/supplements
-          prev.forEach((item) => {
-            if (!map.has(item.id)) map.set(item.id, item);
-          });
-          const merged = Array.from(map.values());
-          try {
-            localStorage.setItem(USER_LISTINGS_KEY, JSON.stringify(merged));
-            localStorage.setItem(SHARED_LISTINGS_KEY, JSON.stringify(merged));
-          } catch {}
-          return merged;
-        });
+      if (dbListings !== null) {
+        // Authoritative mapping from Supabase database
+        const mappedListings: WasteListing[] = dbListings.map((item: any) => ({
+          ...item,
+          is_demo: false,
+          user: pubProfilesMap.get(item.user_id) || (currentUser && item.user_id === currentUser.id ? currentUser : undefined),
+          category: item.category || categories.find((c) => c.id === item.category_id || c.slug === item.category_id),
+        }));
+
+        setListings(mappedListings);
+        try {
+          localStorage.setItem(USER_LISTINGS_KEY, JSON.stringify(mappedListings));
+          localStorage.setItem(SHARED_LISTINGS_KEY, JSON.stringify(mappedListings));
+        } catch {}
       }
 
       // 3. Fetch recycling centres
@@ -442,8 +426,29 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  // Fetch data on mount and whenever authentication session or user identity changes
   useEffect(() => {
     fetchData();
+  }, [fetchData, currentUser?.id]);
+
+  // Realtime subscription for cross-device & cross-account live updates
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+
+    const channel = supabase
+      .channel('public:listings_realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'listings' },
+        () => {
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [fetchData]);
 
   // Enrich listings with category metadata
@@ -526,9 +531,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [transactions, listings, ecoPointsLedger, categories]);
 
   // Action: Add Listing (RFC4122 v4 UUID, authentic ownership, persistent sync across accounts)
-  const addListing = (
+  const addListing = async (
     listingData: Omit<WasteListing, 'id' | 'created_at' | 'user' | 'category'>
-  ): string => {
+  ): Promise<string> => {
+    if (!currentUser) {
+      throw new Error('Authentication required: You must be signed in to publish a waste listing.');
+    }
+
     const id = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
       ? crypto.randomUUID()
       : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -537,57 +546,54 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return v.toString(16);
         });
 
-    const userId = currentUser ? currentUser.id : 'guest-user';
-    const newListing: WasteListing = {
-      ...listingData,
-      id,
-      user_id: userId,
-      created_at: new Date().toISOString(),
-      user: currentUser || undefined,
-      is_demo: false,
-    };
+    const targetCatId = resolveCategoryId(listingData.category_id, categories);
 
-    setListings((prev) => {
-      const updated = [newListing, ...prev.filter((l) => l.id !== id)];
-      try {
-        localStorage.setItem(USER_LISTINGS_KEY, JSON.stringify(updated));
-        localStorage.setItem(SHARED_LISTINGS_KEY, JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
+    if (isSupabaseConfigured) {
+      const payload = {
+        id,
+        user_id: currentUser.id,
+        category_id: targetCatId,
+        title: listingData.title.trim(),
+        description: listingData.description.trim(),
+        material_type: listingData.material_type || listingData.title,
+        quantity: Number(listingData.quantity),
+        unit: listingData.unit || 'kg',
+        listing_type: listingData.listing_type || 'free',
+        price: listingData.listing_type === 'sale' ? Number(listingData.price || 0) : 0,
+        condition: listingData.condition || 'clean/dry',
+        district: listingData.district.trim(),
+        locality: (listingData.locality || listingData.district).trim(),
+        address: (listingData.address || '').trim(),
+        latitude: listingData.latitude,
+        longitude: listingData.longitude,
+        status: 'active',
+        ai_classified: Boolean(listingData.ai_classified),
+        ai_confidence: listingData.ai_confidence || null,
+        suggested_action: listingData.suggested_action || '',
+        images: listingData.images && listingData.images.length > 0 ? listingData.images : [],
+        is_demo: false,
+      };
 
-    // Push to Supabase if logged in with live backend
-    if (isSupabaseConfigured && currentUser) {
-      const targetCatId = resolveCategoryId(listingData.category_id, categories);
+      const { error: insertError } = await supabase.from('listings').insert([payload]);
 
-      supabase.from('listings').insert([
-        {
-          id,
-          user_id: currentUser.id,
-          category_id: targetCatId,
-          title: listingData.title,
-          description: listingData.description,
-          material_type: listingData.material_type,
-          quantity: listingData.quantity,
-          unit: listingData.unit,
-          listing_type: listingData.listing_type,
-          price: listingData.price || 0,
-          condition: listingData.condition,
-          district: listingData.district,
-          locality: listingData.locality,
-          address: listingData.address || '',
-          latitude: listingData.latitude,
-          longitude: listingData.longitude,
-          status: 'active',
-          ai_classified: listingData.ai_classified || false,
-          ai_confidence: listingData.ai_confidence || null,
-          suggested_action: listingData.suggested_action || '',
-          images: listingData.images && listingData.images.length > 0 ? listingData.images : [],
-          is_demo: false,
-        }
-      ]).then(({ error }) => {
-        if (error) console.warn('Supabase listing insert note:', error.message);
-      });
+      if (insertError) {
+        console.error('Supabase listing insert failed:', insertError);
+        throw new Error(`Failed to publish listing to Supabase: ${insertError.message}`);
+      }
+
+      // Synchronize database records immediately into memory
+      await fetchData();
+    } else {
+      // Offline fallback only when Supabase is completely unconfigured
+      const offlineListing: WasteListing = {
+        ...listingData,
+        id,
+        user_id: currentUser.id,
+        created_at: new Date().toISOString(),
+        user: currentUser,
+        is_demo: false,
+      };
+      setListings((prev) => [offlineListing, ...prev]);
     }
 
     // EcoPoints for listing creation are awarded automatically and authoritatively
@@ -596,7 +602,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const newPointRecord: EcoPointRecord = {
       id: `pt-${Date.now()}`,
-      user_id: userId,
+      user_id: currentUser.id,
       points: pointsAwarded,
       action_type: 'listing_created',
       reference_id: id,
@@ -608,9 +614,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Notification
     const newNotif: NotificationItem = {
       id: `notif-${Date.now()}`,
-      user_id: userId,
+      user_id: currentUser.id,
       title: 'Listing Published',
-      message: `"${listingData.title}" is now visible to nearby circular recyclers. +${pointsAwarded} EcoPoints earned.`,
+      message: `"${listingData.title}" is now published and discoverable across Kerala. +${pointsAwarded} EcoPoints earned.`,
       type: 'points',
       link: `/marketplace/${id}`,
       is_read: false,
@@ -621,45 +627,53 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return id;
   };
 
-  const updateListing = (id: string, updates: Partial<WasteListing>) => {
+  const updateListing = async (id: string, updates: Partial<WasteListing>): Promise<void> => {
+    if (!currentUser) throw new Error('Unauthorized');
     const target = listings.find((l) => l.id === id);
-    if (currentUser && target && target.user_id && target.user_id !== currentUser.id) {
+    if (target && target.user_id && target.user_id !== currentUser.id) {
       throw new Error('Unauthorized: Only the creator of this listing can edit it.');
     }
 
-    setListings((prev) => {
-      const updated = prev.map((l) =>
-        l.id === id ? { ...l, ...updates, updated_at: new Date().toISOString() } : l
-      );
-      try {
-        localStorage.setItem(USER_LISTINGS_KEY, JSON.stringify(updated));
-        localStorage.setItem(SHARED_LISTINGS_KEY, JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('listings')
+        .update(updates)
+        .eq('id', id)
+        .eq('user_id', currentUser.id);
 
-    if (isSupabaseConfigured && currentUser) {
-      supabase.from('listings').update(updates).eq('id', id).eq('user_id', currentUser.id).then();
+      if (error) {
+        console.error('Supabase listing update failed:', error);
+        throw new Error(error.message);
+      }
+      await fetchData();
+    } else {
+      setListings((prev) =>
+        prev.map((l) => (l.id === id ? { ...l, ...updates, updated_at: new Date().toISOString() } : l))
+      );
     }
   };
 
-  const deleteListing = (id: string) => {
+  const deleteListing = async (id: string): Promise<void> => {
+    if (!currentUser) throw new Error('Unauthorized');
     const target = listings.find((l) => l.id === id);
-    if (currentUser && target && target.user_id && target.user_id !== currentUser.id) {
+    if (target && target.user_id && target.user_id !== currentUser.id) {
       throw new Error('Unauthorized: Only the creator of this listing can delete it.');
     }
 
-    setListings((prev) => {
-      const updated = prev.filter((l) => l.id !== id);
-      try {
-        localStorage.setItem(USER_LISTINGS_KEY, JSON.stringify(updated));
-        localStorage.setItem(SHARED_LISTINGS_KEY, JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('listings')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', currentUser.id);
 
-    if (isSupabaseConfigured && currentUser) {
-      supabase.from('listings').delete().eq('id', id).eq('user_id', currentUser.id).then();
+      if (error) {
+        console.error('Supabase listing delete failed:', error);
+        throw new Error(error.message);
+      }
+      await fetchData();
+    } else {
+      setListings((prev) => prev.filter((l) => l.id !== id));
     }
   };
 

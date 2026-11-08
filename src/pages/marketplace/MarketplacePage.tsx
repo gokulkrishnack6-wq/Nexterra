@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Search, Plus, X, Sparkles, Filter, Navigation } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
@@ -10,9 +10,14 @@ import { Card } from '../../components/ui/Card';
 import { EmptyState, ListingCardSkeleton } from '../../components/ui/Skeleton';
 
 export const MarketplacePage: React.FC = () => {
-  const { listings, demoListings, allMarketplaceListings, categories, isLoading } = useData();
+  const { listings, demoListings, allMarketplaceListings, categories, isLoading, refreshData } = useData();
   const { coords, district: detectedDistrict } = useGeolocation();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // Fresh data from Supabase on mount
+  useEffect(() => {
+    refreshData();
+  }, [refreshData]);
 
   const sourceListings = allMarketplaceListings && allMarketplaceListings.length > 0 ? allMarketplaceListings : listings;
 
@@ -26,13 +31,18 @@ export const MarketplacePage: React.FC = () => {
 
   const keralaDistricts = Object.keys(KERALA_DISTRICT_COORDS);
 
-  // Geographic reference point: detected user coordinates > selected district center > default Kerala center
+  // Geographic reference point:
+  // When a specific district is selected (e.g. Kasaragod), anchor reference to that district
+  // unless user GPS is already inside that same district.
   const refCoords = useMemo(() => {
+    if (selectedDistrict && selectedDistrict !== 'All Kerala' && KERALA_DISTRICT_COORDS[selectedDistrict]) {
+      if (detectedDistrict?.toLowerCase() === selectedDistrict.toLowerCase() && coords && coords.latitude && coords.longitude) {
+        return { latitude: coords.latitude, longitude: coords.longitude };
+      }
+      return KERALA_DISTRICT_COORDS[selectedDistrict];
+    }
     if (coords && coords.latitude && coords.longitude) {
       return { latitude: coords.latitude, longitude: coords.longitude };
-    }
-    if (selectedDistrict && selectedDistrict !== 'All Kerala' && KERALA_DISTRICT_COORDS[selectedDistrict]) {
-      return KERALA_DISTRICT_COORDS[selectedDistrict];
     }
     if (detectedDistrict && KERALA_DISTRICT_COORDS[detectedDistrict]) {
       return KERALA_DISTRICT_COORDS[detectedDistrict];
@@ -51,21 +61,28 @@ export const MarketplacePage: React.FC = () => {
 
   const filteredListings = useMemo(() => {
     const list = sourceListings.filter((listing) => {
-      // 1. Category Filter (supports slug, ID, or nested category slug)
+      // 1. Category Filter (supports slug, ID, or nested category)
       if (selectedCategory !== 'all') {
-        const cat = categories.find((c) => c.slug === selectedCategory);
+        const cat = categories.find((c) => c.slug === selectedCategory || c.id === selectedCategory);
         const catId = cat?.id;
+        const catSlug = cat?.slug || selectedCategory;
         const matchesCategory =
           listing.category_id === selectedCategory ||
-          (catId && listing.category_id === catId) ||
-          listing.category?.slug === selectedCategory ||
-          (listing.category_id && listing.category_id.includes(selectedCategory));
+          listing.category_id === catId ||
+          listing.category_id === catSlug ||
+          listing.category?.slug === catSlug ||
+          listing.category?.id === catId ||
+          (typeof listing.category_id === 'string' && listing.category_id.includes(catSlug));
         if (!matchesCategory) return false;
       }
 
-      // 2. District Filter
-      if (selectedDistrict !== 'All Kerala' && listing.district !== selectedDistrict) {
-        return false;
+      // 2. District Filter (case-insensitive & trimmed)
+      if (selectedDistrict !== 'All Kerala') {
+        const listingDistrict = (listing.district || '').trim().toLowerCase();
+        const targetDistrict = selectedDistrict.trim().toLowerCase();
+        if (listingDistrict !== targetDistrict) {
+          return false;
+        }
       }
 
       // 3. Search Radius Filter (Haversine distance calculation)
@@ -92,14 +109,15 @@ export const MarketplacePage: React.FC = () => {
         return false;
       }
 
-      // 6. Search Keyword
+      // 6. Search Keyword (title, description, locality, district, material_type)
       if (searchTerm.trim()) {
         const query = searchTerm.toLowerCase();
         const matchesTitle = listing.title.toLowerCase().includes(query);
         const matchesDesc = listing.description?.toLowerCase().includes(query);
         const matchesLoc = listing.locality?.toLowerCase().includes(query);
+        const matchesDistrict = listing.district?.toLowerCase().includes(query);
         const matchesMaterial = listing.material_type?.toLowerCase().includes(query);
-        if (!matchesTitle && !matchesDesc && !matchesLoc && !matchesMaterial) return false;
+        if (!matchesTitle && !matchesDesc && !matchesLoc && !matchesDistrict && !matchesMaterial) return false;
       }
 
       return true;
@@ -267,7 +285,8 @@ export const MarketplacePage: React.FC = () => {
                 l.category_id === cat.id ||
                 l.category_id === cat.slug ||
                 l.category?.slug === cat.slug ||
-                (l.category_id && l.category_id.includes(cat.slug))
+                l.category?.id === cat.id ||
+                (typeof l.category_id === 'string' && l.category_id.includes(cat.slug))
             ).length;
             const isSelected = selectedCategory === cat.slug;
             return (

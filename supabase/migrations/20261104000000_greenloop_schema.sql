@@ -28,10 +28,10 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   role user_role NOT NULL DEFAULT 'individual',
   organization_name TEXT,
   address TEXT,
-  district TEXT NOT NULL DEFAULT 'Malappuram',
-  state TEXT NOT NULL DEFAULT 'Kerala',
-  latitude NUMERIC(10, 7) DEFAULT 11.0510,
-  longitude NUMERIC(10, 7) DEFAULT 76.0711,
+  district TEXT,
+  state TEXT DEFAULT 'Kerala',
+  latitude NUMERIC(10, 7),
+  longitude NUMERIC(10, 7),
   avatar_url TEXT,
   bio TEXT,
   eco_points_balance INTEGER NOT NULL DEFAULT 100 CHECK (eco_points_balance >= 0),
@@ -48,7 +48,7 @@ CREATE INDEX IF NOT EXISTS idx_profiles_district ON public.profiles(district);
 -- 2. WASTE CATEGORIES
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.waste_categories (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL UNIQUE,
   slug TEXT NOT NULL UNIQUE,
   description TEXT,
@@ -79,10 +79,10 @@ CREATE TYPE listing_pricing AS ENUM (
 );
 
 CREATE TABLE IF NOT EXISTS public.listings (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   category_id UUID NOT NULL REFERENCES public.waste_categories(id) ON DELETE RESTRICT,
-  title TEXT NOT NULL CHECK (char_length(title) >= 5),
+  title TEXT NOT NULL CHECK (char_length(title) >= 3),
   description TEXT NOT NULL,
   material_type TEXT NOT NULL,
   quantity NUMERIC(10, 2) NOT NULL CHECK (quantity > 0),
@@ -90,15 +90,17 @@ CREATE TABLE IF NOT EXISTS public.listings (
   listing_type listing_pricing NOT NULL DEFAULT 'free',
   price NUMERIC(10, 2) DEFAULT 0 CHECK (price >= 0),
   condition TEXT NOT NULL DEFAULT 'clean/dry',
-  district TEXT NOT NULL DEFAULT 'Malappuram',
+  district TEXT NOT NULL,
   locality TEXT NOT NULL,
   address TEXT,
-  latitude NUMERIC(10, 7) NOT NULL DEFAULT 11.0510,
-  longitude NUMERIC(10, 7) NOT NULL DEFAULT 76.0711,
+  latitude NUMERIC(10, 7),
+  longitude NUMERIC(10, 7),
   status listing_status NOT NULL DEFAULT 'active',
   ai_classified BOOLEAN NOT NULL DEFAULT false,
   ai_confidence NUMERIC(5, 2) DEFAULT NULL,
   suggested_action TEXT,
+  images TEXT[] DEFAULT '{}',
+  is_demo BOOLEAN NOT NULL DEFAULT false,
   expiry_date TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '30 days'),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -114,7 +116,7 @@ CREATE INDEX IF NOT EXISTS idx_listings_created_at ON public.listings(created_at
 -- 4. LISTING IMAGES
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.listing_images (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   listing_id UUID NOT NULL REFERENCES public.listings(id) ON DELETE CASCADE,
   image_url TEXT NOT NULL,
   is_primary BOOLEAN NOT NULL DEFAULT false,
@@ -135,7 +137,7 @@ CREATE TYPE exchange_status AS ENUM (
 );
 
 CREATE TABLE IF NOT EXISTS public.exchange_requests (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   listing_id UUID NOT NULL REFERENCES public.listings(id) ON DELETE CASCADE,
   requester_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   proposed_action TEXT NOT NULL, -- e.g. "Composting at farm", "Paper recycling"
@@ -156,7 +158,7 @@ CREATE INDEX IF NOT EXISTS idx_exchange_requests_status ON public.exchange_reque
 -- 6. TRANSACTIONS (Verified completed exchanges)
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.transactions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   listing_id UUID NOT NULL REFERENCES public.listings(id) ON DELETE RESTRICT,
   exchange_request_id UUID UNIQUE NOT NULL REFERENCES public.exchange_requests(id) ON DELETE RESTRICT,
   generator_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE RESTRICT,
@@ -180,7 +182,7 @@ CREATE INDEX IF NOT EXISTS idx_transactions_completed ON public.transactions(com
 -- 7. FAVOURITES
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.favourites (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   listing_id UUID NOT NULL REFERENCES public.listings(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -197,11 +199,12 @@ CREATE TYPE ecopoints_action AS ENUM (
   'challenge_completed',
   'verified_donation',
   'daily_streak',
-  'referral'
+  'referral',
+  'reward_redeemed'
 );
 
 CREATE TABLE IF NOT EXISTS public.eco_points (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   points INTEGER NOT NULL CHECK (points <> 0),
   action_type ecopoints_action NOT NULL,
@@ -216,7 +219,7 @@ CREATE INDEX IF NOT EXISTS idx_eco_points_user ON public.eco_points(user_id);
 -- 9. SUSTAINABILITY FACTORS
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.sustainability_factors (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   category_id UUID NOT NULL REFERENCES public.waste_categories(id) ON DELETE CASCADE,
   co2e_per_kg NUMERIC(6, 3) NOT NULL,
   methane_avoidance_per_kg NUMERIC(6, 3) NOT NULL DEFAULT 0.05,
@@ -231,7 +234,7 @@ CREATE TABLE IF NOT EXISTS public.sustainability_factors (
 CREATE TYPE challenge_status AS ENUM ('active', 'upcoming', 'completed');
 
 CREATE TABLE IF NOT EXISTS public.challenges (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title TEXT NOT NULL,
   description TEXT NOT NULL,
   target_kg NUMERIC(10, 2) NOT NULL,
@@ -251,7 +254,7 @@ CREATE TABLE IF NOT EXISTS public.challenges (
 -- 11. CHALLENGE PARTICIPANTS
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.challenge_participants (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   challenge_id UUID NOT NULL REFERENCES public.challenges(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   progress_kg NUMERIC(10, 2) NOT NULL DEFAULT 0,
@@ -273,7 +276,7 @@ CREATE TYPE operator_type AS ENUM (
 );
 
 CREATE TABLE IF NOT EXISTS public.recycling_centres (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   operator_type operator_type NOT NULL DEFAULT 'haritha_karma_sena',
   district TEXT NOT NULL,
@@ -296,7 +299,7 @@ CREATE INDEX IF NOT EXISTS idx_recycling_centres_district ON public.recycling_ce
 -- 13. NOTIFICATIONS
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.notifications (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   message TEXT NOT NULL,
@@ -312,7 +315,7 @@ CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON public.notifications
 -- 14. AI SCAN HISTORY
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.ai_scan_history (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   image_url TEXT,
   detected_material TEXT NOT NULL,
@@ -332,7 +335,7 @@ CREATE INDEX IF NOT EXISTS idx_ai_scan_history_user ON public.ai_scan_history(us
 CREATE TYPE report_status AS ENUM ('pending', 'reviewed', 'dismissed', 'actioned');
 
 CREATE TABLE IF NOT EXISTS public.reports (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   reporter_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   reported_item_type TEXT NOT NULL CHECK (reported_item_type IN ('listing', 'user', 'centre')),
   reported_item_id UUID NOT NULL,
@@ -347,7 +350,7 @@ CREATE TABLE IF NOT EXISTS public.reports (
 -- 16. AUDIT LOGS
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.audit_logs (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   action TEXT NOT NULL,
   entity_type TEXT NOT NULL,
