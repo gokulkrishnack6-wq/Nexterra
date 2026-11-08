@@ -247,6 +247,21 @@ export interface AIScanResult {
   ambiguity_reason?: string;
 }
 
+export interface ScanPrefillData {
+  title: string;
+  material_type: string;
+  category_slug: string;
+  category_name?: string;
+  subcategory?: string;
+  description: string;
+  suggested_action?: string;
+  recycling_method?: string;
+  ai_classified: boolean;
+  ai_confidence?: number;
+  recyclability_score?: number;
+  image_url?: string;
+}
+
 export interface SmartMatchResult {
   listing: WasteListing;
   match_score: number; // 0 - 100

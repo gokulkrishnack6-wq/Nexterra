@@ -11,7 +11,8 @@ import {
   NotificationItem, 
   SustainabilityMetrics,
   PublicWasteBin,
-  EnvironmentalReport
+  EnvironmentalReport,
+  ScanPrefillData
 } from '../types';
 import { INITIAL_CATEGORIES } from '../lib/mockData';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
@@ -37,6 +38,10 @@ interface DataContextType {
   isLoading: boolean;
   dataError: string | null;
   refreshData: () => Promise<void>;
+  
+  // Scanner to Marketplace Data Handoff
+  pendingScanPrefill: ScanPrefillData | null;
+  setPendingScanPrefill: (data: ScanPrefillData | null) => void;
   
   // Actions
   addListing: (listing: Omit<WasteListing, 'id' | 'created_at' | 'user' | 'category'>) => Promise<string>;
@@ -144,6 +149,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { coords, locality, district, city } = useLocationContext();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [dataError, setDataError] = useState<string | null>(null);
+
+  // Scanner to Marketplace Shared Prefill State
+  const [pendingScanPrefill, setPendingScanPrefill] = useState<ScanPrefillData | null>(null);
 
   // Taxonomy standard categories for Kerala circular materials
   const [categories, setCategories] = useState<WasteCategory[]>(INITIAL_CATEGORIES);
@@ -1095,6 +1103,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isLoading,
       dataError,
       refreshData: fetchData,
+      pendingScanPrefill,
+      setPendingScanPrefill,
       addListing,
       updateListing,
       deleteListing,
@@ -1128,6 +1138,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isLoading,
       dataError,
       fetchData,
+      pendingScanPrefill,
       addListing,
       updateListing,
       deleteListing,

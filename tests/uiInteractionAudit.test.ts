@@ -111,7 +111,7 @@ describe('Global UI Interaction & Outside-Click Architecture Audit', () => {
       const addSpy = vi.spyOn(document, 'addEventListener');
       const removeSpy = vi.spyOn(document, 'removeEventListener');
 
-      const handler = () => {};
+      const handler = () => { };
       document.addEventListener('pointerdown', handler);
       expect(addSpy).toHaveBeenCalledWith('pointerdown', handler);
 

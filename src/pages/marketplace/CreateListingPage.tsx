@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   ArrowLeft,
   Plus,
@@ -17,7 +17,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useGeolocation, KERALA_DISTRICT_COORDS, findNearestDistrict } from '../../hooks/useGeolocation';
 import { LocationAutocomplete } from '../../components/ui/LocationAutocomplete';
 import { LocationSuggestion, reverseGeocodeCoordinates } from '../../services/geocoding';
-import { ListingPricing } from '../../types';
+import { ListingPricing, ScanPrefillData } from '../../types';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
@@ -25,7 +25,8 @@ import { Input, Textarea } from '../../components/ui/Input';
 
 export const CreateListingPage: React.FC = () => {
   const navigate = useNavigate();
-  const { categories, addListing } = useData();
+  const location = useLocation();
+  const { categories, addListing, pendingScanPrefill, setPendingScanPrefill } = useData();
   const { currentUser } = useAuth();
   const { district: geoDistrict, locality: geoLocality, coords } = useGeolocation();
 
@@ -64,30 +65,59 @@ export const CreateListingPage: React.FC = () => {
   const [suggestedAction, setSuggestedAction] = useState<string | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [prefillApplied, setPrefillApplied] = useState(false);
 
-  // Check for pre-filled scan from Material Scanner
+  // Synchronize asynchronous GPS / district detection when available on mobile/desktop
   useEffect(() => {
-    const prefill = sessionStorage.getItem('greenloop_prefill_scan');
-    if (prefill) {
+    if (locationSource === null && coords && latitude === null && longitude === null) {
+      setLatitude(coords.latitude);
+      setLongitude(coords.longitude);
+      if (geoDistrict && !district) setDistrict(geoDistrict);
+      if (geoLocality && !locality) setLocality(geoLocality);
+      setLocationSource('current');
+    }
+  }, [coords, geoDistrict, geoLocality, locationSource, latitude, longitude, district, locality]);
+
+  // Robust multi-tier scan data ingestion:
+  // 1. React Router route state (location.state.prefillScan)
+  // 2. Shared React in-memory context state (pendingScanPrefill)
+  // 3. Browser sessionStorage fallback (greenloop_prefill_scan)
+  useEffect(() => {
+    let scanData: ScanPrefillData | null = null;
+
+    if (location.state && (location.state as any).prefillScan) {
+      scanData = (location.state as any).prefillScan;
+    } else if (pendingScanPrefill) {
+      scanData = pendingScanPrefill;
+    } else {
       try {
-        const data = JSON.parse(prefill);
-        setTitle(data.title || '');
-        setDescription(data.description || '');
-        setMaterialType(data.title || '');
-        setAiClassified(true);
-        setAiConfidence(data.ai_confidence);
-        setSuggestedAction(data.suggested_action);
-        if (data.image_url) setImageUrl(data.image_url);
-
-        const resolved = resolveCategoryId(data.category_slug, categories);
-        if (resolved) setCategoryId(resolved);
-
-        sessionStorage.removeItem('greenloop_prefill_scan');
+        const stored = sessionStorage.getItem('greenloop_prefill_scan');
+        if (stored) scanData = JSON.parse(stored);
       } catch (e) {
-        console.error(e);
+        console.warn('Could not parse sessionStorage scan prefill:', e);
       }
     }
-  }, [categories]);
+
+    if (scanData && !prefillApplied) {
+      setTitle(scanData.title || '');
+      setDescription(scanData.description || '');
+      setMaterialType(scanData.material_type || scanData.title || '');
+      setAiClassified(true);
+      if (scanData.ai_confidence !== undefined) setAiConfidence(scanData.ai_confidence);
+      if (scanData.suggested_action) setSuggestedAction(scanData.suggested_action);
+      if (scanData.image_url) setImageUrl(scanData.image_url);
+
+      const resolved = resolveCategoryId(scanData.category_slug, categories);
+      if (resolved) setCategoryId(resolved);
+
+      // Suggest circular pricing based on suggested recovery action
+      if (scanData.suggested_action === 'upcycling' || scanData.suggested_action === 'composting') {
+        setListingType('free');
+      }
+
+      setPrefillApplied(true);
+    }
+  }, [location.state, pendingScanPrefill, categories, prefillApplied]);
 
   // Option A: Use My Current Location (Browser GPS)
   const handleUseCurrentLocation = () => {
@@ -233,6 +263,12 @@ export const CreateListingPage: React.FC = () => {
         ],
       });
 
+      // Clear prefill caches ONLY after confirmed successful insert in Supabase
+      setPendingScanPrefill(null);
+      try {
+        sessionStorage.removeItem('greenloop_prefill_scan');
+      } catch (_) {}
+
       navigate(`/marketplace/${newId}`);
     } catch (err: any) {
       setError(err?.message || 'Failed to create listing. Please try again.');
@@ -300,14 +336,21 @@ export const CreateListingPage: React.FC = () => {
             </div>
           )}
 
-          {/* Material Name & Category */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Material Name, Type & Category */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Input
               label="Material Title *"
               required
               placeholder="e.g. Dry Coconut Husks, Corrugated Cartons, Clean Glass Bottles"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+            />
+
+            <Input
+              label="Material / Composition"
+              placeholder="e.g. PET Plastic #1, Coconut Coir, HDPE"
+              value={materialType}
+              onChange={(e) => setMaterialType(e.target.value)}
             />
 
             <div>
@@ -598,15 +641,45 @@ export const CreateListingPage: React.FC = () => {
             )}
           </div>
 
-          {/* Optional Photo URL */}
+          {/* Optional Photo or Scanned Material Photograph */}
           <div>
-            <Input
-              label="Photo Image URL (Optional)"
-              placeholder="https://... (or leave empty for default material photo)"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              helperText="Paste an image link or use the Waste Scanner to snap a photo directly."
-            />
+            {imageUrl && imageUrl.startsWith('data:image/') ? (
+              <div className="space-y-2">
+                <label className="block font-label-md text-label-md text-on-surface font-semibold">
+                  Scanned Material Photograph
+                </label>
+                <div className="relative inline-flex items-center gap-3.5 p-3 rounded-xl border border-outline-variant bg-surface-container-lowest shadow-xs">
+                  <img
+                    src={imageUrl}
+                    alt="AI Scanned Material"
+                    className="w-20 h-20 rounded-lg object-cover border border-outline-variant/60 shrink-0"
+                  />
+                  <div className="flex flex-col gap-1 min-w-0">
+                    <span className="font-semibold text-xs text-primary flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-secondary shrink-0" /> Captured via Waste Scanner
+                    </span>
+                    <span className="text-[11px] text-on-surface-variant leading-relaxed">
+                      Optimized photograph attached for circular verification and discovery.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setImageUrl('')}
+                      className="text-xs font-semibold text-error hover:underline self-start flex items-center gap-1 mt-0.5"
+                    >
+                      <X className="w-3.5 h-3.5" /> Remove photo
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <Input
+                label="Photo Image URL (Optional)"
+                placeholder="https://... (or leave empty for default material photo)"
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                helperText="Paste an image link or use the Waste Scanner to snap a photo directly."
+              />
+            )}
           </div>
 
           <div className="pt-4 border-t border-outline-variant/40 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3 w-full">

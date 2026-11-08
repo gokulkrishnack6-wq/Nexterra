@@ -31,12 +31,13 @@ import {
   ScanLine
 } from 'lucide-react';
 import { analyzeWasteImage } from '../../lib/gemini';
-import { AIScanResult } from '../../types';
+import { AIScanResult, ScanPrefillData } from '../../types';
 import { useData } from '../../contexts/DataContext';
+import { compressImage } from '../../utils/imageCompressor';
 
 export const WasteScannerPage: React.FC = () => {
   const navigate = useNavigate();
-  const { categories } = useData();
+  const { categories, setPendingScanPrefill } = useData();
 
   const [activeTab, setActiveTab] = useState<'live' | 'upload' | 'batch'>('upload');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -149,7 +150,7 @@ export const WasteScannerPage: React.FC = () => {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -157,16 +158,26 @@ export const WasteScannerPage: React.FC = () => {
     setScanResult(null);
     stopCameraStream();
 
-    const mime = file.type || 'image/jpeg';
-    setImageMime(mime);
+    try {
+      // Downsample and compress image client-side to prevent mobile memory crashes
+      // and ensure high-speed upload to Gemini vision function
+      const compressed = await compressImage(file, 1200, 1200, 0.82);
+      setImagePreview(compressed.dataUrl);
+      setImageMime(compressed.mimeType);
+      triggerAiScan(compressed.dataUrl, compressed.mimeType);
+    } catch (err: any) {
+      console.warn('Image compression fallback:', err);
+      const mime = file.type || 'image/jpeg';
+      setImageMime(mime);
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
-      setImagePreview(base64);
-      triggerAiScan(base64, mime);
-    };
-    reader.readAsDataURL(file);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        setImagePreview(base64);
+        triggerAiScan(base64, mime);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const triggerAiScan = async (base64Img: string, mime: string) => {
@@ -192,6 +203,7 @@ export const WasteScannerPage: React.FC = () => {
     setErrorMsg(null);
     stopCameraStream();
     if (fileInputRef.current) fileInputRef.current.value = '';
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
   };
 
   const handleProceedToCreateListing = () => {
@@ -199,18 +211,59 @@ export const WasteScannerPage: React.FC = () => {
 
     const finalCategorySlug = selectedCategory || scanResult.category_slug;
     const finalMaterialName = detectedMaterialName || scanResult.detected_material;
+    const finalMaterialType = scanResult.subcategory || detectedMaterialName || scanResult.detected_material;
 
-    sessionStorage.setItem('greenloop_prefill_scan', JSON.stringify({
+    // Structured description formatting
+    const descriptionParts: string[] = [];
+    if (scanResult.reasoning) {
+      descriptionParts.push(scanResult.reasoning);
+    }
+    if (scanResult.visible_characteristics && scanResult.visible_characteristics.length > 0) {
+      descriptionParts.push(`Identified Characteristics: ${scanResult.visible_characteristics.join(', ')}.`);
+    }
+    if (scanResult.recycling_methods && scanResult.recycling_methods.length > 0) {
+      descriptionParts.push(`Recommended Circular Recovery: ${scanResult.recycling_methods[0]}.`);
+    }
+    if (scanResult.estimated_weight_range) {
+      descriptionParts.push(`Estimated Quantity / Weight: ${scanResult.estimated_weight_range}.`);
+    }
+    if (scanResult.suggested_action) {
+      descriptionParts.push(`Suggested Action: ${scanResult.suggested_action}.`);
+    }
+
+    const formattedDescription = descriptionParts.join('\n\n');
+
+    const prefillPayload: ScanPrefillData = {
       title: finalMaterialName,
+      material_type: finalMaterialType,
       category_slug: finalCategorySlug,
-      description: `${scanResult.reasoning}\n\nIdentified Characteristics: ${(scanResult.visible_characteristics || []).join(', ')}.\nEstimated Weight: ${scanResult.estimated_weight_range}.\nRecommended Action: ${scanResult.suggested_action}.`,
+      category_name: categories.find((c) => c.slug === finalCategorySlug)?.name || scanResult.category_name,
+      subcategory: scanResult.subcategory,
+      description: formattedDescription,
       suggested_action: scanResult.suggested_action,
+      recycling_method: scanResult.recycling_methods?.[0],
       ai_classified: true,
       ai_confidence: scanResult.confidence,
-      image_url: imagePreview,
-    }));
+      recyclability_score: scanResult.recyclability_score,
+      image_url: imagePreview || undefined,
+    };
 
-    navigate('/marketplace/new');
+    // 1. Shared state in DataContext (in-memory React tree, 100% reliable across SPA navigation)
+    setPendingScanPrefill(prefillPayload);
+
+    // 2. Safe sessionStorage with quota-safe try-catch
+    try {
+      sessionStorage.setItem('greenloop_prefill_scan', JSON.stringify(prefillPayload));
+    } catch (storageErr) {
+      console.warn('SessionStorage quota exceeded or disabled, trying text-only payload:', storageErr);
+      try {
+        const textOnlyPayload = { ...prefillPayload, image_url: undefined };
+        sessionStorage.setItem('greenloop_prefill_scan', JSON.stringify(textOnlyPayload));
+      } catch (_) {}
+    }
+
+    // 3. React Router navigation state
+    navigate('/marketplace/new', { state: { prefillScan: prefillPayload } });
   };
 
   return (
@@ -634,8 +687,9 @@ export const WasteScannerPage: React.FC = () => {
                 {/* Action Conversion Trigger */}
                 <div className="pt-2 border-t border-outline-variant/40">
                   <button
+                    type="button"
                     onClick={handleProceedToCreateListing}
-                    className="w-full py-2.5 px-4 rounded-lg bg-primary-container text-on-primary font-label-md text-xs sm:text-sm font-semibold hover:bg-primary transition-all shadow-sm flex items-center justify-center gap-2"
+                    className="w-full py-2.5 px-4 rounded-lg bg-primary-container text-on-primary font-label-md text-xs sm:text-sm font-semibold hover:bg-primary active:scale-[0.99] transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <span>Convert to Marketplace Listing</span>
                     <ArrowRight className="w-4 h-4" />
