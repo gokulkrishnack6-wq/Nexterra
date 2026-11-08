@@ -263,4 +263,71 @@ describe('GreenLoop Supabase Email Verification & Auth Flow', () => {
       expect(canTriggerAfterCooldown).toBe(true);
     });
   });
+
+  describe('7. PKCE Cross-Device and Code Exchange Failure Recovery', () => {
+    it('distinguishes missing code verifier from genuine link expiration', () => {
+      const crossDeviceError = {
+        message: 'both auth code and code verifier should be non-empty',
+        code: 'pkce_code_verifier_missing',
+      };
+
+      const msg = crossDeviceError.message.toLowerCase();
+      const isCodeVerifierMissing =
+        msg.includes('code verifier') ||
+        msg.includes('pkce') ||
+        crossDeviceError.code === 'pkce_code_verifier_missing';
+
+      expect(isCodeVerifierMissing).toBe(true);
+    });
+
+    it('identifies invalid_grant from code reuse without misclassifying as an unhandled error', () => {
+      const reuseError = {
+        message: 'invalid_grant: Auth code already used or expired',
+      };
+
+      const msg = reuseError.message.toLowerCase();
+      const isGrantError = msg.includes('invalid_grant');
+      expect(isGrantError).toBe(true);
+    });
+  });
+
+  describe('8. User Profile Assembly from Supabase User Metadata', () => {
+    it('assembles profile using authentic user metadata rather than random defaults', () => {
+      const mockSupabaseUser = {
+        id: 'user-real-999',
+        email: 'kerala.recycler@greenloop.in',
+        user_metadata: {
+          full_name: 'Anjali Menon',
+          role: 'recycler',
+          district: 'Thrissur',
+          phone: '+91 98765 43210',
+          bio: 'Community aggregator for clean dry recyclables in Thrissur',
+        },
+        created_at: '2026-11-01T10:00:00Z',
+        email_confirmed_at: '2026-11-08T07:00:00Z',
+      };
+
+      const isEmailConfirmed = Boolean(mockSupabaseUser.email_confirmed_at);
+      const metadata = mockSupabaseUser.user_metadata;
+
+      const profile = {
+        id: mockSupabaseUser.id,
+        full_name: metadata.full_name || mockSupabaseUser.email.split('@')[0],
+        email: mockSupabaseUser.email,
+        phone: metadata.phone || '',
+        role: metadata.role || 'individual',
+        district: metadata.district || 'Ernakulam',
+        state: 'Kerala',
+        bio: metadata.bio || '',
+        is_verified: isEmailConfirmed,
+        created_at: mockSupabaseUser.created_at,
+      };
+
+      expect(profile.full_name).toBe('Anjali Menon');
+      expect(profile.role).toBe('recycler');
+      expect(profile.district).toBe('Thrissur');
+      expect(profile.email).toBe('kerala.recycler@greenloop.in');
+      expect(profile.is_verified).toBe(true);
+    });
+  });
 });

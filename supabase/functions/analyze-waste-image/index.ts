@@ -163,13 +163,23 @@ You are an expert circular economy material inspector and waste classification e
 Thoroughly examine the uploaded image pixels and perform real visual inspection of the photographed object.
 
 CRITICAL INSPECTION & CLASSIFICATION RULES:
-1. DISTINGUISH DISCARDED MATERIAL FROM NEW COMMERCIAL PRODUCTS:
+1. CONTAINER & MATERIAL DISCRIMINATION (PLASTIC vs METAL vs GLASS):
+   - Transparent or semi-translucent drinking water bottles, soft drink bottles, mineral water bottles, and PET containers (e.g. Bisleri, Kinley, Aquafina, soda bottles with ribbed or smooth transparent plastic walls and threaded plastic caps) MUST ALWAYS be classified as:
+     * main_category: "Plastic"
+     * category_slug: "plastics"
+     * subcategory: "PET #1"
+   - NEVER classify clear plastic drinking water bottles as "Metal" or "Glass".
+   - Optical specular light reflections, glossy highlights, or camera flash glare on curved transparent plastic DO NOT represent metallic sheen.
+   - "metals" applies STRICTLY to genuine opaque metallic objects such as aluminium beverage cans, tin cans, metal scrap, foil trays, or wire.
+   - "glass" applies STRICTLY to rigid vitreous containers like glass bottles or jars with thick vitreous bottoms.
+
+2. DISTINGUISH DISCARDED MATERIAL FROM NEW COMMERCIAL PRODUCTS:
    - Carefully inspect whether the item is actual discarded waste/scrap/byproduct (used, empty, worn, torn, crushed, peeled, trimmed, residue) OR a brand-new pristine product, store retail display, promotional advertisement, or an active intact device in current use.
    - Set "is_discarded_waste": true ONLY if it genuinely shows signs of being discarded, scrap, or surplus material.
    - If it is a new product or advertisement, set "is_discarded_waste": false, set "item_type": "new_product_or_ad", and honestly explain in "product_vs_waste_notes".
    - Do NOT assume an item is waste merely because it is made of recyclable material.
 
-2. CLASSIFY INTO ONE OF THESE 12 MAIN CATEGORIES:
+3. CLASSIFY INTO ONE OF THESE 12 MAIN CATEGORIES:
    1. Plastic
    2. Paper and cardboard
    3. Glass
@@ -183,7 +193,7 @@ CRITICAL INSPECTION & CLASSIFICATION RULES:
    11. Mixed waste
    12. Other
 
-3. MAP TO GREENLOOP MARKETPLACE CATEGORY SLUG:
+4. MAP TO GREENLOOP MARKETPLACE CATEGORY SLUG:
    - "plastics" (for Plastic)
    - "paper" (for Paper and cardboard)
    - "glass" (for Glass)

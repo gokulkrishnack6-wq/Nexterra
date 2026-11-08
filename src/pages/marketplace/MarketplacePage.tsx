@@ -19,11 +19,26 @@ export const MarketplacePage: React.FC = () => {
   const selectedCategory = searchParams.get('category') || 'all';
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState('All Kerala');
+  const [selectedRadius, setSelectedRadius] = useState<string>('all');
   const [selectedPricing, setSelectedPricing] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'nearest' | 'newest' | 'quantity'>('nearest');
   const [onlyAiVerified, setOnlyAiVerified] = useState(false);
 
   const keralaDistricts = Object.keys(KERALA_DISTRICT_COORDS);
+
+  // Geographic reference point: detected user coordinates > selected district center > default Kerala center
+  const refCoords = useMemo(() => {
+    if (coords && coords.latitude && coords.longitude) {
+      return { latitude: coords.latitude, longitude: coords.longitude };
+    }
+    if (selectedDistrict && selectedDistrict !== 'All Kerala' && KERALA_DISTRICT_COORDS[selectedDistrict]) {
+      return KERALA_DISTRICT_COORDS[selectedDistrict];
+    }
+    if (detectedDistrict && KERALA_DISTRICT_COORDS[detectedDistrict]) {
+      return KERALA_DISTRICT_COORDS[detectedDistrict];
+    }
+    return KERALA_DISTRICT_COORDS['Ernakulam'];
+  }, [coords, selectedDistrict, detectedDistrict]);
 
   const handleCategoryChange = (slug: string) => {
     if (slug === 'all') {
@@ -36,10 +51,16 @@ export const MarketplacePage: React.FC = () => {
 
   const filteredListings = useMemo(() => {
     const list = sourceListings.filter((listing) => {
-      // 1. Category Filter
+      // 1. Category Filter (supports slug, ID, or nested category slug)
       if (selectedCategory !== 'all') {
         const cat = categories.find((c) => c.slug === selectedCategory);
-        if (cat && listing.category_id !== cat.id) return false;
+        const catId = cat?.id;
+        const matchesCategory =
+          listing.category_id === selectedCategory ||
+          (catId && listing.category_id === catId) ||
+          listing.category?.slug === selectedCategory ||
+          (listing.category_id && listing.category_id.includes(selectedCategory));
+        if (!matchesCategory) return false;
       }
 
       // 2. District Filter
@@ -47,17 +68,31 @@ export const MarketplacePage: React.FC = () => {
         return false;
       }
 
-      // 3. Pricing Filter
+      // 3. Search Radius Filter (Haversine distance calculation)
+      if (selectedRadius !== 'all' && refCoords) {
+        const maxRadius = parseFloat(selectedRadius);
+        if (!isNaN(maxRadius) && listing.latitude && listing.longitude) {
+          const dist = calculateDistanceKm(
+            refCoords.latitude,
+            refCoords.longitude,
+            listing.latitude,
+            listing.longitude
+          );
+          if (dist > maxRadius) return false;
+        }
+      }
+
+      // 4. Pricing Filter
       if (selectedPricing !== 'all' && listing.listing_type !== selectedPricing) {
         return false;
       }
 
-      // 4. Material Verified Filter
+      // 5. Material Verified Filter
       if (onlyAiVerified && !listing.ai_classified) {
         return false;
       }
 
-      // 5. Search Keyword
+      // 6. Search Keyword
       if (searchTerm.trim()) {
         const query = searchTerm.toLowerCase();
         const matchesTitle = listing.title.toLowerCase().includes(query);
@@ -69,8 +104,6 @@ export const MarketplacePage: React.FC = () => {
 
       return true;
     });
-
-    const refCoords = coords || (selectedDistrict && selectedDistrict !== 'All Kerala' && KERALA_DISTRICT_COORDS[selectedDistrict]) || null;
 
     // Sort order
     return list.sort((a, b) => {
@@ -85,7 +118,7 @@ export const MarketplacePage: React.FC = () => {
       // default: newest
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
-  }, [sourceListings, categories, selectedCategory, selectedDistrict, selectedPricing, onlyAiVerified, searchTerm, sortBy, coords]);
+  }, [sourceListings, categories, selectedCategory, selectedDistrict, selectedRadius, selectedPricing, onlyAiVerified, searchTerm, sortBy, refCoords]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 space-y-6 text-left">
@@ -135,13 +168,13 @@ export const MarketplacePage: React.FC = () => {
       <Card variant="elevated" className="space-y-3 p-4">
         <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 text-xs">
           {/* Keyword Search */}
-          <div className="sm:col-span-4 relative">
+          <div className="sm:col-span-3 relative">
             <Search className="w-4 h-4 absolute left-3 top-2.5 text-outline" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search materials (e.g. coconut husk, cartons, glass)..."
+              placeholder="Search materials (e.g. bottles, cartons)..."
               className="w-full pl-9 pr-8 py-2 bg-surface-container-lowest border border-outline-variant hover:border-outline focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg text-body-sm text-on-surface focus:outline-none transition-all placeholder:text-outline"
             />
             {searchTerm && (
@@ -170,6 +203,23 @@ export const MarketplacePage: React.FC = () => {
             </select>
           </div>
 
+          {/* Nearby Search Radius (Phase 3 Location Filtering) */}
+          <div className="sm:col-span-2">
+            <select
+              value={selectedRadius}
+              onChange={(e) => setSelectedRadius(e.target.value)}
+              className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant hover:border-outline focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg text-body-sm text-on-surface focus:outline-none transition-all"
+              title="Search radius from your detected location or selected district"
+            >
+              <option value="all">All Distances</option>
+              <option value="5">Within 5 km</option>
+              <option value="15">Within 15 km</option>
+              <option value="30">Within 30 km</option>
+              <option value="50">Within 50 km</option>
+              <option value="100">Within 100 km</option>
+            </select>
+          </div>
+
           {/* Pricing Select */}
           <div className="sm:col-span-2">
             <select
@@ -185,15 +235,15 @@ export const MarketplacePage: React.FC = () => {
           </div>
 
           {/* Sort By */}
-          <div className="sm:col-span-3">
+          <div className="sm:col-span-2">
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
               className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant hover:border-outline focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg text-body-sm text-on-surface focus:outline-none transition-all"
             >
-              <option value="nearest">Distance (Nearest to Me)</option>
+              <option value="nearest">Distance (Nearest)</option>
               <option value="newest">Newest First</option>
-              <option value="quantity">Quantity (High to Low)</option>
+              <option value="quantity">Quantity (High-Low)</option>
             </select>
           </div>
         </div>
@@ -212,7 +262,13 @@ export const MarketplacePage: React.FC = () => {
           </button>
 
           {categories.map((cat) => {
-            const count = sourceListings.filter((l) => l.category_id === cat.id).length;
+            const count = sourceListings.filter(
+              (l) =>
+                l.category_id === cat.id ||
+                l.category_id === cat.slug ||
+                l.category?.slug === cat.slug ||
+                (l.category_id && l.category_id.includes(cat.slug))
+            ).length;
             const isSelected = selectedCategory === cat.slug;
             return (
               <button

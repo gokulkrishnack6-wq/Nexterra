@@ -54,10 +54,10 @@ export interface UserProfile {
   role: UserRole;
   organization_name?: string;
   address?: string;
-  district: string;
+  district?: string;
   state: string;
-  latitude: number;
-  longitude: number;
+  latitude?: number;
+  longitude?: number;
   avatar_url?: string;
   bio?: string;
   eco_points_balance: number;

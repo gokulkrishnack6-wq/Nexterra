@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { ImpactCharts } from '../../components/charts/ImpactCharts';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
@@ -287,6 +288,17 @@ export const ImpactDashboardPage: React.FC = () => {
     const newBalance = userBalance - reward.points_cost;
 
     try {
+      if (isSupabaseConfigured && supabase) {
+        const { error: rpcError } = await supabase.rpc('record_ecopoints_transaction', {
+          p_points: -reward.points_cost,
+          p_action_type: 'reward_redeemed',
+          p_description: `Claimed reward: ${reward.title}`,
+        });
+        if (rpcError) {
+          console.warn('EcoPoints redemption RPC note:', rpcError.message);
+        }
+      }
+
       await updateProfile({ eco_points_balance: newBalance });
       setClaimedVoucherCode(voucherCode);
       setClaimSuccessMsg(`You have claimed "${reward.title}" for ${reward.points_cost} EcoPoints!`);

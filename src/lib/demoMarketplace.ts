@@ -121,6 +121,7 @@ export const VERIFIED_REAL_LOCALITIES: GeographicLocality[] = [
   { locality: 'Vidyanagar', district: 'Kasaragod', latitude: 12.4996, longitude: 74.9869, region: 'Kerala' },
   { locality: 'Kanhangad', district: 'Kasaragod', latitude: 12.3089, longitude: 75.0906, region: 'Kerala' },
   { locality: 'Nileshwaram', district: 'Kasaragod', latitude: 12.2536, longitude: 75.1311, region: 'Kerala' },
+  { locality: 'Cheruvathur', district: 'Kasaragod', latitude: 12.2167, longitude: 75.1667, region: 'Kerala' },
   { locality: 'Uppala', district: 'Kasaragod', latitude: 12.6833, longitude: 74.9000, region: 'Kerala' },
 
   // --- IDUKKI DISTRICT ---

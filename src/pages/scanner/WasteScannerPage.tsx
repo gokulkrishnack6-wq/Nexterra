@@ -511,15 +511,63 @@ export const WasteScannerPage: React.FC = () => {
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex flex-col">
                     <span className="font-heading font-bold text-lg text-on-surface">
-                      {scanResult.detected_material}
+                      {detectedMaterialName || scanResult.detected_material}
                     </span>
                     <span className="font-label-sm text-xs text-secondary font-medium">
-                      Category: <strong className="text-primary">{scanResult.category_name}</strong>
+                      Category: <strong className="text-primary">{
+                        categories.find((c) => c.slug === selectedCategory)?.name || scanResult.category_name
+                      }</strong>
                     </span>
                   </div>
                   <span className="font-label-sm text-xs font-semibold px-2 py-1 rounded-md bg-surface-container text-primary border border-outline-variant/40 shrink-0">
-                    {scanResult.subcategory || scanResult.category_slug}
+                    {scanResult.subcategory || selectedCategory}
                   </span>
+                </div>
+
+                {/* Editable Material Name & Category Confirmation (Phase 4 User Override) */}
+                <div className="bg-surface-container/70 rounded-lg p-3 border border-outline-variant/60 flex flex-col gap-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-label-sm text-xs font-semibold text-primary flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-secondary" />
+                      Confirm or Correct Material Classification
+                    </span>
+                    <span className="text-[11px] text-on-surface-variant font-label-sm">Editable</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <label className="block text-[11px] font-medium text-secondary mb-1">
+                        Material Title
+                      </label>
+                      <input
+                        type="text"
+                        value={detectedMaterialName}
+                        onChange={(e) => setDetectedMaterialName(e.target.value)}
+                        className="w-full px-2.5 py-1.5 rounded-md bg-surface-container-lowest border border-outline-variant text-on-surface text-xs focus:ring-1 focus:ring-primary focus:outline-none"
+                        placeholder="Material title..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-medium text-secondary mb-1">
+                        Waste Category
+                      </label>
+                      <select
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}
+                        className="w-full px-2.5 py-1.5 rounded-md bg-surface-container-lowest border border-outline-variant text-on-surface text-xs focus:ring-1 focus:ring-primary focus:outline-none"
+                      >
+                        <option value="plastics">Plastics (PET bottles, HDPE, PP)</option>
+                        <option value="metals">Metals (Aluminium cans, scrap iron)</option>
+                        <option value="paper">Paper &amp; Cardboard</option>
+                        <option value="organic">Organic &amp; Food Waste</option>
+                        <option value="agricultural">Coconut &amp; Agricultural Residue</option>
+                        <option value="glass">Glass Bottles &amp; Cullet</option>
+                        <option value="e-waste">Electronic Waste</option>
+                        <option value="textiles">Textiles &amp; Fabrics</option>
+                        <option value="other">Other Circular Materials</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Ambiguity or Clarity Notification */}

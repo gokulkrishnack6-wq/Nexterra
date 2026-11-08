@@ -56,6 +56,113 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
+const USER_LISTINGS_KEY = 'greenloop_user_listings';
+const SHARED_LISTINGS_KEY = 'greenloop_shared_marketplace_listings';
+
+// Deterministic category UUIDs matching Supabase database seeding
+export const DETERMINISTIC_CATEGORY_UUIDS: Record<string, string> = {
+  plastics: 'a1111111-1111-4000-8000-000000000001',
+  paper: 'a2222222-2222-4000-8000-000000000002',
+  organic: 'a3333333-3333-4000-8000-000000000003',
+  agricultural: 'a4444444-4444-4000-8000-000000000004',
+  metals: 'a5555555-5555-4000-8000-000000000005',
+  glass: 'a6666666-6666-4000-8000-000000000006',
+  'e-waste': 'a7777777-7777-4000-8000-000000000007',
+  ewaste: 'a7777777-7777-4000-8000-000000000007',
+  textiles: 'a8888888-8888-4000-8000-000000000008',
+  other: 'a9999999-9999-4000-8000-000000000009',
+};
+
+/**
+ * Resolves any category input (slug, mock id, or UUID) to a guaranteed valid database UUID.
+ * Never returns a mock string like 'cat-plastics' or arbitrary text.
+ */
+export function resolveCategoryId(rawInput: string | undefined, availableCategories: WasteCategory[]): string {
+  const normalized = (rawInput || '').toLowerCase().trim();
+  const slugCandidate = normalized.replace(/^cat-/, '').replace(/[\s_]+/g, '-');
+
+  // Check whether availableCategories contains live database records (valid UUIDs)
+  const liveDbCategories = availableCategories.filter((c) =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(c.id)
+  );
+
+  // 1. If rawInput is already a valid UUID and matches an existing live category or UUID pattern
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawInput || '')) {
+    return rawInput!;
+  }
+
+  // 2. Try to find in available category taxonomy (matching live DB records first)
+  const searchPool = liveDbCategories.length > 0 ? liveDbCategories : availableCategories;
+  const matched = searchPool.find((c) => {
+    const cId = c.id.toLowerCase();
+    const cSlug = c.slug.toLowerCase();
+    const cName = c.name ? c.name.toLowerCase() : '';
+    return (
+      cId === normalized ||
+      cSlug === normalized ||
+      cSlug === slugCandidate ||
+      cSlug.replace(/-/g, '') === slugCandidate.replace(/-/g, '') ||
+      cId.replace(/^cat-/, '') === slugCandidate ||
+      cName === normalized ||
+      cName.startsWith(slugCandidate) ||
+      slugCandidate.startsWith(cSlug)
+    );
+  });
+
+  if (matched) {
+    const isMatchedUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(matched.id);
+    if (isMatchedUuid) {
+      // Return the actual live database UUID
+      return matched.id;
+    }
+    if (DETERMINISTIC_CATEGORY_UUIDS[matched.slug.toLowerCase()]) {
+      return DETERMINISTIC_CATEGORY_UUIDS[matched.slug.toLowerCase()];
+    }
+  }
+
+  // 3. Deterministic mapping fallback for slug candidate
+  if (DETERMINISTIC_CATEGORY_UUIDS[slugCandidate]) {
+    return DETERMINISTIC_CATEGORY_UUIDS[slugCandidate];
+  }
+
+  // 4. If live database categories exist, fallback to the first live category UUID
+  if (liveDbCategories.length > 0) {
+    return liveDbCategories[0].id;
+  }
+
+  // 5. Absolute fallback: deterministic plastics UUID
+  return DETERMINISTIC_CATEGORY_UUIDS.plastics;
+}
+
+function loadInitialListings(): WasteListing[] {
+  const map = new Map<string, WasteListing>();
+  if (typeof window === 'undefined') return [];
+
+  // 1. Shared marketplace listings across accounts
+  const shared = localStorage.getItem(SHARED_LISTINGS_KEY);
+  if (shared) {
+    try {
+      const parsed: WasteListing[] = JSON.parse(shared);
+      if (Array.isArray(parsed)) {
+        parsed.forEach((l) => map.set(l.id, l));
+      }
+    } catch {}
+  }
+
+  // 2. User listings
+  const userListings = localStorage.getItem(USER_LISTINGS_KEY);
+  if (userListings) {
+    try {
+      const parsed: WasteListing[] = JSON.parse(userListings);
+      if (Array.isArray(parsed)) {
+        parsed.forEach((l) => map.set(l.id, l));
+      }
+    } catch {}
+  }
+
+  return Array.from(map.values());
+}
+
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser } = useAuth();
   const { coords, locality, district, city } = useLocationContext();
@@ -64,14 +171,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Taxonomy standard categories for Kerala circular materials
   const [categories, setCategories] = useState<WasteCategory[]>(INITIAL_CATEGORIES);
 
-  // Real data collections — initialized from local persistent store or empty arrays (NO FAKE MOCK DATA)
-  const [listings, setListings] = useState<WasteListing[]>(() => {
-    const saved = localStorage.getItem('greenloop_user_listings');
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) { /* fallback */ }
-    }
-    return [];
-  });
+  // Real data collections — initialized from shared & local persistent stores
+  const [listings, setListings] = useState<WasteListing[]>(loadInitialListings);
 
   const [exchangeRequests, setExchangeRequests] = useState<ExchangeRequest[]>(() => {
     const saved = localStorage.getItem('greenloop_user_exchange_requests');
@@ -145,10 +246,34 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return [];
   });
 
-  // Sync state to local storage to maintain persistence across sessions
+  // Sync state to local storage to maintain persistence across sessions and accounts
   useEffect(() => {
-    localStorage.setItem('greenloop_user_listings', JSON.stringify(listings));
+    try {
+      localStorage.setItem(USER_LISTINGS_KEY, JSON.stringify(listings));
+      localStorage.setItem(SHARED_LISTINGS_KEY, JSON.stringify(listings));
+    } catch {}
   }, [listings]);
+
+  // Synchronize cross-tab and cross-window storage events
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === SHARED_LISTINGS_KEY && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) {
+            setListings((prev) => {
+              const map = new Map<string, WasteListing>();
+              parsed.forEach((l: WasteListing) => map.set(l.id, l));
+              prev.forEach((l) => { if (!map.has(l.id)) map.set(l.id, l); });
+              return Array.from(map.values());
+            });
+          }
+        } catch {}
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('greenloop_user_exchange_requests', JSON.stringify(exchangeRequests));
@@ -199,22 +324,61 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCategories(dbCategories as WasteCategory[]);
       }
 
-      // 2. Fetch listings
-      const { data: dbListings, error: listError } = await supabase
-        .from('listings')
-        .select('*, user:profiles(*), category:waste_categories(*)');
-      
-      if (!listError && dbListings) {
+      // 2. Fetch public active listings (visible to all authenticated users across accounts)
+      let dbListings: any[] | null = null;
+      const pubProfilesMap = new Map<string, any>();
+      try {
+        // Query sanitized public profile directory (preserves PII; no email, phone, or address)
+        const { data: pubProfiles } = await supabase
+          .from('public_profiles')
+          .select('id, full_name, role, organization_name, district, state, avatar_url, bio, is_verified, created_at');
+        if (pubProfiles) {
+          pubProfiles.forEach((p: any) => pubProfilesMap.set(p.id, p));
+        }
+
+        const { data: fullListings, error: listError } = await supabase
+          .from('listings')
+          .select('*, user:profiles(id, full_name, role, district, avatar_url, is_verified), category:waste_categories(*)')
+          .eq('status', 'active');
+        
+        if (!listError && fullListings) {
+          dbListings = fullListings;
+        } else if (listError) {
+          // Graceful fallback to simple select if joins are not in schema cache
+          const { data: simpleListings } = await supabase
+            .from('listings')
+            .select('*')
+            .eq('status', 'active');
+          if (simpleListings) {
+            dbListings = simpleListings;
+          }
+        }
+      } catch {
+        // Fallback to active local state if table or PostgREST cache is pending
+      }
+
+      if (dbListings && dbListings.length > 0) {
         // Merge Supabase listings with any locally staged ones
         setListings((prev) => {
           const map = new Map<string, WasteListing>();
-          // Remote listings first
-          dbListings.forEach((item: any) => map.set(item.id, item as WasteListing));
+          // Remote listings first, with safe public profile hydration if private base profile is restricted by RLS
+          dbListings!.forEach((item: any) => {
+            const enriched = {
+              ...item,
+              user: item.user || pubProfilesMap.get(item.user_id) || undefined,
+            };
+            map.set(item.id, enriched as WasteListing);
+          });
           // Local override/supplements
           prev.forEach((item) => {
             if (!map.has(item.id)) map.set(item.id, item);
           });
-          return Array.from(map.values());
+          const merged = Array.from(map.values());
+          try {
+            localStorage.setItem(USER_LISTINGS_KEY, JSON.stringify(merged));
+            localStorage.setItem(SHARED_LISTINGS_KEY, JSON.stringify(merged));
+          } catch {}
+          return merged;
         });
       }
 
@@ -286,6 +450,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const populatedListings = useMemo(() => {
     return listings.map((l) => ({
       ...l,
+      is_demo: false,
       category: l.category || categories.find((c) => c.id === l.category_id || c.slug === l.category_id),
       user: l.user || (currentUser && l.user_id === currentUser.id ? currentUser : undefined),
     }));
@@ -296,9 +461,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return generateDynamicDemoListings(coords, locality, district, city, categories);
   }, [coords, locality, district, city, categories]);
 
-  // Combined marketplace inventory (genuine user listings + location-aware sample listings)
+  // Combined marketplace inventory (genuine user listings displayed prominently first + non-conflicting demo sample listings)
   const allMarketplaceListings = useMemo(() => {
-    return [...populatedListings, ...demoListings];
+    const real = populatedListings.map((l) => ({ ...l, is_demo: false }));
+    const nonConflictingDemo = demoListings.filter(
+      (demo) => !real.some((r) => r.id === demo.id)
+    );
+    return [...real, ...nonConflictingDemo];
   }, [populatedListings, demoListings]);
 
   // Sustainability Metrics: calculated strictly from real completed transactions
@@ -356,27 +525,46 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [transactions, listings, ecoPointsLedger, categories]);
 
-  // Action: Add Listing
+  // Action: Add Listing (RFC4122 v4 UUID, authentic ownership, persistent sync across accounts)
   const addListing = (
     listingData: Omit<WasteListing, 'id' | 'created_at' | 'user' | 'category'>
   ): string => {
-    const id = `list-${Date.now()}`;
+    const id = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+          const r = (Math.random() * 16) | 0;
+          const v = c === 'x' ? r : (r & 0x3) | 0x8;
+          return v.toString(16);
+        });
+
+    const userId = currentUser ? currentUser.id : 'guest-user';
     const newListing: WasteListing = {
       ...listingData,
       id,
+      user_id: userId,
       created_at: new Date().toISOString(),
       user: currentUser || undefined,
+      is_demo: false,
     };
 
-    setListings((prev) => [newListing, ...prev]);
+    setListings((prev) => {
+      const updated = [newListing, ...prev.filter((l) => l.id !== id)];
+      try {
+        localStorage.setItem(USER_LISTINGS_KEY, JSON.stringify(updated));
+        localStorage.setItem(SHARED_LISTINGS_KEY, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
 
     // Push to Supabase if logged in with live backend
     if (isSupabaseConfigured && currentUser) {
+      const targetCatId = resolveCategoryId(listingData.category_id, categories);
+
       supabase.from('listings').insert([
         {
           id,
           user_id: currentUser.id,
-          category_id: listingData.category_id,
+          category_id: targetCatId,
           title: listingData.title,
           description: listingData.description,
           material_type: listingData.material_type,
@@ -394,15 +582,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ai_classified: listingData.ai_classified || false,
           ai_confidence: listingData.ai_confidence || null,
           suggested_action: listingData.suggested_action || '',
+          images: listingData.images && listingData.images.length > 0 ? listingData.images : [],
+          is_demo: false,
         }
       ]).then(({ error }) => {
         if (error) console.warn('Supabase listing insert note:', error.message);
       });
     }
 
-    // Award EcoPoints for listing creation
+    // EcoPoints for listing creation are awarded automatically and authoritatively
+    // by the database trigger 'trg_award_listing_ecopoints' upon listing insert.
     const pointsAwarded = 30;
-    const userId = currentUser ? currentUser.id : 'guest-user';
+
     const newPointRecord: EcoPointRecord = {
       id: `pt-${Date.now()}`,
       user_id: userId,
@@ -431,18 +622,44 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateListing = (id: string, updates: Partial<WasteListing>) => {
-    setListings((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, ...updates, updated_at: new Date().toISOString() } : l))
-    );
-    if (isSupabaseConfigured) {
-      supabase.from('listings').update(updates).eq('id', id).then();
+    const target = listings.find((l) => l.id === id);
+    if (currentUser && target && target.user_id && target.user_id !== currentUser.id) {
+      throw new Error('Unauthorized: Only the creator of this listing can edit it.');
+    }
+
+    setListings((prev) => {
+      const updated = prev.map((l) =>
+        l.id === id ? { ...l, ...updates, updated_at: new Date().toISOString() } : l
+      );
+      try {
+        localStorage.setItem(USER_LISTINGS_KEY, JSON.stringify(updated));
+        localStorage.setItem(SHARED_LISTINGS_KEY, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    if (isSupabaseConfigured && currentUser) {
+      supabase.from('listings').update(updates).eq('id', id).eq('user_id', currentUser.id).then();
     }
   };
 
   const deleteListing = (id: string) => {
-    setListings((prev) => prev.filter((l) => l.id !== id));
-    if (isSupabaseConfigured) {
-      supabase.from('listings').delete().eq('id', id).then();
+    const target = listings.find((l) => l.id === id);
+    if (currentUser && target && target.user_id && target.user_id !== currentUser.id) {
+      throw new Error('Unauthorized: Only the creator of this listing can delete it.');
+    }
+
+    setListings((prev) => {
+      const updated = prev.filter((l) => l.id !== id);
+      try {
+        localStorage.setItem(USER_LISTINGS_KEY, JSON.stringify(updated));
+        localStorage.setItem(SHARED_LISTINGS_KEY, JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+
+    if (isSupabaseConfigured && currentUser) {
+      supabase.from('listings').delete().eq('id', id).eq('user_id', currentUser.id).then();
     }
   };
 

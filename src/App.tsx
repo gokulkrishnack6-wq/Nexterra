@@ -34,23 +34,25 @@ const AuthCallbackDetector: React.FC = () => {
 
   useEffect(() => {
     if (location.pathname !== '/auth/callback' && location.pathname !== '/auth/verify') {
-      const search = window.location.search || '';
-      const hash = window.location.hash || '';
+      const search = location.search || window.location.search || '';
+      const hash = location.hash || window.location.hash || '';
 
       const hasCallbackIndicators =
         search.includes('code=') ||
         search.includes('token_hash=') ||
         search.includes('error_code=') ||
         search.includes('error=') ||
+        search.includes('type=signup') ||
         hash.includes('access_token=') ||
         hash.includes('error_code=') ||
-        hash.includes('error=');
+        hash.includes('error=') ||
+        hash.includes('type=signup');
 
       if (hasCallbackIndicators) {
         navigate(`/auth/callback${search}${hash}`, { replace: true });
       }
     }
-  }, [location.pathname, navigate]);
+  }, [location.pathname, location.search, location.hash, navigate]);
 
   return null;
 };

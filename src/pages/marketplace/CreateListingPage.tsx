@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Plus, Sparkles, Navigation, AlertCircle } from 'lucide-react';
-import { useData } from '../../contexts/DataContext';
+import { useData, resolveCategoryId } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGeolocation, KERALA_DISTRICT_COORDS } from '../../hooks/useGeolocation';
+import { VERIFIED_REAL_LOCALITIES } from '../../lib/demoMarketplace';
 import { ListingPricing } from '../../types';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -52,8 +53,8 @@ export const CreateListingPage: React.FC = () => {
         setSuggestedAction(data.suggested_action);
         if (data.image_url) setImageUrl(data.image_url);
 
-        const matchedCat = categories.find((c) => c.slug === data.category_slug);
-        if (matchedCat) setCategoryId(matchedCat.id);
+        const resolved = resolveCategoryId(data.category_slug, categories);
+        if (resolved) setCategoryId(resolved);
 
         sessionStorage.removeItem('greenloop_prefill_scan');
       } catch (e) {
@@ -89,9 +90,27 @@ export const CreateListingPage: React.FC = () => {
     setSubmitting(true);
 
     try {
-      const fallbackCoords = KERALA_DISTRICT_COORDS[district] || KERALA_DISTRICT_COORDS['Ernakulam'];
-      const lat = coords ? coords.latitude : fallbackCoords.latitude;
-      const lon = coords ? coords.longitude : fallbackCoords.longitude;
+      // Determine authentic coordinates based on location selection or geolocation workflow
+      let lat = coords ? coords.latitude : undefined;
+      let lon = coords ? coords.longitude : undefined;
+
+      // If geolocation is inactive or user manually specified locality, resolve authentic coordinates
+      if (lat === undefined || lon === undefined) {
+        const matchedLocality = VERIFIED_REAL_LOCALITIES.find(
+          (loc) => loc.locality.toLowerCase() === locality.trim().toLowerCase() && loc.district.toLowerCase() === district.toLowerCase()
+        );
+        if (matchedLocality) {
+          lat = matchedLocality.latitude;
+          lon = matchedLocality.longitude;
+        } else if (KERALA_DISTRICT_COORDS[district]) {
+          lat = KERALA_DISTRICT_COORDS[district].latitude;
+          lon = KERALA_DISTRICT_COORDS[district].longitude;
+        }
+      }
+
+      const districtCoords = KERALA_DISTRICT_COORDS[district];
+      const finalLat = lat !== undefined ? lat : (districtCoords?.latitude ?? 0);
+      const finalLon = lon !== undefined ? lon : (districtCoords?.longitude ?? 0);
 
       const newId = addListing({
         user_id: currentUser ? currentUser.id : 'guest-user',
@@ -107,8 +126,8 @@ export const CreateListingPage: React.FC = () => {
         district,
         locality: locality || district,
         address: address || '',
-        latitude: lat,
-        longitude: lon,
+        latitude: finalLat,
+        longitude: finalLon,
         status: 'active',
         ai_classified: aiClassified,
         ai_confidence: aiConfidence,

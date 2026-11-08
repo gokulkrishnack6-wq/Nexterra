@@ -106,10 +106,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: user.email || '',
         phone: user.phone || metadata.phone || '',
         role: (metadata.role as UserRole) || 'individual',
-        district: metadata.district || 'Ernakulam',
-        state: 'Kerala',
-        latitude: metadata.latitude || 9.9816,
-        longitude: metadata.longitude || 76.2999,
+        district: metadata.district || '',
+        state: metadata.state || 'Kerala',
+        latitude: metadata.latitude,
+        longitude: metadata.longitude,
         avatar_url: metadata.avatar_url || undefined,
         bio: metadata.bio || '',
         eco_points_balance: 50,
@@ -241,6 +241,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
+        const msg = (error.message || '').toLowerCase();
+        if (msg.includes('rate limit') || msg.includes('over_email_send_rate_limit') || (error as any).status === 429) {
+          return {
+            success: false,
+            error: 'Email confirmation rate limit reached (Supabase allows ~3 emails/hr on free tier). Please wait a few minutes before registering again or sign in with an existing account.',
+          };
+        }
         return { success: false, error: error.message };
       }
 
@@ -259,10 +266,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           full_name: name,
           email: cleanEmail,
           role,
-          district,
+          district: district || '',
           state: 'Kerala',
-          latitude: 9.9816,
-          longitude: 76.2999,
+          latitude: undefined,
+          longitude: undefined,
           eco_points_balance: 50,
           is_verified: true,
           created_at: new Date().toISOString(),
@@ -364,6 +371,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
+        const msg = (error.message || '').toLowerCase();
+        if (msg.includes('rate limit') || msg.includes('over_email_send_rate_limit') || (error as any).status === 429) {
+          return {
+            success: false,
+            error: 'Email confirmation rate limit reached (Supabase allows ~3 emails/hr on free tier). Please wait a few minutes before registering again or sign in with an existing account.',
+          };
+        }
         return { success: false, error: error.message };
       }
 
@@ -393,6 +407,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
+        const msg = (error.message || '').toLowerCase();
+        if (msg.includes('rate limit') || msg.includes('over_email_send_rate_limit') || (error as any).status === 429) {
+          return {
+            success: false,
+            error: 'Email confirmation rate limit reached (Supabase allows ~3 emails/hr on free tier). Please wait a few minutes before registering again or sign in with an existing account.',
+          };
+        }
         return { success: false, error: error.message };
       }
 
@@ -440,7 +461,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           },
         });
 
-        await supabase.from('profiles').update(updatedData).eq('id', currentUser.id);
+        // Exclude server-controlled columns (eco_points_balance, id, created_at) from direct client updates
+        const { eco_points_balance, id, created_at, ...safeUpdateData } = updatedData as any;
+        if (Object.keys(safeUpdateData).length > 0) {
+          await supabase.from('profiles').update(safeUpdateData).eq('id', currentUser.id);
+        }
       }
 
       return { success: true };
@@ -494,7 +519,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     password: string, 
     name: string, 
     role: UserRole = 'individual', 
-    district: string = 'Ernakulam'
+    district: string = ''
   ) => registerUser(name, email, password, role, district);
 
   const signOut = logout;

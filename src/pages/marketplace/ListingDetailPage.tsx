@@ -21,7 +21,7 @@ import { Input, Textarea } from '../../components/ui/Input';
 export const ListingDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { listings, allMarketplaceListings, createExchangeRequest, favourites, toggleFavourite, categories } = useData();
+  const { listings, allMarketplaceListings, createExchangeRequest, favourites, toggleFavourite, categories, deleteListing, updateListing } = useData();
   const { currentUser } = useAuth();
   const { coords } = useGeolocation();
 
@@ -269,20 +269,43 @@ export const ListingDetailPage: React.FC = () => {
 
           {/* Request Form or Owner Controls */}
           {isOwner ? (
-            <Card variant="flat" className="space-y-3 p-4">
-              <span className="font-label-sm text-label-sm text-outline uppercase tracking-wider font-semibold">
-                Your Published Listing
-              </span>
-              <p className="font-body-sm text-body-sm text-on-surface-variant">
+            <Card variant="flat" className="space-y-3 p-4 border border-outline-variant/60">
+              <div className="flex items-center justify-between">
+                <span className="font-label-sm text-label-sm text-outline uppercase tracking-wider font-semibold">
+                  Your Published Listing
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-semibold">
+                  Owner Active
+                </span>
+              </div>
+              <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
                 You created this material listing. Incoming exchange proposals from nearby collectors will appear in your exchanges pipeline.
               </p>
-              <Button
-                variant="secondary"
-                fullWidth
-                onClick={() => navigate('/exchanges')}
-              >
-                View My Exchanges
-              </Button>
+              <div className="flex flex-col gap-2 pt-1">
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  onClick={() => navigate('/exchanges')}
+                >
+                  View My Exchanges
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to remove this listing from the marketplace?')) {
+                      try {
+                        deleteListing(listing.id);
+                        navigate('/marketplace');
+                      } catch (err: any) {
+                        alert(err.message || 'Failed to delete listing');
+                      }
+                    }
+                  }}
+                  className="w-full py-2 px-3 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 text-xs font-semibold transition-colors"
+                >
+                  Delete Listing
+                </button>
+              </div>
             </Card>
           ) : (
             <Card variant="elevated" className="space-y-4 p-5">
