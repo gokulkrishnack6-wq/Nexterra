@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { RecyclingCentre, WasteListing, PublicWasteBin } from '../../types';
-import { useGeolocation } from '../../hooks/useGeolocation';
-import { Phone, Clock, ArrowRight, ShieldCheck, Navigation } from 'lucide-react';
+import { useGeolocation, calculateDistanceKm } from '../../hooks/useGeolocation';
+import { Phone, Clock, ArrowRight, ShieldCheck, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface KeralaCircularMapProps {
@@ -11,6 +11,7 @@ interface KeralaCircularMapProps {
   listings: WasteListing[];
   wasteBins?: PublicWasteBin[];
   initialFilter?: 'all' | 'centres' | 'bins' | 'listings';
+  referenceCoords?: { latitude: number; longitude: number } | null;
 }
 
 const MapViewSync: React.FC<{ coords: { latitude: number; longitude: number } | null }> = ({ coords }) => {
@@ -37,10 +38,12 @@ export const KeralaCircularMap: React.FC<KeralaCircularMapProps> = ({
   centres, 
   listings,
   wasteBins = [],
-  initialFilter = 'all'
+  initialFilter = 'all',
+  referenceCoords
 }) => {
   const [filterType, setFilterType] = useState<'all' | 'centres' | 'bins' | 'listings'>(initialFilter);
   const { coords, locality, district } = useGeolocation();
+  const effectiveRefCoords = referenceCoords || coords;
 
   // Pin for User's Current Location
   const userLocationIcon = L.divIcon({
@@ -281,42 +284,63 @@ export const KeralaCircularMap: React.FC<KeralaCircularMapProps> = ({
 
         {/* Listings Markers */}
         {(filterType === 'all' || filterType === 'listings') &&
-          listings.map((listing) => (
-            <Marker
-              key={listing.id}
-              position={[listing.latitude, listing.longitude]}
-              icon={listingIcon}
-            >
-              <Popup>
-                <div className="p-1 space-y-1.5 text-left max-w-xs font-sans">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] uppercase font-semibold text-primary">
-                      {listing.category?.name || 'Material'}
-                    </span>
-                    <span className="text-[10px] font-bold text-primary">
-                      {listing.quantity} {listing.unit}
-                    </span>
-                  </div>
+          listings
+            .filter((l) => typeof l.latitude === 'number' && typeof l.longitude === 'number' && !isNaN(l.latitude) && !isNaN(l.longitude) && (l.latitude !== 0 || l.longitude !== 0))
+            .map((listing) => {
+              const distanceKm = effectiveRefCoords && typeof effectiveRefCoords.latitude === 'number' && typeof effectiveRefCoords.longitude === 'number'
+                ? calculateDistanceKm(effectiveRefCoords.latitude, effectiveRefCoords.longitude, listing.latitude, listing.longitude)
+                : null;
 
-                  <h4 className="font-heading font-semibold text-xs text-on-surface">
-                    {listing.title}
-                  </h4>
+              return (
+                <Marker
+                  key={listing.id}
+                  position={[listing.latitude, listing.longitude]}
+                  icon={listingIcon}
+                >
+                  <Popup>
+                    <div className="p-2 space-y-2 text-left max-w-xs font-sans">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] uppercase font-bold text-primary bg-secondary-container px-2 py-0.5 rounded-full">
+                          {listing.category?.name || 'Material'}
+                        </span>
+                        <span className="text-[11px] font-bold text-primary">
+                          {listing.quantity} {listing.unit}
+                        </span>
+                      </div>
 
-                  <p className="text-[11px] text-outline">
-                    {listing.locality}, {listing.district}
-                  </p>
+                      <div>
+                        <h4 className="font-heading font-semibold text-xs text-on-surface leading-tight">
+                          {listing.title}
+                        </h4>
+                        {listing.material_type && (
+                          <div className="text-[10px] text-on-surface-variant mt-0.5">
+                            Material: <strong>{listing.material_type}</strong>
+                          </div>
+                        )}
+                      </div>
 
-                  <Link
-                    to={`/marketplace/${listing.id}`}
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline pt-1"
-                  >
-                    <span>View Listing Details</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </Link>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
+                      <div className="text-[11px] text-outline space-y-0.5 pt-1 border-t border-outline-variant/40">
+                        <div className="flex items-center gap-1">
+                          <MapPin className="w-3 h-3 text-primary shrink-0" />
+                          <span>{listing.locality ? `${listing.locality}, ${listing.district}` : listing.district}</span>
+                        </div>
+                        <div className="text-[10px] font-semibold text-primary">
+                          {distanceKm !== null ? `${distanceKm} km away` : 'Distance unavailable'}
+                        </div>
+                      </div>
+
+                      <Link
+                        to={`/marketplace/${listing.id}`}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline pt-1 border-t border-outline-variant/30 w-full"
+                      >
+                        <span>View Listing Details</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </Link>
+                    </div>
+                  </Popup>
+                </Marker>
+              );
+            })}
       </MapContainer>
     </div>
   );

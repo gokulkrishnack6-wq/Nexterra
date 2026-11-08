@@ -7,9 +7,10 @@ import { useGeolocation, calculateDistanceKm } from '../../hooks/useGeolocation'
 
 interface ListingCardProps {
   listing: WasteListing;
+  referenceCoords?: { latitude: number; longitude: number } | null;
 }
 
-export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
+export const ListingCard: React.FC<ListingCardProps> = ({ listing, referenceCoords }) => {
   const { favourites, toggleFavourite } = useData();
   const { coords } = useGeolocation();
   const isFav = favourites.includes(listing.id);
@@ -18,9 +19,26 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
     ? listing.images[0] 
     : 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=600&q=80';
 
-  const distanceKm = coords && listing.latitude && listing.longitude
-    ? calculateDistanceKm(coords.latitude, coords.longitude, listing.latitude, listing.longitude)
-    : null;
+  const effectiveRefCoords = referenceCoords || coords;
+  const hasValidListingCoords =
+    typeof listing.latitude === 'number' &&
+    typeof listing.longitude === 'number' &&
+    !isNaN(listing.latitude) &&
+    !isNaN(listing.longitude) &&
+    (listing.latitude !== 0 || listing.longitude !== 0);
+
+  const distanceKm =
+    effectiveRefCoords &&
+    typeof effectiveRefCoords.latitude === 'number' &&
+    typeof effectiveRefCoords.longitude === 'number' &&
+    hasValidListingCoords
+      ? calculateDistanceKm(
+          effectiveRefCoords.latitude,
+          effectiveRefCoords.longitude,
+          listing.latitude,
+          listing.longitude
+        )
+      : null;
 
   const getPricingBadge = () => {
     switch (listing.listing_type) {
@@ -115,17 +133,28 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing }) => {
         </div>
 
         <div className="mt-3 pt-2.5 border-t border-outline-variant/40 flex items-center justify-between text-body-sm">
-          <div className="flex items-center gap-1 text-on-surface-variant truncate">
+          <div className="flex items-center gap-1.5 text-on-surface-variant min-w-0 flex-1 pr-2">
             <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
-            <span className="truncate text-[11px]">
-              {distanceKm !== null ? `${distanceKm} km • ` : ''}
-              {listing.locality || listing.district}
-            </span>
+            <div className="text-[11px] truncate leading-tight">
+              {distanceKm !== null ? (
+                <span>
+                  <strong className="text-primary font-semibold">{distanceKm} km away</strong>
+                  <span className="text-outline mx-1">•</span>
+                  <span>{listing.locality ? `${listing.locality}, ${listing.district}` : listing.district}</span>
+                </span>
+              ) : (
+                <span>
+                  <span className="text-on-surface-variant/75">Distance unavailable</span>
+                  <span className="text-outline mx-1">•</span>
+                  <span>{listing.locality ? `${listing.locality}, ${listing.district}` : listing.district}</span>
+                </span>
+              )}
+            </div>
           </div>
 
           <Link
             to={`/marketplace/${listing.id}`}
-            className="text-primary hover:underline font-label-md text-xs font-semibold shrink-0 ml-2 inline-flex items-center gap-0.5"
+            className="text-primary hover:underline font-label-md text-xs font-semibold shrink-0 ml-1 inline-flex items-center gap-0.5"
           >
             <span>View</span>
             <ArrowRight className="w-3 h-3" />

@@ -67,3 +67,4 @@ describe('GreenLoop Frontend Stability & Anti-Flicker Architecture Audit', () =>
     expect(marketplacePageCode).toContain('useEffect(() => {\n    refreshData();\n  }, []);');
   });
 });
+

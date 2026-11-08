@@ -1,9 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Search, Plus, X, Sparkles, Filter, Navigation } from 'lucide-react';
+import { Search, Plus, X, Sparkles, Filter, Navigation, LayoutGrid, Map, MapPin, CheckCircle2 } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { useGeolocation, KERALA_DISTRICT_COORDS, calculateDistanceKm } from '../../hooks/useGeolocation';
 import { ListingCard } from '../../components/marketplace/ListingCard';
+import { KeralaCircularMap } from '../../components/maps/KeralaCircularMap';
+import { LocationAutocomplete } from '../../components/ui/LocationAutocomplete';
+import { LocationSuggestion, reverseGeocodeCoordinates } from '../../services/geocoding';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
@@ -11,7 +14,7 @@ import { EmptyState, ListingCardSkeleton } from '../../components/ui/Skeleton';
 
 export const MarketplacePage: React.FC = () => {
   const { listings, demoListings, allMarketplaceListings, categories, isLoading, dataError, refreshData } = useData();
-  const { coords, district: detectedDistrict } = useGeolocation();
+  const { coords: geoCoords, district: detectedDistrict } = useGeolocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Fresh data from Supabase on mount
@@ -28,27 +31,120 @@ export const MarketplacePage: React.FC = () => {
   const [selectedPricing, setSelectedPricing] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'nearest' | 'newest' | 'quantity'>('nearest');
   const [onlyAiVerified, setOnlyAiVerified] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
+
+  // Custom reference location selected by user via search or GPS button
+  const [customRefLocation, setCustomRefLocation] = useState<{
+    name: string;
+    locality?: string;
+    district?: string;
+    latitude: number;
+    longitude: number;
+    source: 'gps' | 'search';
+  } | null>(null);
+  const [isDetectingGps, setIsDetectingGps] = useState(false);
+  const [gpsNotice, setGpsNotice] = useState<string | null>(null);
 
   const keralaDistricts = Object.keys(KERALA_DISTRICT_COORDS);
 
-  // Geographic reference point:
-  // When a specific district is selected (e.g. Kasaragod), anchor reference to that district
-  // unless user GPS is already inside that same district.
+  // Geographic reference point calculation:
+  // 1. Explicit user custom search location or GPS click
+  // 2. User browser geolocation coords
+  // 3. Selected district center
+  // 4. Default to Ernakulam (central Kerala)
   const refCoords = useMemo(() => {
+    if (customRefLocation) {
+      return { latitude: customRefLocation.latitude, longitude: customRefLocation.longitude };
+    }
     if (selectedDistrict && selectedDistrict !== 'All Kerala' && KERALA_DISTRICT_COORDS[selectedDistrict]) {
-      if (detectedDistrict?.toLowerCase() === selectedDistrict.toLowerCase() && coords && coords.latitude && coords.longitude) {
-        return { latitude: coords.latitude, longitude: coords.longitude };
+      if (detectedDistrict?.toLowerCase() === selectedDistrict.toLowerCase() && geoCoords?.latitude && geoCoords?.longitude) {
+        return { latitude: geoCoords.latitude, longitude: geoCoords.longitude };
       }
       return KERALA_DISTRICT_COORDS[selectedDistrict];
     }
-    if (coords && coords.latitude && coords.longitude) {
-      return { latitude: coords.latitude, longitude: coords.longitude };
+    if (geoCoords && geoCoords.latitude && geoCoords.longitude) {
+      return { latitude: geoCoords.latitude, longitude: geoCoords.longitude };
     }
     if (detectedDistrict && KERALA_DISTRICT_COORDS[detectedDistrict]) {
       return KERALA_DISTRICT_COORDS[detectedDistrict];
     }
     return KERALA_DISTRICT_COORDS['Ernakulam'];
-  }, [coords, selectedDistrict, detectedDistrict]);
+  }, [customRefLocation, geoCoords, selectedDistrict, detectedDistrict]);
+
+  const activeReferenceLabel = useMemo(() => {
+    if (customRefLocation) {
+      return `${customRefLocation.locality ? `${customRefLocation.locality}, ` : ''}${customRefLocation.district || customRefLocation.name}`;
+    }
+    if (geoCoords && geoCoords.latitude && geoCoords.longitude) {
+      return detectedDistrict ? `${detectedDistrict} (GPS)` : 'Your GPS Location';
+    }
+    if (selectedDistrict !== 'All Kerala') {
+      return selectedDistrict;
+    }
+    return 'Kerala (Central)';
+  }, [customRefLocation, geoCoords, detectedDistrict, selectedDistrict]);
+
+  const handleUseGps = () => {
+    if (!navigator.geolocation) {
+      setGpsNotice('Geolocation is not supported by your browser.');
+      return;
+    }
+    setIsDetectingGps(true);
+    setGpsNotice(null);
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        try {
+          const rev = await reverseGeocodeCoordinates(lat, lon);
+          setCustomRefLocation({
+            name: rev.name,
+            locality: rev.locality,
+            district: rev.district,
+            latitude: lat,
+            longitude: lon,
+            source: 'gps',
+          });
+        } catch {
+          setCustomRefLocation({
+            name: 'Current Location',
+            latitude: lat,
+            longitude: lon,
+            source: 'gps',
+          });
+        } finally {
+          setIsDetectingGps(false);
+        }
+      },
+      (err) => {
+        setIsDetectingGps(false);
+        if (err.code === 1) {
+          setGpsNotice('Location permission was denied. You can search for your town below.');
+        } else {
+          setGpsNotice('Could not retrieve GPS coordinates. Please search for your town below.');
+        }
+      },
+      { timeout: 12000, enableHighAccuracy: true }
+    );
+  };
+
+  const handleSelectAutocomplete = (suggestion: LocationSuggestion) => {
+    setCustomRefLocation({
+      name: suggestion.name,
+      locality: suggestion.locality,
+      district: suggestion.district,
+      latitude: suggestion.latitude,
+      longitude: suggestion.longitude,
+      source: 'search',
+    });
+    setGpsNotice(null);
+  };
+
+  const handleClearRefLocation = () => {
+    setCustomRefLocation(null);
+    setGpsNotice(null);
+  };
 
   const handleCategoryChange = (slug: string) => {
     if (slug === 'all') {
@@ -85,7 +181,7 @@ export const MarketplacePage: React.FC = () => {
         }
       }
 
-      // 3. Search Radius Filter (Haversine distance calculation)
+      // 3. Search Radius Filter (Haversine distance calculation from active reference point)
       if (selectedRadius !== 'all' && refCoords) {
         const maxRadius = parseFloat(selectedRadius);
         if (!isNaN(maxRadius) && listing.latitude && listing.longitude) {
@@ -123,7 +219,7 @@ export const MarketplacePage: React.FC = () => {
       return true;
     });
 
-    // Sort order
+    // Sort order: nearest first by default when refCoords exists
     return list.sort((a, b) => {
       if (sortBy === 'nearest' && refCoords) {
         const distA = a.latitude && a.longitude ? calculateDistanceKm(refCoords.latitude, refCoords.longitude, a.latitude, a.longitude) : 9999;
@@ -168,6 +264,34 @@ export const MarketplacePage: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          {/* View Mode Toggle: Grid vs Map */}
+          <div className="inline-flex p-0.5 bg-surface-container rounded-lg border border-outline-variant">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-label-sm text-xs font-semibold transition-all ${
+                viewMode === 'grid'
+                  ? 'bg-surface-container-lowest text-primary shadow-sm'
+                  : 'text-on-surface-variant hover:text-on-surface'
+              }`}
+              title="Grid View"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Grid</span>
+            </button>
+            <button
+              onClick={() => setViewMode('map')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-label-sm text-xs font-semibold transition-all ${
+                viewMode === 'map'
+                  ? 'bg-surface-container-lowest text-primary shadow-sm'
+                  : 'text-on-surface-variant hover:text-on-surface'
+              }`}
+              title="Map View"
+            >
+              <Map className="w-3.5 h-3.5" />
+              <span>Map</span>
+            </button>
+          </div>
+
           <Link to="/smart-match" className="flex-1 sm:flex-initial">
             <Button variant="secondary" size="md" icon={<Sparkles className="w-4 h-4 text-primary" />} fullWidth className="sm:w-auto">
               Smart Match
@@ -197,6 +321,57 @@ export const MarketplacePage: React.FC = () => {
 
       {/* Filter Toolbar */}
       <Card variant="elevated" className="space-y-3 p-4">
+        {/* Row 1: Location Discovery & Reference Anchor */}
+        <div className="p-3 bg-surface-container-low rounded-lg border border-outline-variant/60 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+          <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-2">
+            <div className="flex items-center gap-1.5 text-primary font-semibold shrink-0">
+              <MapPin className="w-4 h-4 text-primary" />
+              <span className="font-label-sm">Discovery Center:</span>
+            </div>
+
+            <div className="flex-1 max-w-sm">
+              <LocationAutocomplete
+                placeholder="Search town/locality (e.g. Cheruvathur, Kanhangad, Aluva)..."
+                onSelect={handleSelectAutocomplete}
+                initialValue={customRefLocation?.name || ''}
+              />
+            </div>
+
+            <button
+              onClick={handleUseGps}
+              disabled={isDetectingGps}
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-surface-container-lowest hover:bg-surface-container border border-outline-variant text-on-surface rounded-lg font-label-sm text-xs font-medium transition-colors shrink-0 disabled:opacity-50"
+              title="Anchor discovery to current browser GPS location"
+            >
+              <Navigation className={`w-3.5 h-3.5 text-primary ${isDetectingGps ? 'animate-spin' : ''}`} />
+              <span>{isDetectingGps ? 'Locating...' : 'Use My GPS'}</span>
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-secondary-container text-primary rounded-full font-label-sm text-xs font-semibold border border-primary/20">
+              <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
+              <span>Near: {activeReferenceLabel}</span>
+              {customRefLocation && (
+                <button
+                  onClick={handleClearRefLocation}
+                  className="ml-1 hover:text-error transition-colors"
+                  title="Reset to default location"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {gpsNotice && (
+          <div className="text-xs text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 p-2 rounded-lg border border-amber-300/60">
+            {gpsNotice}
+          </div>
+        )}
+
+        {/* Row 2: Standard Filtering & Sorting */}
         <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 text-xs">
           {/* Keyword Search */}
           <div className="sm:col-span-3 relative">
@@ -234,20 +409,19 @@ export const MarketplacePage: React.FC = () => {
             </select>
           </div>
 
-          {/* Nearby Search Radius (Phase 3 Location Filtering) */}
+          {/* Nearby Search Radius (5 km, 10 km, 25 km, 50 km, All Kerala) */}
           <div className="sm:col-span-2">
             <select
               value={selectedRadius}
               onChange={(e) => setSelectedRadius(e.target.value)}
               className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant hover:border-outline focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg text-body-sm text-on-surface focus:outline-none transition-all"
-              title="Search radius from your detected location or selected district"
+              title="Search radius from your reference location or selected district"
             >
-              <option value="all">All Distances</option>
+              <option value="all">All Kerala</option>
               <option value="5">Within 5 km</option>
-              <option value="15">Within 15 km</option>
-              <option value="30">Within 30 km</option>
+              <option value="10">Within 10 km</option>
+              <option value="25">Within 25 km</option>
               <option value="50">Within 50 km</option>
-              <option value="100">Within 100 km</option>
             </select>
           </div>
 
@@ -272,7 +446,7 @@ export const MarketplacePage: React.FC = () => {
               onChange={(e) => setSortBy(e.target.value as any)}
               className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant hover:border-outline focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg text-body-sm text-on-surface focus:outline-none transition-all"
             >
-              <option value="nearest">Distance (Nearest)</option>
+              <option value="nearest">Nearest First</option>
               <option value="newest">Newest First</option>
               <option value="quantity">Quantity (High-Low)</option>
             </select>
@@ -319,7 +493,7 @@ export const MarketplacePage: React.FC = () => {
         </div>
       </Card>
 
-      {/* Loading Skeletons */}
+      {/* Main Content Area: Loading Skeletons, Empty State, Grid View, or Map View */}
       {isLoading && sourceListings.length === 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           <ListingCardSkeleton />
@@ -331,14 +505,36 @@ export const MarketplacePage: React.FC = () => {
         <EmptyState
           icon={<Filter className="w-6 h-6" />}
           title="No Materials Found"
-          description="There are currently no listings matching your criteria. Be the first to list reusable materials in your district!"
+          description={`There are currently no listings matching your criteria within ${selectedRadius === 'all' ? 'Kerala' : `${selectedRadius} km`} of ${activeReferenceLabel}. Be the first to list reusable materials!`}
           actionLabel="+ List Material Now"
           actionLink="/marketplace/new"
         />
+      ) : viewMode === 'map' ? (
+        /* Map View */
+        <div className="space-y-4">
+          <KeralaCircularMap
+            centres={[]}
+            wasteBins={[]}
+            listings={filteredListings}
+            initialFilter="listings"
+            referenceCoords={refCoords}
+          />
+          <div className="p-3 bg-surface-container-low rounded-lg border border-outline-variant/60 text-xs text-on-surface-variant flex items-center justify-between">
+            <span>Showing <strong>{filteredListings.length}</strong> active material locations on the Kerala map. Click any pin to view details.</span>
+            <button
+              onClick={() => setViewMode('grid')}
+              className="text-primary font-semibold hover:underline inline-flex items-center gap-1"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Switch to Grid View</span>
+            </button>
+          </div>
+        </div>
       ) : (
+        /* Grid View */
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {filteredListings.map((listing) => (
-            <ListingCard key={listing.id} listing={listing} />
+            <ListingCard key={listing.id} listing={listing} referenceCoords={refCoords} />
           ))}
         </div>
       )}

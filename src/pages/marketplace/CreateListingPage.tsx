@@ -1,10 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Sparkles, Navigation, AlertCircle } from 'lucide-react';
+import {
+  ArrowLeft,
+  Plus,
+  Sparkles,
+  Navigation,
+  AlertCircle,
+  MapPin,
+  CheckCircle2,
+  Edit3,
+  X,
+  Loader2,
+} from 'lucide-react';
 import { useData, resolveCategoryId } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { useGeolocation, KERALA_DISTRICT_COORDS } from '../../hooks/useGeolocation';
-import { VERIFIED_REAL_LOCALITIES } from '../../lib/demoMarketplace';
+import { useGeolocation, KERALA_DISTRICT_COORDS, findNearestDistrict } from '../../hooks/useGeolocation';
+import { LocationAutocomplete } from '../../components/ui/LocationAutocomplete';
+import { LocationSuggestion, reverseGeocodeCoordinates } from '../../services/geocoding';
 import { ListingPricing } from '../../types';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -15,7 +27,7 @@ export const CreateListingPage: React.FC = () => {
   const navigate = useNavigate();
   const { categories, addListing } = useData();
   const { currentUser } = useAuth();
-  const { district: geoDistrict, locality: geoLocality, coords, detectLocation, loading: geoLoading } = useGeolocation();
+  const { district: geoDistrict, locality: geoLocality, coords } = useGeolocation();
 
   const keralaDistricts = Object.keys(KERALA_DISTRICT_COORDS);
 
@@ -29,9 +41,23 @@ export const CreateListingPage: React.FC = () => {
   const [listingType, setListingType] = useState<ListingPricing>('free');
   const [price, setPrice] = useState<number>(0);
   const [condition, setCondition] = useState('clean/dry');
+
+  // Location State
+  const [selectedLocation, setSelectedLocation] = useState<LocationSuggestion | null>(null);
   const [district, setDistrict] = useState(currentUser?.district || geoDistrict || '');
   const [locality, setLocality] = useState(geoLocality || '');
-  const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('Kerala');
+  const [pincode, setPincode] = useState('');
+  const [formattedAddress, setFormattedAddress] = useState('');
+  const [landmarkAddress, setLandmarkAddress] = useState('');
+  const [latitude, setLatitude] = useState<number | null>(coords?.latitude || null);
+  const [longitude, setLongitude] = useState<number | null>(coords?.longitude || null);
+  const [locationSource, setLocationSource] = useState<'current' | 'search' | 'manual' | null>(null);
+  const [isDetectingGps, setIsDetectingGps] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [isEditingLocationDetails, setIsEditingLocationDetails] = useState(false);
+
   const [imageUrl, setImageUrl] = useState('');
   const [aiClassified, setAiClassified] = useState(false);
   const [aiConfidence, setAiConfidence] = useState<number | undefined>(undefined);
@@ -63,15 +89,93 @@ export const CreateListingPage: React.FC = () => {
     }
   }, [categories]);
 
-  // Sync with detected district if not manually set
-  useEffect(() => {
-    if (geoDistrict && !district) {
-      setDistrict(geoDistrict);
+  // Option A: Use My Current Location (Browser GPS)
+  const handleUseCurrentLocation = () => {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      setLocationError('Browser geolocation is unsupported on your device.');
+      return;
     }
-    if (geoLocality && !locality) {
-      setLocality(geoLocality);
-    }
-  }, [geoDistrict, geoLocality]);
+
+    setIsDetectingGps(true);
+    setLocationError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        setLatitude(lat);
+        setLongitude(lon);
+
+        try {
+          const rev = await reverseGeocodeCoordinates(lat, lon);
+          setSelectedLocation(rev);
+          const detectedDist = rev.district || findNearestDistrict(lat, lon);
+          const detectedLoc = rev.locality || rev.name || detectedDist;
+          setDistrict(detectedDist);
+          setLocality(detectedLoc);
+          setCity(rev.city || detectedLoc);
+          setState(rev.state || 'Kerala');
+          setPincode(rev.pincode);
+          setFormattedAddress(rev.fullAddress || `${detectedLoc}, ${detectedDist}, Kerala`);
+          setLocationSource('current');
+        } catch (err) {
+          const fallbackDist = findNearestDistrict(lat, lon);
+          setDistrict(fallbackDist);
+          setLocality(fallbackDist);
+          setFormattedAddress(`${fallbackDist}, Kerala, India`);
+          setLocationSource('current');
+        } finally {
+          setIsDetectingGps(false);
+        }
+      },
+      (geoErr) => {
+        setIsDetectingGps(false);
+        if (geoErr.code === 1) {
+          setLocationError('GPS permission was denied. You can search for your town/locality using Option B below.');
+        } else if (geoErr.code === 2) {
+          setLocationError('GPS signal is unavailable. Please search for your location using Option B below.');
+        } else if (geoErr.code === 3) {
+          setLocationError('Location request timed out. Please try again or search using Option B below.');
+        } else {
+          setLocationError('Could not retrieve current location. Please search for your location below.');
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 60000,
+      }
+    );
+  };
+
+  // Option B: Search for a Location (Autocomplete selection)
+  const handleSelectAutocomplete = (suggestion: LocationSuggestion) => {
+    setSelectedLocation(suggestion);
+    setLatitude(suggestion.latitude);
+    setLongitude(suggestion.longitude);
+    const chosenDist = suggestion.district || findNearestDistrict(suggestion.latitude, suggestion.longitude);
+    const chosenLoc = suggestion.locality || suggestion.name || chosenDist;
+    setDistrict(chosenDist);
+    setLocality(chosenLoc);
+    setCity(suggestion.city || chosenLoc);
+    setState(suggestion.state || 'Kerala');
+    setPincode(suggestion.pincode);
+    setFormattedAddress(suggestion.fullAddress || suggestion.label || `${chosenLoc}, ${chosenDist}, Kerala`);
+    setLocationSource('search');
+    setLocationError(null);
+  };
+
+  const handleClearLocation = () => {
+    setSelectedLocation(null);
+    setLatitude(null);
+    setLongitude(null);
+    setDistrict('');
+    setLocality('');
+    setCity('');
+    setPincode('');
+    setFormattedAddress('');
+    setLocationSource(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,40 +186,23 @@ export const CreateListingPage: React.FC = () => {
       return;
     }
 
-    if (!district) {
-      setError('Please select a Kerala district for pickup.');
+    if (!title || !description || quantity <= 0) {
+      setError('Please fill all required material fields.');
       return;
     }
 
-    if (!title || !description || quantity <= 0) {
-      setError('Please fill all required fields.');
+    // Strict location validation
+    if (!district || !locality || latitude === null || longitude === null) {
+      setError('Please provide a valid pickup location in Kerala using either "Use My Current Location" or "Search for a Location".');
       return;
     }
 
     setSubmitting(true);
 
     try {
-      // Determine authentic coordinates based on location selection or geolocation workflow
-      let lat = coords ? coords.latitude : undefined;
-      let lon = coords ? coords.longitude : undefined;
-
-      // If geolocation is inactive or user manually specified locality, resolve authentic coordinates
-      if (lat === undefined || lon === undefined) {
-        const matchedLocality = VERIFIED_REAL_LOCALITIES.find(
-          (loc) => loc.locality.toLowerCase() === locality.trim().toLowerCase() && loc.district.toLowerCase() === district.toLowerCase()
-        );
-        if (matchedLocality) {
-          lat = matchedLocality.latitude;
-          lon = matchedLocality.longitude;
-        } else if (KERALA_DISTRICT_COORDS[district]) {
-          lat = KERALA_DISTRICT_COORDS[district].latitude;
-          lon = KERALA_DISTRICT_COORDS[district].longitude;
-        }
-      }
-
-      const districtCoords = KERALA_DISTRICT_COORDS[district];
-      const finalLat = lat !== undefined ? lat : (districtCoords?.latitude ?? 0);
-      const finalLon = lon !== undefined ? lon : (districtCoords?.longitude ?? 0);
+      const finalAddress = landmarkAddress.trim()
+        ? `${landmarkAddress.trim()}, ${formattedAddress || locality}`
+        : (formattedAddress || `${locality}, ${district}, Kerala`);
 
       const newId = await addListing({
         user_id: currentUser.id,
@@ -129,10 +216,14 @@ export const CreateListingPage: React.FC = () => {
         price: listingType === 'sale' ? price : 0,
         condition,
         district: district.trim(),
-        locality: (locality || district).trim(),
-        address: address || '',
-        latitude: finalLat,
-        longitude: finalLon,
+        locality: locality.trim(),
+        address: finalAddress,
+        city: city || locality,
+        state: state || 'Kerala',
+        pincode: pincode || undefined,
+        formatted_address: finalAddress,
+        latitude,
+        longitude,
         status: 'active',
         ai_classified: aiClassified,
         ai_confidence: aiConfidence,
@@ -148,6 +239,8 @@ export const CreateListingPage: React.FC = () => {
       setSubmitting(false);
     }
   };
+
+  const hasSelectedLocation = latitude !== null && longitude !== null && Boolean(district && locality);
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 space-y-6 text-left">
@@ -181,7 +274,7 @@ export const CreateListingPage: React.FC = () => {
           List Material for Circular Use
         </h1>
         <p className="font-body-sm text-body-sm text-on-surface-variant">
-          Connect with nearby compost producers, terrace gardeners, upcyclers, or collection hubs.
+          Connect with nearby compost producers, terrace gardeners, upcyclers, or collection hubs across Kerala.
         </p>
 
         {!currentUser && (
@@ -199,9 +292,9 @@ export const CreateListingPage: React.FC = () => {
       </div>
 
       <Card variant="elevated" className="p-6 sm:p-8 space-y-6">
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <div className="p-3 bg-error-container text-on-error-container rounded-lg text-body-sm font-medium border border-error/20 flex items-start gap-2">
+            <div className="p-3.5 bg-error-container text-on-error-container rounded-lg text-body-sm font-medium border border-error/20 flex items-start gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-error" />
               <span>{error}</span>
             </div>
@@ -219,64 +312,89 @@ export const CreateListingPage: React.FC = () => {
 
             <div>
               <label className="block font-label-md text-label-md text-on-surface mb-1 font-semibold">
-                Waste Category *
+                Circular Category *
               </label>
               <select
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
                 className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-3 transition-all"
+                required
               >
                 {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
                 ))}
               </select>
             </div>
           </div>
 
-          {/* Description */}
+          {/* Material Description */}
           <Textarea
-            label="Detailed Description & Condition *"
+            label="Description & Condition Details *"
             required
             rows={3}
-            placeholder="Describe quality, storage condition (dry/wet, clean), origin..."
+            placeholder="Describe the material condition, packaging, cleanliness, and any handling instructions for pickup..."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
 
-          {/* Quantity, Unit & Pricing */}
+          {/* Quantity, Unit, Condition & Pricing */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Input
-              label="Available Quantity *"
-              type="number"
-              min={1}
-              required
-              value={quantity}
-              onChange={(e) => setQuantity(Number(e.target.value))}
-            />
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <Input
+                  label="Quantity *"
+                  type="number"
+                  min={0.1}
+                  step={0.1}
+                  value={quantity}
+                  onChange={(e) => setQuantity(Number(e.target.value))}
+                  required
+                />
+              </div>
+              <div className="w-24">
+                <label className="block font-label-md text-label-md text-on-surface mb-1 font-semibold">
+                  Unit
+                </label>
+                <select
+                  value={unit}
+                  onChange={(e) => setUnit(e.target.value)}
+                  className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-3 transition-all"
+                >
+                  <option value="kg">kg</option>
+                  <option value="pieces">pcs</option>
+                  <option value="litres">L</option>
+                  <option value="sacks">sacks</option>
+                  <option value="boxes">boxes</option>
+                </select>
+              </div>
+            </div>
 
             <div>
               <label className="block font-label-md text-label-md text-on-surface mb-1 font-semibold">
-                Standard Unit *
+                Cleanliness / Condition *
               </label>
               <select
-                value={unit}
-                onChange={(e) => setUnit(e.target.value)}
+                value={condition}
+                onChange={(e) => setCondition(e.target.value)}
                 className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-3 transition-all"
               >
-                <option value="kg">Kilograms (kg)</option>
-                <option value="units">Units / Pieces</option>
-                <option value="sacks">Gunny Sacks</option>
-                <option value="litres">Litres</option>
+                <option value="clean/dry">Clean & Dry (Standard)</option>
+                <option value="sorted">Separated & Sorted</option>
+                <option value="washed">Washed / Sanitized</option>
+                <option value="mixed">Mixed Recyclables</option>
+                <option value="raw/unprocessed">Raw / Unprocessed</option>
               </select>
             </div>
 
             <div>
               <label className="block font-label-md text-label-md text-on-surface mb-1 font-semibold">
-                Pricing Mode *
+                Pricing / Exchange *
               </label>
               <select
                 value={listingType}
-                onChange={(e) => setListingType(e.target.value as ListingPricing)}
+                onChange={(e) => setListingType(e.target.value as any)}
                 className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-3 transition-all"
               >
                 <option value="free">Free Donation (Recommended)</option>
@@ -286,7 +404,6 @@ export const CreateListingPage: React.FC = () => {
             </div>
           </div>
 
-          {/* If nominal sale, show price field */}
           {listingType === 'sale' && (
             <div className="max-w-xs">
               <Input
@@ -299,56 +416,186 @@ export const CreateListingPage: React.FC = () => {
             </div>
           )}
 
-          {/* Location Fields */}
-          <div className="pt-2 border-t border-outline-variant/40 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="font-heading font-semibold text-title-md text-primary block">
-                Pickup Location in Kerala
-              </span>
-              <button
-                type="button"
-                onClick={detectLocation}
-                disabled={geoLoading}
-                className="text-xs text-primary inline-flex items-center gap-1 hover:underline font-medium"
-              >
-                <Navigation className="w-3.5 h-3.5" />
-                <span>{geoLoading ? 'Detecting...' : 'Use My GPS Location'}</span>
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* ========================================================================= */}
+          {/* FEATURE 1: CLEARLY VISIBLE PICKUP LOCATION SELECTION SECTION              */}
+          {/* ========================================================================= */}
+          <div className="pt-4 border-t border-outline-variant/50 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
               <div>
-                <label className="block font-label-md text-label-md text-on-surface mb-1 font-semibold">
-                  District *
-                </label>
-                <select
-                  value={district}
-                  onChange={(e) => setDistrict(e.target.value)}
-                  className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-3 transition-all"
-                  required
-                >
-                  <option value="">Select Kerala District</option>
-                  {keralaDistricts.map((d) => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
-                </select>
+                <h2 className="font-heading font-bold text-title-md text-primary flex items-center gap-1.5">
+                  <MapPin className="w-5 h-5 text-primary" />
+                  <span>Pickup Location in Kerala *</span>
+                </h2>
+                <p className="font-body-sm text-xs text-on-surface-variant">
+                  Select your current GPS location or search for your town/locality. Coordinates are used to calculate distances for nearby users.
+                </p>
               </div>
 
-              <Input
-                label="Ward / Locality *"
-                placeholder="e.g. Kadavanthra, Panampilly Nagar"
-                value={locality}
-                onChange={(e) => setLocality(e.target.value)}
-                required
-              />
-
-              <Input
-                label="Pickup Landmark *"
-                placeholder="e.g. Near Market Road Junction"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-              />
+              {hasSelectedLocation && (
+                <span className="font-mono text-[11px] text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 px-2 py-0.5 rounded-full inline-flex items-center gap-1 self-start sm:self-auto">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                  {latitude?.toFixed(4)}°N, {longitude?.toFixed(4)}°E
+                </span>
+              )}
             </div>
+
+            {locationError && (
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 rounded-lg text-xs flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <span>{locationError}</span>
+              </div>
+            )}
+
+            {/* Selection Methods Grid: Option A & Option B */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Option A: Use My Current Location */}
+              <div className="p-4 rounded-xl border border-outline-variant/70 bg-surface-container-low/50 hover:border-primary/40 transition-all flex flex-col justify-between space-y-3">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="w-6 h-6 rounded-full bg-primary-container text-on-primary font-bold text-xs flex items-center justify-center">
+                      A
+                    </span>
+                    <h3 className="font-semibold text-body-md text-on-surface">
+                      Use My Current Location
+                    </h3>
+                  </div>
+                  <p className="text-xs text-on-surface-variant leading-relaxed">
+                    Automatically detect your precise GPS coordinates and reverse-geocode your Kerala locality and district.
+                  </p>
+                </div>
+
+                <Button
+                  type="button"
+                  variant={locationSource === 'current' ? 'primary' : 'outline'}
+                  size="md"
+                  onClick={handleUseCurrentLocation}
+                  disabled={isDetectingGps}
+                  icon={isDetectingGps ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
+                  fullWidth
+                >
+                  {isDetectingGps
+                    ? 'Detecting GPS Coordinates...'
+                    : locationSource === 'current'
+                    ? '✓ GPS Location Detected'
+                    : 'Use My Current Location'}
+                </Button>
+              </div>
+
+              {/* Option B: Search for a Location */}
+              <div className="p-4 rounded-xl border border-outline-variant/70 bg-surface-container-low/50 hover:border-primary/40 transition-all flex flex-col justify-between space-y-3">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="w-6 h-6 rounded-full bg-primary-container text-on-primary font-bold text-xs flex items-center justify-center">
+                      B
+                    </span>
+                    <h3 className="font-semibold text-body-md text-on-surface">
+                      Search for a Location
+                    </h3>
+                  </div>
+                  <p className="text-xs text-on-surface-variant leading-relaxed">
+                    Type your locality, village, town, or district in Kerala and select from autocomplete suggestions.
+                  </p>
+                </div>
+
+                <LocationAutocomplete
+                  onSelect={handleSelectAutocomplete}
+                  selectedLocation={locationSource === 'search' ? selectedLocation : null}
+                  placeholder="e.g. Cheruvathur, Kanhangad, Edappally, Aluva..."
+                  onClear={handleClearLocation}
+                />
+              </div>
+            </div>
+
+            {/* Selected Location Summary Card */}
+            {hasSelectedLocation && (
+              <div className="p-4 rounded-xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-start gap-2.5">
+                    <div className="p-1.5 rounded-lg bg-emerald-600 text-white shrink-0 mt-0.5">
+                      <MapPin className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-body-md text-emerald-950 dark:text-emerald-100">
+                          {locality}, {district}
+                        </span>
+                        <span className="text-xs text-emerald-800 dark:text-emerald-300 font-medium">
+                          ({state}{pincode ? ` - ${pincode}` : ''})
+                        </span>
+                        <Badge variant="active">
+                          {locationSource === 'current' ? 'GPS Detected' : 'Verified Autocomplete'}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-emerald-900/80 dark:text-emerald-300/80 mt-0.5">
+                        {formattedAddress || `${locality}, ${district}, Kerala`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingLocationDetails(!isEditingLocationDetails)}
+                      className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 hover:underline inline-flex items-center gap-1"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>{isEditingLocationDetails ? 'Done Editing' : 'Edit Details'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleClearLocation}
+                      className="text-xs font-semibold text-on-surface-variant hover:text-error inline-flex items-center gap-1"
+                      title="Clear location"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Optional Landmark & Editable Fields */}
+                <div className="pt-2 border-t border-emerald-200 dark:border-emerald-800/60 grid grid-cols-1 sm:grid-cols-12 gap-3">
+                  <div className="sm:col-span-12">
+                    <Input
+                      label="Pickup Landmark / Directions (Optional)"
+                      placeholder="e.g. Near Municipal Bus Stand, Opp. Primary Health Centre, Gate No. 2"
+                      value={landmarkAddress}
+                      onChange={(e) => setLandmarkAddress(e.target.value)}
+                      helperText="Public listings only display approximate locality. Exact residential street directions are only shared upon confirmed pickup."
+                    />
+                  </div>
+
+                  {isEditingLocationDetails && (
+                    <>
+                      <div className="sm:col-span-6">
+                        <label className="block font-label-md text-label-md text-on-surface mb-1 font-semibold">
+                          District *
+                        </label>
+                        <select
+                          value={district}
+                          onChange={(e) => setDistrict(e.target.value)}
+                          className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-3 transition-all"
+                          required
+                        >
+                          <option value="">Select Kerala District</option>
+                          {keralaDistricts.map((d) => (
+                            <option key={d} value={d}>{d}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="sm:col-span-6">
+                        <Input
+                          label="Ward / Locality Name *"
+                          value={locality}
+                          onChange={(e) => setLocality(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Optional Photo URL */}
@@ -385,7 +632,6 @@ export const CreateListingPage: React.FC = () => {
               {submitting ? 'Publishing...' : 'Publish Material Listing'}
             </Button>
           </div>
-
         </form>
       </Card>
     </div>

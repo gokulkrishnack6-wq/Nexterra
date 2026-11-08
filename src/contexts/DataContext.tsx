@@ -330,6 +330,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const currUser = currentUserRef.current;
         const mappedListings: WasteListing[] = rawListings.map((item: any) => ({
           ...item,
+          formatted_address: item.formatted_address || item.address,
+          locality: item.locality || item.district,
           is_demo: false,
           user: pubProfilesMap.get(item.user_id) || (currUser && item.user_id === currUser.id ? currUser : undefined),
           category: item.category || activeCategories.find((c) => c.id === item.category_id || c.slug === item.category_id),
@@ -508,6 +510,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const populatedListings = useMemo(() => {
     return listings.map((l) => ({
       ...l,
+      formatted_address: l.formatted_address || l.address,
+      locality: l.locality || l.district,
       is_demo: false,
       category: l.category || categories.find((c) => c.id === l.category_id || c.slug === l.category_id),
       user: l.user || (currentUser && l.user_id === currentUser.id ? currentUser : undefined),
@@ -616,7 +620,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         condition: listingData.condition || 'clean/dry',
         district: listingData.district.trim(),
         locality: (listingData.locality || listingData.district).trim(),
-        address: (listingData.address || '').trim(),
+        address: (listingData.formatted_address || listingData.address || '').trim(),
         latitude: listingData.latitude,
         longitude: listingData.longitude,
         status: 'active',

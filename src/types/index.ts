@@ -101,6 +101,10 @@ export interface WasteListing {
   district: string;
   locality: string;
   address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  formatted_address?: string;
   latitude: number;
   longitude: number;
   status: ListingStatus;
