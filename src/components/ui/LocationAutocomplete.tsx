@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, MapPin, X, Loader2, Check } from 'lucide-react';
 import { LocationSuggestion, searchLocationAutocomplete } from '../../services/geocoding';
+import { useOutsideClick } from '../../hooks/useOutsideClick';
 
 export interface LocationAutocompleteProps {
   onSelect: (location: LocationSuggestion) => void;
@@ -34,9 +35,20 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
   const [focusedIndex, setFocusedIndex] = useState<number>(-1);
   const [searchError, setSearchError] = useState<string | null>(null);
 
-  const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Close dropdown helper
+  const closeDropdown = useCallback(() => {
+    setIsOpen(false);
+    setFocusedIndex(-1);
+  }, []);
+
+  // Global outside-click and Escape key handler
+  const containerRef = useOutsideClick<HTMLDivElement>(closeDropdown, {
+    enabled: isOpen,
+    onEscape: closeDropdown,
+  });
 
   // Sync internal input value with selected location prop or initial value
   useEffect(() => {
@@ -46,17 +58,6 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
       setInputValue(initialValue);
     }
   }, [selectedLocation, initialValue]);
-
-  // Click outside listener to close dropdown
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   // Debounced search query handler (approx 350ms)
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -97,6 +98,7 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
     setSuggestions([]);
     setIsOpen(false);
     setFocusedIndex(-1);
+    setSearchError(null);
     onSelect(suggestion);
   };
 
@@ -105,6 +107,7 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
     setSuggestions([]);
     setIsOpen(false);
     setFocusedIndex(-1);
+    setSearchError(null);
     if (onClear) onClear();
     if (inputRef.current) inputRef.current.focus();
   };

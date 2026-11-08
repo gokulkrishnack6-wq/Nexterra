@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Award, 
@@ -44,6 +44,25 @@ export const ImpactDashboardPage: React.FC = () => {
   const [selectedReward, setSelectedReward] = useState<EcoReward | null>(null);
   const [claimSuccessMsg, setClaimSuccessMsg] = useState<string | null>(null);
   const [claimedVoucherCode, setClaimedVoucherCode] = useState<string | null>(null);
+
+  // Handle Escape key and body scroll lock for Reward Voucher Modal
+  useEffect(() => {
+    if (!selectedReward) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelectedReward(null);
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [selectedReward]);
 
   // -------------------------------------------------------------
   // 1. LOGGED-OUT EXPERIENCE: DEDICATED SIGN-IN REQUIRED SCREEN
@@ -719,8 +738,19 @@ export const ImpactDashboardPage: React.FC = () => {
 
       {/* Modal: Confirm Reward Redemption */}
       {selectedReward && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <Card variant="elevated" className="max-w-md w-full p-6 space-y-4 shadow-xl border-outline-variant">
+        <div
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 cursor-pointer"
+          role="dialog"
+          aria-modal="true"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelectedReward(null);
+          }}
+        >
+          <Card
+            variant="elevated"
+            className="max-w-md w-full p-6 space-y-4 shadow-xl border-outline-variant cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-2">
                 <Gift className="w-5 h-5 text-primary" />

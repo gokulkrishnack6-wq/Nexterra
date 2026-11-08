@@ -66,3 +66,4 @@ COMMENT ON COLUMN public.listings.district IS 'Kerala revenue district';
 COMMENT ON COLUMN public.listings.city IS 'City, municipality, or local revenue body';
 COMMENT ON COLUMN public.listings.state IS 'State name (default Kerala)';
 COMMENT ON COLUMN public.listings.pincode IS 'Postal PIN code (optional)';
+

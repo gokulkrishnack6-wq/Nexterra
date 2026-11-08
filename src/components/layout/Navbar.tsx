@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   Plus, 
@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
+import { useOutsideClick } from '../../hooks/useOutsideClick';
 import { Button } from '../ui/Button';
 
 export const Navbar: React.FC = () => {
@@ -20,6 +21,25 @@ export const Navbar: React.FC = () => {
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
+
+  const closeNotifs = useCallback(() => setNotifDropdownOpen(false), []);
+  const closeMobile = useCallback(() => setMobileMenuOpen(false), []);
+
+  const notifRef = useOutsideClick<HTMLDivElement>(closeNotifs, {
+    enabled: notifDropdownOpen,
+    onEscape: closeNotifs,
+  });
+
+  const mobileNavRef = useOutsideClick<HTMLDivElement>(closeMobile, {
+    enabled: mobileMenuOpen,
+    onEscape: closeMobile,
+  });
+
+  // Auto-close on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+    setNotifDropdownOpen(false);
+  }, [location.pathname]);
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
@@ -91,11 +111,12 @@ export const Navbar: React.FC = () => {
           <div className="hidden sm:flex items-center gap-3">
             {/* Notifications */}
             {currentUser && (
-              <div className="relative">
+              <div ref={notifRef} className="relative">
                 <button
                   onClick={() => setNotifDropdownOpen(!notifDropdownOpen)}
                   className="relative p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-lg transition-colors"
                   title="Activity Notifications"
+                  aria-expanded={notifDropdownOpen}
                 >
                   <Bell className="w-4 h-4" />
                   {unreadCount > 0 && (
@@ -214,7 +235,7 @@ export const Navbar: React.FC = () => {
 
         {/* Mobile Nav Links Dropdown */}
         {mobileMenuOpen && (
-          <div className="md:hidden py-3 border-t border-outline-variant/50 space-y-2">
+          <div ref={mobileNavRef} className="md:hidden py-3 border-t border-outline-variant/50 space-y-2">
             {navLinks.map((link) => (
               <Link
                 key={link.path}

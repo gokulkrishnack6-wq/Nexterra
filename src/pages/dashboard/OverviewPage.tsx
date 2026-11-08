@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
@@ -50,6 +50,25 @@ export const OverviewPage: React.FC = () => {
 
   // Digital Handover Pass Modal State
   const [selectedExchangeForPass, setSelectedExchangeForPass] = useState<ExchangeRequest | null>(null);
+
+  // Handle Escape key and body scroll lock for Handover Pass Modal
+  useEffect(() => {
+    if (!selectedExchangeForPass) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelectedExchangeForPass(null);
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [selectedExchangeForPass]);
 
   // Available community challenge or spotlight drive
   const spotlightDrive = challenges[0] || null;
@@ -691,11 +710,17 @@ export const OverviewPage: React.FC = () => {
       {/* Digital Handover Pass Modal */}
       {selectedExchangeForPass && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm cursor-pointer"
           role="dialog"
           aria-modal="true"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelectedExchangeForPass(null);
+          }}
         >
-          <div className="bg-white rounded-2xl border border-gl-border p-4 sm:p-6 max-w-sm w-full shadow-2xl flex flex-col items-center text-center gap-3">
+          <div
+            className="bg-white rounded-2xl border border-gl-border p-4 sm:p-6 max-w-sm w-full shadow-2xl flex flex-col items-center text-center gap-3 cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="w-12 h-12 rounded-full bg-gl-sage-light text-gl-forest flex items-center justify-center">
               <QrCode className="w-6 h-6" />
             </div>

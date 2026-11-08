@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
 import { useGeolocation, KERALA_DISTRICT_COORDS } from '../../hooks/useGeolocation';
+import { useOutsideClick } from '../../hooks/useOutsideClick';
 import {
   LayoutDashboard,
   Store,
@@ -55,31 +56,71 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
-  const [createMenuOpen, setCreateMenuOpen] = useState(false);
-  const [locationMenuOpen, setLocationMenuOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  // Unified overlay management: prevents multiple conflicting menus
+  type ActiveMenu = 'none' | 'location' | 'create' | 'notif' | 'user' | 'mobile';
+  const [activeMenu, setActiveMenu] = useState<ActiveMenu>('none');
 
-  // Auto-close open menus on route navigation
+  const closeAllMenus = useCallback(() => {
+    setActiveMenu('none');
+  }, []);
+
+  const toggleMenu = useCallback((menu: ActiveMenu) => {
+    setActiveMenu((prev) => (prev === menu ? 'none' : menu));
+  }, []);
+
+  const mobileMenuOpen = activeMenu === 'mobile';
+  const locationMenuOpen = activeMenu === 'location';
+  const createMenuOpen = activeMenu === 'create';
+  const notifOpen = activeMenu === 'notif';
+  const userMenuOpen = activeMenu === 'user';
+
+  // Outside click & Escape dismissal for each floating header dropdown
+  const locationRef = useOutsideClick<HTMLDivElement>(closeAllMenus, {
+    enabled: locationMenuOpen,
+    onEscape: closeAllMenus,
+  });
+
+  const createRef = useOutsideClick<HTMLDivElement>(closeAllMenus, {
+    enabled: createMenuOpen,
+    onEscape: closeAllMenus,
+  });
+
+  const notifRef = useOutsideClick<HTMLDivElement>(closeAllMenus, {
+    enabled: notifOpen,
+    onEscape: closeAllMenus,
+  });
+
+  const userRef = useOutsideClick<HTMLDivElement>(closeAllMenus, {
+    enabled: userMenuOpen,
+    onEscape: closeAllMenus,
+  });
+
+  // Mobile drawer Escape key handler
   React.useEffect(() => {
-    setMobileMenuOpen(false);
-    setNotifOpen(false);
-    setCreateMenuOpen(false);
-    setLocationMenuOpen(false);
-    setUserMenuOpen(false);
-  }, [location.pathname]);
+    if (!mobileMenuOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeAllMenus();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [mobileMenuOpen, closeAllMenus]);
 
-  // Lock body scroll when mobile drawer is open
+  // Auto-close any open overlay on route navigation
+  React.useEffect(() => {
+    closeAllMenus();
+  }, [location.pathname, closeAllMenus]);
+
+  // Lock body scroll when mobile drawer is open, cleanly restore on unmount/close
   React.useEffect(() => {
     if (mobileMenuOpen) {
+      const prev = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = prev;
+      };
     } else {
       document.body.style.overflow = '';
     }
-    return () => {
-      document.body.style.overflow = '';
-    };
   }, [mobileMenuOpen]);
 
   const keralaDistricts = Object.keys(KERALA_DISTRICT_COORDS);
@@ -212,12 +253,12 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
         <div className="fixed inset-0 z-50 md:hidden flex">
           <div
             className="fixed inset-0 bg-on-surface/40 backdrop-blur-sm transition-opacity"
-            onClick={() => setMobileMenuOpen(false)}
+            onClick={closeAllMenus}
           />
           <div className="relative w-72 max-w-[80vw] bg-surface-container-low h-full flex flex-col justify-between py-space-md px-space-sm shadow-xl z-50 overflow-y-auto">
             <div>
               <div className="flex items-center justify-between pb-space-md border-b border-outline-variant/40 px-2">
-                <Link to="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2">
+                <Link to="/" onClick={closeAllMenus} className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-primary-container text-on-primary flex items-center justify-center font-bold">
                     <img src="/logo.png" alt="GreenLoop" className="w-5 h-5 object-contain" />
                   </div>
@@ -227,8 +268,9 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                   </div>
                 </Link>
                 <button
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={closeAllMenus}
                   className="p-1 rounded-md text-on-surface-variant hover:bg-surface-container"
+                  aria-label="Close navigation"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -242,7 +284,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                     <Link
                       key={item.path}
                       to={item.path}
-                      onClick={() => setMobileMenuOpen(false)}
+                      onClick={closeAllMenus}
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-label-md text-label-md transition-colors ${
                         active
                           ? 'bg-primary-container text-on-primary font-semibold'
@@ -267,7 +309,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                   <button
                     onClick={() => {
                       signOut();
-                      setMobileMenuOpen(false);
+                      closeAllMenus();
                     }}
                     className="p-1.5 text-outline hover:text-error"
                     title="Sign Out"
@@ -278,7 +320,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
               ) : (
                 <Link
                   to="/login"
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={closeAllMenus}
                   className="block text-center py-2 text-xs font-semibold text-on-primary bg-primary-container rounded-lg"
                 >
                   Sign In
@@ -296,7 +338,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
           {/* Left: Mobile Toggle + Geolocation Context Pill */}
           <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-space-md min-w-0">
             <button
-              onClick={() => setMobileMenuOpen(true)}
+              onClick={() => toggleMenu('mobile')}
               className="md:hidden p-1.5 xs:p-2 rounded-lg text-on-surface-variant hover:bg-surface-container shrink-0"
               aria-label="Open Navigation Menu"
             >
@@ -304,11 +346,13 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
             </button>
 
             {/* Geolocation Selector Pill */}
-            <div className="relative min-w-0">
+            <div ref={locationRef} className="relative min-w-0">
               <button
-                onClick={() => setLocationMenuOpen(!locationMenuOpen)}
+                onClick={() => toggleMenu('location')}
                 className="inline-flex items-center gap-1 xs:gap-1.5 px-2 xs:px-3 py-1 xs:py-1.5 rounded-full bg-surface-container text-on-surface text-label-sm font-label-sm cursor-pointer hover:bg-surface-container-high transition-colors border border-outline-variant/40 max-w-full"
                 title="Current Location"
+                aria-expanded={locationMenuOpen}
+                aria-haspopup="true"
               >
                 {geoLoading ? (
                   <Loader2 className="w-3.5 h-3.5 text-primary animate-spin shrink-0" />
@@ -326,7 +370,19 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
               </button>
 
               {locationMenuOpen && (
-                <div className="fixed inset-x-2 top-16 sm:absolute sm:inset-auto sm:left-0 sm:top-full mt-2 w-auto sm:w-80 max-w-sm bg-surface-container-lowest border border-outline-variant rounded-xl shadow-dropdown py-2 z-50">
+                <div className="fixed inset-x-2 top-16 sm:absolute sm:inset-auto sm:left-0 sm:top-full mt-2 w-auto sm:w-80 max-w-sm max-h-[calc(100vh-5rem)] overflow-y-auto bg-surface-container-lowest border border-outline-variant rounded-xl shadow-dropdown py-2 z-50">
+                  {/* Mobile header with close button */}
+                  <div className="flex items-center justify-between px-3.5 py-1.5 sm:hidden border-b border-outline-variant/30">
+                    <span className="text-xs font-semibold text-primary">Location Settings</span>
+                    <button
+                      onClick={closeAllMenus}
+                      className="p-1 rounded-md text-outline hover:text-on-surface"
+                      aria-label="Close location menu"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
                   {/* Current Active Location Summary */}
                   <div className="px-3.5 py-2.5 border-b border-outline-variant/40 bg-surface-container-low/40">
                     <div className="flex items-center justify-between mb-1">
@@ -400,7 +456,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                     <button
                       onClick={() => {
                         detectLocation({ force: true });
-                        setLocationMenuOpen(false);
+                        closeAllMenus();
                       }}
                       disabled={geoLoading}
                       className="w-full inline-flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg bg-primary-container text-on-primary text-xs font-semibold hover:bg-primary transition-colors disabled:opacity-50"
@@ -432,7 +488,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                         key={district}
                         onClick={() => {
                           setManualDistrict(district);
-                          setLocationMenuOpen(false);
+                          closeAllMenus();
                         }}
                         className={`w-full text-left px-3 py-1.5 text-xs transition-colors flex items-center justify-between ${
                           currentDistrict === district
@@ -453,11 +509,13 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
           {/* Right Action Bar */}
           <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-space-md shrink-0">
             {/* Quick Create Dropdown */}
-            <div className="relative">
+            <div ref={createRef} className="relative">
               <button
-                onClick={() => setCreateMenuOpen(!createMenuOpen)}
+                onClick={() => toggleMenu('create')}
                 className="inline-flex items-center gap-1 xs:gap-1.5 bg-primary-container text-on-primary px-2 xs:px-3 sm:px-space-md py-1.5 rounded-lg font-label-md text-xs sm:text-label-md hover:bg-primary transition-all shadow-sm"
                 type="button"
+                aria-expanded={createMenuOpen}
+                aria-haspopup="true"
               >
                 <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 <span className="hidden sm:inline">New Action</span>
@@ -468,7 +526,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                 <div className="absolute right-0 mt-2 w-48 sm:w-56 max-w-[calc(100vw-1.5rem)] bg-surface-container-lowest border border-outline-variant rounded-xl shadow-dropdown py-1.5 z-50">
                   <button
                     onClick={() => {
-                      setCreateMenuOpen(false);
+                      closeAllMenus();
                       navigate('/marketplace/new');
                     }}
                     className="w-full text-left px-3 py-2 text-xs text-on-surface hover:bg-surface-container flex items-center gap-2"
@@ -481,7 +539,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                   </button>
                   <button
                     onClick={() => {
-                      setCreateMenuOpen(false);
+                      closeAllMenus();
                       navigate('/ai-scanner');
                     }}
                     className="w-full text-left px-3 py-2 text-xs text-on-surface hover:bg-surface-container flex items-center gap-2"
@@ -494,7 +552,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                   </button>
                   <button
                     onClick={() => {
-                      setCreateMenuOpen(false);
+                      closeAllMenus();
                       navigate('/report-issue');
                     }}
                     className="w-full text-left px-3 py-2 text-xs text-on-surface hover:bg-surface-container flex items-center gap-2"
@@ -510,12 +568,14 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
             </div>
 
             {/* Notifications Bell */}
-            <div className="relative">
+            <div ref={notifRef} className="relative">
               <button
-                onClick={() => setNotifOpen(!notifOpen)}
+                onClick={() => toggleMenu('notif')}
                 className="relative p-1.5 xs:p-2 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors"
                 type="button"
                 aria-label="Activity Notifications"
+                aria-expanded={notifOpen}
+                aria-haspopup="true"
               >
                 <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
                 {unreadCount > 0 && (
@@ -550,7 +610,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                           onClick={() => {
                             markNotificationAsRead(item.id);
                             if (item.link) navigate(item.link);
-                            setNotifOpen(false);
+                            closeAllMenus();
                           }}
                           className={`p-3 text-left hover:bg-surface-container-low cursor-pointer transition-colors ${
                             !item.is_read ? 'bg-surface-container/40' : ''
@@ -576,12 +636,14 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
             </div>
 
             {/* Profile Avatar & User Dropdown */}
-            <div className="relative">
+            <div ref={userRef} className="relative">
               {currentUser ? (
                 <>
                   <button
-                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    onClick={() => toggleMenu('user')}
                     className="flex items-center gap-1.5 xs:gap-2 pl-1.5 xs:pl-2 border-l border-outline-variant/40 hover:opacity-85 transition-opacity"
+                    aria-expanded={userMenuOpen}
+                    aria-haspopup="true"
                   >
                     <div className="flex flex-col text-right hidden sm:flex">
                       <span className="font-label-md text-label-md text-on-surface leading-tight font-semibold">
@@ -622,7 +684,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                       <div className="py-1">
                         <Link
                           to="/"
-                          onClick={() => setUserMenuOpen(false)}
+                          onClick={closeAllMenus}
                           className="flex items-center gap-2.5 px-4 py-2 text-xs text-on-surface hover:bg-surface-container"
                         >
                           <LayoutDashboard className="w-4 h-4 text-outline" />
@@ -630,7 +692,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                         </Link>
                         <Link
                           to="/exchanges"
-                          onClick={() => setUserMenuOpen(false)}
+                          onClick={closeAllMenus}
                           className="flex items-center gap-2.5 px-4 py-2 text-xs text-on-surface hover:bg-surface-container"
                         >
                           <Repeat className="w-4 h-4 text-outline" />
@@ -638,7 +700,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                         </Link>
                         <Link
                           to="/impact"
-                          onClick={() => setUserMenuOpen(false)}
+                          onClick={closeAllMenus}
                           className="flex items-center gap-2.5 px-4 py-2 text-xs text-on-surface hover:bg-surface-container"
                         >
                           <Award className="w-4 h-4 text-outline" />
@@ -649,7 +711,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                       <div className="border-t border-outline-variant/40 pt-1">
                         <button
                           onClick={() => {
-                            setUserMenuOpen(false);
+                            closeAllMenus();
                             signOut();
                           }}
                           className="w-full text-left flex items-center gap-2.5 px-4 py-2 text-xs text-error hover:bg-surface-container"
