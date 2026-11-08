@@ -282,289 +282,7 @@ BEGIN
 END $$;
 
 -- ------------------------------------------------------------------------------
--- 6. ECO POINTS LEDGER & STRICT WRITE LOCKDOWN
--- ------------------------------------------------------------------------------
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ecopoints_action') THEN
-    CREATE TYPE ecopoints_action AS ENUM (
-      'signup_bonus',
-      'listing_created',
-      'exchange_completed',
-      'challenge_completed',
-      'verified_donation',
-      'daily_streak',
-      'referral',
-      'reward_redeemed'
-    );
-  END IF;
-END $$;
-
-CREATE TABLE IF NOT EXISTS public.eco_points (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  points INTEGER NOT NULL CHECK (points <> 0),
-  action_type ecopoints_action NOT NULL,
-  reference_id UUID,
-  description TEXT NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_eco_points_user ON public.eco_points(user_id);
-CREATE INDEX IF NOT EXISTS idx_eco_points_reference ON public.eco_points(reference_id);
-
--- Complete RLS audit for eco_points: explicitly drop ONLY conflicting/legacy policies
-ALTER TABLE public.eco_points ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Users view own points ledger" ON public.eco_points;
-DROP POLICY IF EXISTS "Users can view own points" ON public.eco_points;
-DROP POLICY IF EXISTS "Users can insert eco points" ON public.eco_points;
-DROP POLICY IF EXISTS "Users can insert own eco points" ON public.eco_points;
-DROP POLICY IF EXISTS "Users can modify eco points" ON public.eco_points;
-DROP POLICY IF EXISTS "Users can update own eco points" ON public.eco_points;
-DROP POLICY IF EXISTS "Users can delete own eco points" ON public.eco_points;
-
-CREATE POLICY "Users view own points ledger" ON public.eco_points FOR SELECT USING (auth.uid() = user_id);
-
--- WRITE SECURITY LOCKDOWN:
--- Direct INSERT, UPDATE, DELETE on public.eco_points is completely revoked from clients.
--- Points can ONLY be written by verified server-side SECURITY DEFINER functions and triggers.
-REVOKE INSERT, UPDATE, DELETE ON public.eco_points FROM authenticated, anon, public;
-GRANT SELECT ON public.eco_points TO authenticated;
-
--- Safe duplicate audit before unique index creation:
--- If duplicate signup bonuses exist in existing data, report them without deleting records.
--- If clean, creates the partial unique index immediately.
-DO $$
-DECLARE
-  v_dup_count INT := 0;
-  v_dup_users TEXT;
-BEGIN
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'eco_points') THEN
-    SELECT COUNT(*), COALESCE(string_agg(user_id::text, ', '), 'none')
-    INTO v_dup_count, v_dup_users
-    FROM (
-      SELECT user_id
-      FROM public.eco_points
-      WHERE action_type = 'signup_bonus'::ecopoints_action
-      GROUP BY user_id
-      HAVING COUNT(*) > 1
-    ) dups;
-
-    IF v_dup_count > 0 THEN
-      -- Report duplicates clearly without deleting records (as requested)
-      RAISE WARNING 'GreenLoop Migration Notice: Found % user(s) with pre-existing duplicate signup_bonus entries: [%]. Creation of unique index idx_eco_points_unique_signup_bonus was skipped to prevent migration failure and preserve records. Manual review is recommended.', v_dup_count, v_dup_users;
-    ELSE
-      -- Clean data: create partial unique index
-      EXECUTE 'CREATE UNIQUE INDEX IF NOT EXISTS idx_eco_points_unique_signup_bonus ON public.eco_points(user_id) WHERE (action_type = ''signup_bonus''::ecopoints_action)';
-    END IF;
-  END IF;
-END $$;
-
--- ------------------------------------------------------------------------------
--- 7. RELIABLE DATABASE-LEVEL BALANCE PROTECTION & TRUSTED ACCOUNTING
--- ------------------------------------------------------------------------------
-
--- Reliable Database-Level Mechanism:
--- Protects profiles.eco_points_balance from direct client modification.
--- Direct client updates through PostgREST/Supabase SDK cannot alter points directly.
--- Authorized server-side functions set a transaction-local context flag before updating.
-CREATE OR REPLACE FUNCTION public.protect_profile_eco_points()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF NEW.eco_points_balance IS DISTINCT FROM OLD.eco_points_balance THEN
-    -- Check if the update is authorized by trusted internal server operations
-    IF current_setting('greenloop.internal_ecopoints_update', true) <> 'true' THEN
-      RAISE EXCEPTION 'Direct modification of eco_points_balance is forbidden. Points must be earned or redeemed through verified system operations.';
-    END IF;
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-DROP TRIGGER IF EXISTS trg_protect_profile_eco_points ON public.profiles;
-CREATE TRIGGER trg_protect_profile_eco_points
-  BEFORE UPDATE OF eco_points_balance ON public.profiles
-  FOR EACH ROW EXECUTE FUNCTION public.protect_profile_eco_points();
-
--- ------------------------------------------------------------------------------
--- 7A. SECURE REDEMPTION RPC (Debits Only - Zero Positive User Point Allocation)
--- ------------------------------------------------------------------------------
--- Users CANNOT award themselves positive points.
--- This RPC strictly enforces:
--- 1. p_points MUST be negative (debit only, e.g. claiming rewards).
--- 2. p_action_type MUST be 'reward_redeemed'.
--- 3. Sufficient balance check with row-level lock (FOR UPDATE) to prevent race conditions.
--- 4. Authorized balance cache synchronization matching authoritative ledger SUM(points).
-CREATE OR REPLACE FUNCTION public.record_ecopoints_transaction(
-  p_points INTEGER,
-  p_action_type ecopoints_action,
-  p_description TEXT,
-  p_reference_id UUID DEFAULT NULL
-)
-RETURNS JSONB AS $$
-DECLARE
-  v_user_id UUID;
-  v_current_balance INTEGER;
-  v_new_balance INTEGER;
-  v_new_record_id UUID;
-BEGIN
-  -- 1. Caller authentication
-  v_user_id := auth.uid();
-  IF v_user_id IS NULL THEN
-    RAISE EXCEPTION 'Unauthorized: Must be logged in to record EcoPoints transactions';
-  END IF;
-
-  -- 2. CRITICAL SECURITY RULE: Reject all user-controlled positive point allocations
-  IF p_points >= 0 THEN
-    RAISE EXCEPTION 'Unauthorized: Users cannot allocate positive points. Points are awarded exclusively through verified system activities (e.g. creating listings, verified recycling).';
-  END IF;
-
-  -- 3. Restricted action gate: Only debits (such as reward redemptions) are allowed from client calls
-  IF p_action_type <> 'reward_redeemed'::ecopoints_action THEN
-    RAISE EXCEPTION 'Restricted action: % cannot be triggered directly by users. Only reward redemption debits are allowed.', p_action_type;
-  END IF;
-
-  -- 4. Debit protection: Check sufficient balance with row-level lock (FOR UPDATE) to prevent concurrency races
-  SELECT eco_points_balance INTO v_current_balance
-  FROM public.profiles
-  WHERE id = v_user_id
-  FOR UPDATE;
-
-  IF (COALESCE(v_current_balance, 0) + p_points) < 0 THEN
-    RAISE EXCEPTION 'Insufficient EcoPoints balance (Current: %, Required: %)', COALESCE(v_current_balance, 0), abs(p_points);
-  END IF;
-
-  -- 5. Insert transaction into authoritative ledger
-  INSERT INTO public.eco_points (
-    user_id, points, action_type, description, reference_id
-  )
-  VALUES (
-    v_user_id, p_points, p_action_type, p_description, p_reference_id
-  )
-  RETURNING id INTO v_new_record_id;
-
-  -- 6. Authorize internal profile balance update for this transaction
-  PERFORM set_config('greenloop.internal_ecopoints_update', 'true', true);
-
-  -- 7. Atomically synchronize materialized profile balance to SUM(points)
-  UPDATE public.profiles
-  SET eco_points_balance = (SELECT COALESCE(SUM(points), 0) FROM public.eco_points WHERE user_id = v_user_id),
-      updated_at = NOW()
-  WHERE id = v_user_id
-  RETURNING eco_points_balance INTO v_new_balance;
-
-  RETURN jsonb_build_object(
-    'success', true,
-    'record_id', v_new_record_id,
-    'points', p_points,
-    'new_balance', v_new_balance
-  );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
-
-REVOKE ALL ON FUNCTION public.record_ecopoints_transaction FROM public;
-GRANT EXECUTE ON FUNCTION public.record_ecopoints_transaction TO authenticated;
-
--- ------------------------------------------------------------------------------
--- 7B. TRUSTED SERVER-SIDE LISTING CREATION POINTS TRIGGER
--- ------------------------------------------------------------------------------
--- Awards points ONLY through trusted server-side execution:
--- 1. Verifies the underlying activity: listing row actually inserted in public.listings.
--- 2. Validates ownership: NEW.user_id must match authenticated caller.
--- 3. Enforces eligibility: Active listings only; demo listings are strictly excluded.
--- 4. Prevents duplicate awards: Checks reference_id + action_type.
--- 5. Anti-gaming rate limit: Maximum 5 rewarded listings per user per calendar day.
--- 6. Non-negotiable points amount: strictly 30 points (fixed server constant).
--- 7. Row-level locking ensures balance cache remains consistent under concurrency.
-CREATE OR REPLACE FUNCTION public.award_listing_ecopoints()
-RETURNS TRIGGER AS $$
-DECLARE
-  v_points CONSTANT INTEGER := 30;
-  v_today_awards INTEGER;
-  v_current_balance INTEGER;
-BEGIN
-  -- 1. Ignore demo listings
-  IF NEW.is_demo IS TRUE THEN
-    RETURN NEW;
-  END IF;
-
-  -- 2. Only active listings qualify
-  IF NEW.status <> 'active' THEN
-    RETURN NEW;
-  END IF;
-
-  -- 3. Validate user ownership
-  IF NEW.user_id IS NULL THEN
-    RETURN NEW;
-  END IF;
-
-  -- 4. Prevent duplicate awards for the same listing
-  IF EXISTS (
-    SELECT 1 FROM public.eco_points 
-    WHERE reference_id = NEW.id AND action_type = 'listing_created'::ecopoints_action
-  ) THEN
-    RETURN NEW;
-  END IF;
-
-  -- 5. Anti-gaming rate limit: max 5 rewarded listings per user per calendar day
-  SELECT COUNT(*) INTO v_today_awards
-  FROM public.eco_points
-  WHERE user_id = NEW.user_id
-    AND action_type = 'listing_created'::ecopoints_action
-    AND created_at >= date_trunc('day', NOW());
-
-  IF v_today_awards >= 5 THEN
-    -- User still creates the listing successfully, but points award is capped to prevent spam
-    RETURN NEW;
-  END IF;
-
-  -- 6. Acquire row-level lock on user's profile to prevent concurrent race conditions
-  SELECT eco_points_balance INTO v_current_balance
-  FROM public.profiles
-  WHERE id = NEW.user_id
-  FOR UPDATE;
-
-  -- 7. Insert authoritative ledger transaction
-  INSERT INTO public.eco_points (
-    user_id,
-    points,
-    action_type,
-    reference_id,
-    description
-  )
-  VALUES (
-    NEW.user_id,
-    v_points,
-    'listing_created'::ecopoints_action,
-    NEW.id,
-    'Earned 30 EcoPoints for listing waste for circular reuse: ' || substring(NEW.title from 1 for 60)
-  );
-
-  -- 8. Authorize profile update and synchronize materialized balance to SUM(points)
-  PERFORM set_config('greenloop.internal_ecopoints_update', 'true', true);
-
-  UPDATE public.profiles
-  SET eco_points_balance = (SELECT COALESCE(SUM(points), 0) FROM public.eco_points WHERE user_id = NEW.user_id),
-      updated_at = NOW()
-  WHERE id = NEW.user_id;
-
-  RETURN NEW;
-EXCEPTION WHEN OTHERS THEN
-  -- Logging error should not abort listing creation
-  RAISE WARNING 'award_listing_ecopoints: EcoPoints award failed: %', SQLERRM;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
-
-DROP TRIGGER IF EXISTS trg_award_listing_ecopoints ON public.listings;
-CREATE TRIGGER trg_award_listing_ecopoints
-  AFTER INSERT ON public.listings
-  FOR EACH ROW
-  EXECUTE FUNCTION public.award_listing_ecopoints();
-
--- ------------------------------------------------------------------------------
--- 8. LISTINGS TABLE & COMPLETE RLS AUDIT
+-- 6. LISTINGS TABLE & COMPLETE RLS AUDIT (Defined strictly before listings triggers)
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.listings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -678,6 +396,288 @@ CREATE POLICY "Listing owners can delete own listings"
 
 GRANT SELECT ON public.listings TO authenticated, anon;
 GRANT INSERT, UPDATE, DELETE ON public.listings TO authenticated;
+
+-- ------------------------------------------------------------------------------
+-- 7. ECO POINTS LEDGER & STRICT WRITE LOCKDOWN
+-- ------------------------------------------------------------------------------
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ecopoints_action') THEN
+    CREATE TYPE ecopoints_action AS ENUM (
+      'signup_bonus',
+      'listing_created',
+      'exchange_completed',
+      'challenge_completed',
+      'verified_donation',
+      'daily_streak',
+      'referral',
+      'reward_redeemed'
+    );
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS public.eco_points (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  points INTEGER NOT NULL CHECK (points <> 0),
+  action_type ecopoints_action NOT NULL,
+  reference_id UUID,
+  description TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_eco_points_user ON public.eco_points(user_id);
+CREATE INDEX IF NOT EXISTS idx_eco_points_reference ON public.eco_points(reference_id);
+
+-- Complete RLS audit for eco_points: explicitly drop ONLY conflicting/legacy policies
+ALTER TABLE public.eco_points ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users view own points ledger" ON public.eco_points;
+DROP POLICY IF EXISTS "Users can view own points" ON public.eco_points;
+DROP POLICY IF EXISTS "Users can insert eco points" ON public.eco_points;
+DROP POLICY IF EXISTS "Users can insert own eco points" ON public.eco_points;
+DROP POLICY IF EXISTS "Users can modify eco points" ON public.eco_points;
+DROP POLICY IF EXISTS "Users can update own eco points" ON public.eco_points;
+DROP POLICY IF EXISTS "Users can delete own eco points" ON public.eco_points;
+
+CREATE POLICY "Users view own points ledger" ON public.eco_points FOR SELECT USING (auth.uid() = user_id);
+
+-- WRITE SECURITY LOCKDOWN:
+-- Direct INSERT, UPDATE, DELETE on public.eco_points is completely revoked from clients.
+-- Points can ONLY be written by verified server-side SECURITY DEFINER functions and triggers.
+REVOKE INSERT, UPDATE, DELETE ON public.eco_points FROM authenticated, anon, public;
+GRANT SELECT ON public.eco_points TO authenticated;
+
+-- Safe duplicate audit before unique index creation:
+-- If duplicate signup bonuses exist in existing data, report them without deleting records.
+-- If clean, creates the partial unique index immediately.
+DO $$
+DECLARE
+  v_dup_count INT := 0;
+  v_dup_users TEXT;
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'eco_points') THEN
+    SELECT COUNT(*), COALESCE(string_agg(user_id::text, ', '), 'none')
+    INTO v_dup_count, v_dup_users
+    FROM (
+      SELECT user_id
+      FROM public.eco_points
+      WHERE action_type = 'signup_bonus'::ecopoints_action
+      GROUP BY user_id
+      HAVING COUNT(*) > 1
+    ) dups;
+
+    IF v_dup_count > 0 THEN
+      -- Report duplicates clearly without deleting records (as requested)
+      RAISE WARNING 'GreenLoop Migration Notice: Found % user(s) with pre-existing duplicate signup_bonus entries: [%]. Creation of unique index idx_eco_points_unique_signup_bonus was skipped to prevent migration failure and preserve records. Manual review is recommended.', v_dup_count, v_dup_users;
+    ELSE
+      -- Clean data: create partial unique index
+      EXECUTE 'CREATE UNIQUE INDEX IF NOT EXISTS idx_eco_points_unique_signup_bonus ON public.eco_points(user_id) WHERE (action_type = ''signup_bonus''::ecopoints_action)';
+    END IF;
+  END IF;
+END $$;
+
+-- ------------------------------------------------------------------------------
+-- 8. RELIABLE DATABASE-LEVEL BALANCE PROTECTION & TRUSTED ACCOUNTING
+-- ------------------------------------------------------------------------------
+
+-- Reliable Database-Level Mechanism:
+-- Protects profiles.eco_points_balance from direct client modification.
+-- Direct client updates through PostgREST/Supabase SDK cannot alter points directly.
+-- Authorized server-side functions set a transaction-local context flag before updating.
+CREATE OR REPLACE FUNCTION public.protect_profile_eco_points()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.eco_points_balance IS DISTINCT FROM OLD.eco_points_balance THEN
+    -- Check if the update is authorized by trusted internal server operations
+    IF current_setting('greenloop.internal_ecopoints_update', true) <> 'true' THEN
+      RAISE EXCEPTION 'Direct modification of eco_points_balance is forbidden. Points must be earned or redeemed through verified system operations.';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_protect_profile_eco_points ON public.profiles;
+CREATE TRIGGER trg_protect_profile_eco_points
+  BEFORE UPDATE OF eco_points_balance ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.protect_profile_eco_points();
+
+-- ------------------------------------------------------------------------------
+-- 8A. SECURE REDEMPTION RPC (Debits Only - Zero Positive User Point Allocation)
+-- ------------------------------------------------------------------------------
+-- Users CANNOT award themselves positive points.
+-- This RPC strictly enforces:
+-- 1. p_points MUST be negative (debit only, e.g. claiming rewards).
+-- 2. p_action_type MUST be 'reward_redeemed'.
+-- 3. Sufficient balance check with row-level lock (FOR UPDATE) to prevent race conditions.
+-- 4. Authorized balance cache synchronization matching authoritative ledger SUM(points).
+CREATE OR REPLACE FUNCTION public.record_ecopoints_transaction(
+  p_points INTEGER,
+  p_action_type ecopoints_action,
+  p_description TEXT,
+  p_reference_id UUID DEFAULT NULL
+)
+RETURNS JSONB AS $$
+DECLARE
+  v_user_id UUID;
+  v_current_balance INTEGER;
+  v_new_balance INTEGER;
+  v_new_record_id UUID;
+BEGIN
+  -- 1. Caller authentication
+  v_user_id := auth.uid();
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Unauthorized: Must be logged in to record EcoPoints transactions';
+  END IF;
+
+  -- 2. CRITICAL SECURITY RULE: Reject all user-controlled positive point allocations
+  IF p_points >= 0 THEN
+    RAISE EXCEPTION 'Unauthorized: Users cannot allocate positive points. Points are awarded exclusively through verified system activities (e.g. creating listings, verified recycling).';
+  END IF;
+
+  -- 3. Restricted action gate: Only debits (such as reward redemptions) are allowed from client calls
+  IF p_action_type <> 'reward_redeemed'::ecopoints_action THEN
+    RAISE EXCEPTION 'Restricted action: % cannot be triggered directly by users. Only reward redemption debits are allowed.', p_action_type;
+  END IF;
+
+  -- 4. Debit protection: Check sufficient balance with row-level lock (FOR UPDATE) to prevent concurrency races
+  SELECT eco_points_balance INTO v_current_balance
+  FROM public.profiles
+  WHERE id = v_user_id
+  FOR UPDATE;
+
+  IF (COALESCE(v_current_balance, 0) + p_points) < 0 THEN
+    RAISE EXCEPTION 'Insufficient EcoPoints balance (Current: %, Required: %)', COALESCE(v_current_balance, 0), abs(p_points);
+  END IF;
+
+  -- 5. Insert transaction into authoritative ledger
+  INSERT INTO public.eco_points (
+    user_id, points, action_type, description, reference_id
+  )
+  VALUES (
+    v_user_id, p_points, p_action_type, p_description, p_reference_id
+  )
+  RETURNING id INTO v_new_record_id;
+
+  -- 6. Authorize internal profile balance update for this transaction
+  PERFORM set_config('greenloop.internal_ecopoints_update', 'true', true);
+
+  -- 7. Atomically synchronize materialized profile balance to SUM(points)
+  UPDATE public.profiles
+  SET eco_points_balance = (SELECT COALESCE(SUM(points), 0) FROM public.eco_points WHERE user_id = v_user_id),
+      updated_at = NOW()
+  WHERE id = v_user_id
+  RETURNING eco_points_balance INTO v_new_balance;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'record_id', v_new_record_id,
+    'points', p_points,
+    'new_balance', v_new_balance
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+REVOKE ALL ON FUNCTION public.record_ecopoints_transaction FROM public;
+GRANT EXECUTE ON FUNCTION public.record_ecopoints_transaction TO authenticated;
+
+-- ------------------------------------------------------------------------------
+-- 8B. TRUSTED SERVER-SIDE LISTING CREATION POINTS TRIGGER
+-- ------------------------------------------------------------------------------
+-- Awards points ONLY through trusted server-side execution:
+-- 1. Verifies the underlying activity: listing row actually inserted in public.listings.
+-- 2. Validates ownership: NEW.user_id must match authenticated caller.
+-- 3. Enforces eligibility: Active listings only; demo listings are strictly excluded.
+-- 4. Prevents duplicate awards: Checks reference_id + action_type.
+-- 5. Anti-gaming rate limit: Maximum 5 rewarded listings per user per calendar day.
+-- 6. Non-negotiable points amount: strictly 30 points (fixed server constant).
+-- 7. Row-level locking ensures balance cache remains consistent under concurrency.
+CREATE OR REPLACE FUNCTION public.award_listing_ecopoints()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_points CONSTANT INTEGER := 30;
+  v_today_awards INTEGER;
+  v_current_balance INTEGER;
+BEGIN
+  -- 1. Ignore demo listings
+  IF NEW.is_demo IS TRUE THEN
+    RETURN NEW;
+  END IF;
+
+  -- 2. Only active listings qualify
+  IF NEW.status <> 'active' THEN
+    RETURN NEW;
+  END IF;
+
+  -- 3. Validate user ownership
+  IF NEW.user_id IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  -- 4. Prevent duplicate awards for the same listing
+  IF EXISTS (
+    SELECT 1 FROM public.eco_points 
+    WHERE reference_id = NEW.id AND action_type = 'listing_created'::ecopoints_action
+  ) THEN
+    RETURN NEW;
+  END IF;
+
+  -- 5. Anti-gaming rate limit: max 5 rewarded listings per user per calendar day
+  SELECT COUNT(*) INTO v_today_awards
+  FROM public.eco_points
+  WHERE user_id = NEW.user_id
+    AND action_type = 'listing_created'::ecopoints_action
+    AND created_at >= date_trunc('day', NOW());
+
+  IF v_today_awards >= 5 THEN
+    -- User still creates the listing successfully, but points award is capped to prevent spam
+    RETURN NEW;
+  END IF;
+
+  -- 6. Acquire row-level lock on user's profile to prevent concurrent race conditions
+  SELECT eco_points_balance INTO v_current_balance
+  FROM public.profiles
+  WHERE id = NEW.user_id
+  FOR UPDATE;
+
+  -- 7. Insert authoritative ledger transaction
+  INSERT INTO public.eco_points (
+    user_id,
+    points,
+    action_type,
+    reference_id,
+    description
+  )
+  VALUES (
+    NEW.user_id,
+    v_points,
+    'listing_created'::ecopoints_action,
+    NEW.id,
+    'Earned 30 EcoPoints for listing waste for circular reuse: ' || substring(NEW.title from 1 for 60)
+  );
+
+  -- 8. Authorize profile update and synchronize materialized balance to SUM(points)
+  PERFORM set_config('greenloop.internal_ecopoints_update', 'true', true);
+
+  UPDATE public.profiles
+  SET eco_points_balance = (SELECT COALESCE(SUM(points), 0) FROM public.eco_points WHERE user_id = NEW.user_id),
+      updated_at = NOW()
+  WHERE id = NEW.user_id;
+
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  -- Logging error should not abort listing creation
+  RAISE WARNING 'award_listing_ecopoints: EcoPoints award failed: %', SQLERRM;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS trg_award_listing_ecopoints ON public.listings;
+CREATE TRIGGER trg_award_listing_ecopoints
+  AFTER INSERT ON public.listings
+  FOR EACH ROW
+  EXECUTE FUNCTION public.award_listing_ecopoints();
 
 -- ------------------------------------------------------------------------------
 -- 9. SAFE BACKFILL & BALANCE PARITY RECONCILER FOR EXISTING USERS

@@ -10,7 +10,7 @@ import { Card } from '../../components/ui/Card';
 import { EmptyState, ListingCardSkeleton } from '../../components/ui/Skeleton';
 
 export const MarketplacePage: React.FC = () => {
-  const { listings, demoListings, allMarketplaceListings, categories, isLoading, refreshData } = useData();
+  const { listings, demoListings, allMarketplaceListings, categories, isLoading, dataError, refreshData } = useData();
   const { coords, district: detectedDistrict } = useGeolocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -181,6 +181,19 @@ export const MarketplacePage: React.FC = () => {
           </Link>
         </div>
       </div>
+
+      {/* Sync Error Alert Banner */}
+      {dataError && (
+        <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-800 rounded-lg text-xs text-red-700 dark:text-red-300 flex items-center justify-between">
+          <span>{dataError}</span>
+          <button
+            onClick={() => refreshData()}
+            className="underline font-semibold ml-2 hover:opacity-80 shrink-0"
+          >
+            Retry Connection
+          </button>
+        </div>
+      )}
 
       {/* Filter Toolbar */}
       <Card variant="elevated" className="space-y-3 p-4">

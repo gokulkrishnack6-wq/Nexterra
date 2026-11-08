@@ -35,6 +35,7 @@ interface DataContextType {
   wasteBins: PublicWasteBin[];
   reports: EnvironmentalReport[];
   isLoading: boolean;
+  dataError: string | null;
   refreshData: () => Promise<void>;
   
   // Actions
@@ -55,9 +56,6 @@ interface DataContextType {
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
-
-const USER_LISTINGS_KEY = 'greenloop_user_listings';
-const SHARED_LISTINGS_KEY = 'greenloop_shared_marketplace_listings';
 
 // Deterministic category UUIDs matching Supabase database seeding
 export const DETERMINISTIC_CATEGORY_UUIDS: Record<string, string> = {
@@ -134,45 +132,28 @@ export function resolveCategoryId(rawInput: string | undefined, availableCategor
   return DETERMINISTIC_CATEGORY_UUIDS.plastics;
 }
 
-function loadInitialListings(): WasteListing[] {
-  const map = new Map<string, WasteListing>();
-  if (typeof window === 'undefined') return [];
-
-  // 1. Shared marketplace listings across accounts
-  const shared = localStorage.getItem(SHARED_LISTINGS_KEY);
-  if (shared) {
-    try {
-      const parsed: WasteListing[] = JSON.parse(shared);
-      if (Array.isArray(parsed)) {
-        parsed.forEach((l) => map.set(l.id, l));
-      }
-    } catch {}
-  }
-
-  // 2. User listings
-  const userListings = localStorage.getItem(USER_LISTINGS_KEY);
-  if (userListings) {
-    try {
-      const parsed: WasteListing[] = JSON.parse(userListings);
-      if (Array.isArray(parsed)) {
-        parsed.forEach((l) => map.set(l.id, l));
-      }
-    } catch {}
-  }
-
-  return Array.from(map.values());
-}
-
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
+  const currentUserRef = React.useRef(currentUser);
+  currentUserRef.current = currentUser;
+
   const { coords, locality, district, city } = useLocationContext();
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [dataError, setDataError] = useState<string | null>(null);
 
   // Taxonomy standard categories for Kerala circular materials
   const [categories, setCategories] = useState<WasteCategory[]>(INITIAL_CATEGORIES);
 
-  // Real data collections — initialized from shared & local persistent stores
-  const [listings, setListings] = useState<WasteListing[]>(loadInitialListings);
+  // Real marketplace listings — sourced SOLELY from Supabase (never from localStorage)
+  const [listings, setListings] = useState<WasteListing[]>([]);
+
+  // Proactively purge any stale legacy listing arrays from localStorage
+  useEffect(() => {
+    try {
+      localStorage.removeItem('greenloop_user_listings');
+      localStorage.removeItem('greenloop_shared_marketplace_listings');
+    } catch {}
+  }, []);
 
   const [exchangeRequests, setExchangeRequests] = useState<ExchangeRequest[]>(() => {
     const saved = localStorage.getItem('greenloop_user_exchange_requests');
@@ -246,35 +227,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return [];
   });
 
-  // Sync state to local storage to maintain persistence across sessions and accounts
-  useEffect(() => {
-    try {
-      localStorage.setItem(USER_LISTINGS_KEY, JSON.stringify(listings));
-      localStorage.setItem(SHARED_LISTINGS_KEY, JSON.stringify(listings));
-    } catch {}
-  }, [listings]);
-
-  // Synchronize cross-tab and cross-window storage events
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === SHARED_LISTINGS_KEY && e.newValue) {
-        try {
-          const parsed = JSON.parse(e.newValue);
-          if (Array.isArray(parsed)) {
-            setListings((prev) => {
-              const map = new Map<string, WasteListing>();
-              parsed.forEach((l: WasteListing) => map.set(l.id, l));
-              prev.forEach((l) => { if (!map.has(l.id)) map.set(l.id, l); });
-              return Array.from(map.values());
-            });
-          }
-        } catch {}
-      }
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
-
   useEffect(() => {
     localStorage.setItem('greenloop_user_exchange_requests', JSON.stringify(exchangeRequests));
   }, [exchangeRequests]);
@@ -317,15 +269,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       // 1. Fetch categories
+      let activeCategories = categories;
       const { data: dbCategories, error: catError } = await supabase
         .from('waste_categories')
         .select('*');
       if (!catError && dbCategories && dbCategories.length > 0) {
-        setCategories(dbCategories as WasteCategory[]);
+        activeCategories = dbCategories as WasteCategory[];
+        setCategories(activeCategories);
       }
 
-      // 2. Fetch public listings from Supabase (authoritative single source of truth)
-      let dbListings: any[] | null = null;
+      // 2. Fetch public listings from Supabase (sole authoritative source of truth)
       const pubProfilesMap = new Map<string, any>();
       try {
         // Query sanitized public profile directory (preserves PII; no email, phone, or address)
@@ -335,35 +288,31 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (pubProfiles) {
           pubProfiles.forEach((p: any) => pubProfilesMap.set(p.id, p));
         }
-
-        // Query listings with categories joined
-        const { data: rawListings, error: listError } = await supabase
-          .from('listings')
-          .select('*, category:waste_categories(*)');
-        
-        if (!listError && rawListings) {
-          dbListings = rawListings;
-        } else if (listError) {
-          console.warn('Supabase listings fetch note:', listError.message);
-        }
-      } catch (err) {
-        console.warn('Supabase listings fetch exception:', err);
+      } catch (profErr) {
+        console.warn('Public profiles directory fetch notice:', profErr);
       }
 
-      if (dbListings !== null) {
-        // Authoritative mapping from Supabase database
-        const mappedListings: WasteListing[] = dbListings.map((item: any) => ({
+      // Query listings with categories joined
+      const { data: rawListings, error: listError } = await supabase
+        .from('listings')
+        .select('*, category:waste_categories(*)');
+      
+      if (listError) {
+        console.error('Supabase listings fetch error:', listError);
+        setDataError(`Marketplace synchronization error: ${listError.message}`);
+        // Do not silently preserve stale or fabricated listing records
+        setListings([]);
+      } else if (rawListings) {
+        setDataError(null);
+        const currUser = currentUserRef.current;
+        const mappedListings: WasteListing[] = rawListings.map((item: any) => ({
           ...item,
           is_demo: false,
-          user: pubProfilesMap.get(item.user_id) || (currentUser && item.user_id === currentUser.id ? currentUser : undefined),
-          category: item.category || categories.find((c) => c.id === item.category_id || c.slug === item.category_id),
+          user: pubProfilesMap.get(item.user_id) || (currUser && item.user_id === currUser.id ? currUser : undefined),
+          category: item.category || activeCategories.find((c) => c.id === item.category_id || c.slug === item.category_id),
         }));
 
         setListings(mappedListings);
-        try {
-          localStorage.setItem(USER_LISTINGS_KEY, JSON.stringify(mappedListings));
-          localStorage.setItem(SHARED_LISTINGS_KEY, JSON.stringify(mappedListings));
-        } catch {}
       }
 
       // 3. Fetch recycling centres
@@ -419,17 +368,31 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!chalError && dbChallenges) {
         setChallenges(dbChallenges as Challenge[]);
       }
-    } catch (err) {
-      console.warn('Supabase live fetch note: using active local state', err);
+    } catch (err: any) {
+      console.error('Supabase live fetch exception:', err);
+      setDataError(err?.message || 'Failed to fetch live marketplace data');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [categories]);
 
-  // Fetch data on mount and whenever authentication session or user identity changes
+  // Fetch data after auth session is restored and whenever authenticated user changes
   useEffect(() => {
-    fetchData();
-  }, [fetchData, currentUser?.id]);
+    if (!authLoading) {
+      fetchData();
+    }
+  }, [authLoading, currentUser?.id, fetchData]);
+
+  // Listen for Supabase auth state transitions (sign in, sign out, token refresh, account switch)
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+        fetchData();
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [fetchData]);
 
   // Realtime subscription for cross-device & cross-account live updates
   useEffect(() => {
@@ -1037,6 +1000,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         wasteBins,
         reports,
         isLoading,
+        dataError,
         refreshData: fetchData,
         addListing,
         updateListing,
