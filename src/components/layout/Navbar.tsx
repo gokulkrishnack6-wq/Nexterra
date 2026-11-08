@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Plus, 
   Bell, 
@@ -18,6 +18,7 @@ export const Navbar: React.FC = () => {
   const { currentUser, signOut } = useAuth();
   const { notifications, markAllNotificationsAsRead, markNotificationAsRead } = useData();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
@@ -151,6 +152,7 @@ export const Navbar: React.FC = () => {
                             key={n.id}
                             onClick={() => {
                               markNotificationAsRead(n.id);
+                              if (n.link) navigate(n.link);
                               setNotifDropdownOpen(false);
                             }}
                             className={`p-3 text-xs hover:bg-surface-container-low cursor-pointer transition-colors ${

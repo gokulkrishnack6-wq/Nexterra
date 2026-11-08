@@ -141,6 +141,11 @@ export const ListingDetailPage: React.FC = () => {
       return;
     }
 
+    if (currentUser.id === listing.user_id) {
+      alert('You cannot submit an exchange request for your own listing.');
+      return;
+    }
+
     if (requestedQuantity <= 0 || requestedQuantity > listing.quantity) {
       alert(`Please enter a quantity between 1 and ${listing.quantity} ${listing.unit}`);
       return;
@@ -156,13 +161,13 @@ export const ListingDetailPage: React.FC = () => {
         return;
       }
 
-      createExchangeRequest(
+      await createExchangeRequest(
         listing.id,
         requestedQuantity,
         proposedAction,
         message || `Requesting ${requestedQuantity} ${listing.unit} of ${listing.title} for reuse.`
       );
-      setSuccessMessage('Exchange request sent. The material generator will review your proposal.');
+      setSuccessMessage('Exchange request sent and saved to database. The material generator will review your proposal.');
       setTimeout(() => {
         navigate('/exchanges');
       }, 1500);

@@ -48,15 +48,15 @@ interface DataContextType {
   addListing: (listing: Omit<WasteListing, 'id' | 'created_at' | 'user' | 'category'>) => Promise<string>;
   updateListing: (id: string, updates: Partial<WasteListing>) => Promise<void>;
   deleteListing: (id: string) => Promise<void>;
-  createExchangeRequest: (listingId: string, requestedQuantity: number, proposedAction: string, message: string) => string;
-  acceptExchangeRequest: (requestId: string) => void;
-  rejectExchangeRequest: (requestId: string) => void;
-  cancelExchangeRequest: (requestId: string) => void;
+  createExchangeRequest: (listingId: string, requestedQuantity: number, proposedAction: string, message: string) => Promise<string>;
+  acceptExchangeRequest: (requestId: string) => Promise<void>;
+  rejectExchangeRequest: (requestId: string) => Promise<void>;
+  cancelExchangeRequest: (requestId: string) => Promise<void>;
   confirmHandover: (requestId: string, completionCodeInput: string) => { success: boolean; message: string };
   toggleFavourite: (listingId: string) => void;
   joinChallenge: (challengeId: string) => void;
-  markNotificationAsRead: (notificationId: string) => void;
-  markAllNotificationsAsRead: () => void;
+  markNotificationAsRead: (notificationId: string) => Promise<void>;
+  markAllNotificationsAsRead: () => Promise<void>;
   submitReport: (reportData: Omit<EnvironmentalReport, 'id' | 'ticket_number' | 'created_at' | 'updated_at' | 'status'>) => string;
   updateReportStatus: (reportId: string, status: 'pending' | 'in_progress' | 'resolved', notes?: string) => void;
 }
@@ -164,21 +164,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const listingsRef = React.useRef(listings);
   listingsRef.current = listings;
 
-  // Proactively purge any stale legacy listing arrays from localStorage
+  // Proactively purge any stale legacy listing, exchange request, and notification arrays from localStorage
   useEffect(() => {
     try {
       localStorage.removeItem('greenloop_user_listings');
       localStorage.removeItem('greenloop_shared_marketplace_listings');
+      localStorage.removeItem('greenloop_user_exchange_requests');
+      localStorage.removeItem('greenloop_user_notifications');
     } catch {}
   }, []);
 
-  const [exchangeRequests, setExchangeRequests] = useState<ExchangeRequest[]>(() => {
-    const saved = localStorage.getItem('greenloop_user_exchange_requests');
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) { /* fallback */ }
-    }
-    return [];
-  });
+  const [exchangeRequests, setExchangeRequests] = useState<ExchangeRequest[]>([]);
 
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
     const saved = localStorage.getItem('greenloop_user_transactions');
@@ -212,13 +208,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return [];
   });
 
-  const [notifications, setNotifications] = useState<NotificationItem[]>(() => {
-    const saved = localStorage.getItem('greenloop_user_notifications');
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) { /* fallback */ }
-    }
-    return [];
-  });
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   const [favourites, setFavourites] = useState<string[]>(() => {
     const saved = localStorage.getItem('greenloop_favourites');
@@ -245,10 +235,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   useEffect(() => {
-    localStorage.setItem('greenloop_user_exchange_requests', JSON.stringify(exchangeRequests));
-  }, [exchangeRequests]);
-
-  useEffect(() => {
     localStorage.setItem('greenloop_user_transactions', JSON.stringify(transactions));
   }, [transactions]);
 
@@ -259,10 +245,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     localStorage.setItem('greenloop_user_challenges', JSON.stringify(challenges));
   }, [challenges]);
-
-  useEffect(() => {
-    localStorage.setItem('greenloop_user_notifications', JSON.stringify(notifications));
-  }, [notifications]);
 
   useEffect(() => {
     localStorage.setItem('greenloop_favourites', JSON.stringify(favourites));
@@ -385,23 +367,41 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // 4. Fetch exchange requests
       const { data: dbRequests, error: reqError } = await supabase
         .from('exchange_requests')
-        .select('*, listing:listings(*), requester:profiles(*)');
-      if (!reqError && dbRequests) {
+        .select('*, listing:listings(*)');
+      if (reqError) {
+        console.error('Supabase exchange_requests fetch error:', reqError);
+        setExchangeRequests([]);
+      } else if (dbRequests) {
+        const currUser = currentUserRef.current;
+        const mappedRequests: ExchangeRequest[] = dbRequests.map((item: any) => {
+          const providerId = item.provider_id || item.listing?.user_id;
+          return {
+            ...item,
+            provider_id: providerId,
+            requester: pubProfilesMap.get(item.requester_id) || (currUser && item.requester_id === currUser.id ? currUser : undefined),
+            provider: pubProfilesMap.get(providerId) || (currUser && providerId === currUser.id ? currUser : undefined),
+            listing: item.listing ? {
+              ...item.listing,
+              category: item.listing.category || activeCategories.find((c) => c.id === item.listing.category_id || c.slug === item.listing.category_id),
+              user: pubProfilesMap.get(item.listing.user_id) || (currUser && item.listing.user_id === currUser.id ? currUser : undefined),
+            } : undefined,
+          };
+        });
+
         setExchangeRequests((prev) => {
-          const map = new Map<string, ExchangeRequest>();
-          dbRequests.forEach((item: any) => map.set(item.id, item as ExchangeRequest));
-          prev.forEach((item) => {
-            if (!map.has(item.id)) map.set(item.id, item);
-          });
-          const merged = Array.from(map.values());
-          if (
-            prev.length === merged.length &&
-            prev[0]?.id === merged[0]?.id &&
-            prev[prev.length - 1]?.id === merged[merged.length - 1]?.id
-          ) {
-            return prev;
+          if (prev.length === mappedRequests.length) {
+            const isSame = prev.every((item, idx) => {
+              const next = mappedRequests[idx];
+              return (
+                item.id === next.id &&
+                item.status === next.status &&
+                item.updated_at === next.updated_at &&
+                item.pickup_date === next.pickup_date
+              );
+            });
+            if (isSame) return prev;
           }
-          return merged;
+          return mappedRequests;
         });
       }
 
@@ -463,6 +463,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return newChallenges;
         });
       }
+      // 8. Fetch authenticated user's notifications
+      const currUser = currentUserRef.current;
+      if (currUser) {
+        const { data: dbNotifs, error: notifErr } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', currUser.id)
+          .order('created_at', { ascending: false });
+        if (!notifErr && dbNotifs) {
+          setNotifications(dbNotifs as NotificationItem[]);
+        }
+      } else {
+        setNotifications([]);
+      }
     } catch (err: any) {
       console.error('Supabase live fetch exception:', err);
       setDataError(err?.message || 'Failed to fetch live marketplace data');
@@ -500,10 +514,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!isSupabaseConfigured) return;
 
     const channel = supabase
-      .channel('public:listings_realtime')
+      .channel('public:live_sync_realtime')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'listings' },
+        () => {
+          fetchData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'exchange_requests' },
+        () => {
+          fetchData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notifications' },
         () => {
           fetchData();
         }
@@ -746,116 +774,222 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Action: Create Exchange Request
-  const createExchangeRequest = (
+  const createExchangeRequest = async (
     listingId: string,
     requestedQuantity: number,
     proposedAction: string,
     message: string
-  ): string => {
+  ): Promise<string> => {
     if (isDemoListing(listingId)) {
       throw new Error('This is a competition demonstration listing. Genuine exchange proposals can be submitted on authentic community materials.');
+    }
+
+    if (!currentUser) {
+      throw new Error('Please sign in to submit a material exchange request.');
     }
 
     const targetListing = listings.find((l) => l.id === listingId);
     if (!targetListing) throw new Error('Listing not found');
 
-    const requestId = `req-${Date.now()}`;
-    const code = `GL-${Math.floor(1000 + Math.random() * 9000)}`;
-    const requesterId = currentUser ? currentUser.id : 'guest-user';
-
-    const newRequest: ExchangeRequest = {
-      id: requestId,
-      listing_id: listingId,
-      requester_id: requesterId,
-      requested_quantity: requestedQuantity,
-      proposed_action: proposedAction,
-      message,
-      status: 'pending',
-      completion_code: code,
-      created_at: new Date().toISOString(),
-      requester: currentUser || undefined,
-      listing: targetListing,
-    };
-
-    setExchangeRequests((prev) => [newRequest, ...prev]);
-
-    if (isSupabaseConfigured && currentUser) {
-      supabase.from('exchange_requests').insert([
-        {
-          id: requestId,
-          listing_id: listingId,
-          requester_id: requesterId,
-          proposed_action: proposedAction,
-          requested_quantity: requestedQuantity,
-          message,
-          status: 'pending',
-          completion_code: code,
-        }
-      ]).then();
+    if (targetListing.user_id === currentUser.id) {
+      throw new Error('You cannot submit an exchange request for your own listing.');
     }
 
-    // Notify the listing generator
-    const notif: NotificationItem = {
-      id: `notif-${Date.now()}`,
-      user_id: targetListing.user_id,
-      title: 'New Exchange Request',
-      message: `${currentUser ? currentUser.full_name : 'A community member'} requested ${requestedQuantity} ${targetListing.unit} of "${targetListing.title}"`,
-      type: 'request',
-      link: '/exchanges',
-      is_read: false,
-      created_at: new Date().toISOString(),
-    };
-    setNotifications((prev) => [notif, ...prev]);
+    if (requestedQuantity <= 0 || requestedQuantity > targetListing.quantity) {
+      throw new Error(`Please enter a quantity between 1 and ${targetListing.quantity} ${targetListing.unit}.`);
+    }
+
+    const requestId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : `00000000-0000-4000-8000-${Date.now().toString(16).padStart(12, '0')}`;
+    const code = `GL-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    if (isSupabaseConfigured) {
+      // 1. Prepare insertion payload including provider_id
+      const payload: any = {
+        id: requestId,
+        listing_id: listingId,
+        requester_id: currentUser.id,
+        provider_id: targetListing.user_id,
+        proposed_action: proposedAction,
+        requested_quantity: requestedQuantity,
+        message: message || null,
+        status: 'pending',
+        completion_code: code,
+      };
+
+      let { error: insertError } = await supabase.from('exchange_requests').insert([payload]);
+
+      // If schema does not yet have provider_id column (PGRST204), retry gracefully without provider_id
+      if (insertError && (insertError.code === 'PGRST204' || insertError.message?.includes('provider_id'))) {
+        delete payload.provider_id;
+        const retry = await supabase.from('exchange_requests').insert([payload]);
+        insertError = retry.error;
+      }
+
+      if (insertError) {
+        console.error('Supabase exchange_request insertion failed:', insertError);
+        throw new Error(insertError.message || 'Failed to submit exchange request to database.');
+      }
+
+      // 2. Insert notification for the waste provider (owner of target listing)
+      try {
+        await supabase.from('notifications').insert([{
+          user_id: targetListing.user_id,
+          title: 'New Exchange Request',
+          message: `${currentUser.full_name || 'A community member'} requested ${requestedQuantity} ${targetListing.unit} of "${targetListing.title}"`,
+          type: 'request',
+          link: '/exchanges',
+          is_read: false,
+        }]);
+      } catch (notifErr) {
+        console.warn('Could not insert provider notification in database:', notifErr);
+      }
+
+      await fetchData();
+    } else {
+      const newRequest: ExchangeRequest = {
+        id: requestId,
+        listing_id: listingId,
+        requester_id: currentUser.id,
+        provider_id: targetListing.user_id,
+        requested_quantity: requestedQuantity,
+        proposed_action: proposedAction,
+        message,
+        status: 'pending',
+        completion_code: code,
+        created_at: new Date().toISOString(),
+        requester: currentUser,
+        provider: targetListing.user,
+        listing: targetListing,
+      };
+      setExchangeRequests((prev) => [newRequest, ...prev]);
+    }
 
     return requestId;
   };
 
-  const acceptExchangeRequest = (requestId: string) => {
-    setExchangeRequests((prev) =>
-      prev.map((req) => {
-        if (req.id === requestId) {
-          return {
-            ...req,
-            status: 'accepted',
-            pickup_date: new Date(Date.now() + 86400000 * 2).toISOString(),
-            updated_at: new Date().toISOString(),
-          };
-        }
-        return req;
-      })
-    );
-
+  const acceptExchangeRequest = async (requestId: string): Promise<void> => {
     const targetReq = exchangeRequests.find((r) => r.id === requestId);
-    if (targetReq) {
-      const listing = listings.find((l) => l.id === targetReq.listing_id);
-      updateListing(targetReq.listing_id, { status: 'pending' });
+    if (!targetReq) throw new Error('Exchange request not found');
 
-      setNotifications((prev) => [
-        {
-          id: `notif-${Date.now()}`,
+    const providerId = targetReq.provider_id || targetReq.listing?.user_id;
+    if (currentUser && providerId && providerId !== currentUser.id) {
+      throw new Error('Permission denied: Only the waste provider can accept this request.');
+    }
+
+    const pickupDate = new Date(Date.now() + 86400000 * 2).toISOString();
+
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('exchange_requests')
+        .update({
+          status: 'accepted',
+          pickup_date: pickupDate,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', requestId);
+
+      if (error) {
+        console.error('Supabase accept error:', error);
+        throw new Error(error.message);
+      }
+
+      // Mark listing status as pending
+      if (targetReq.listing_id) {
+        await supabase
+          .from('listings')
+          .update({ status: 'pending', updated_at: new Date().toISOString() })
+          .eq('id', targetReq.listing_id);
+      }
+
+      // Notify requester with handover pass code
+      try {
+        await supabase.from('notifications').insert([{
           user_id: targetReq.requester_id,
           title: 'Request Accepted',
-          message: `Your request for "${listing?.title}" was accepted. Pickup verification code: ${targetReq.completion_code}`,
+          message: `Your request for "${targetReq.listing?.title || 'waste material'}" was accepted! Pickup verification code: ${targetReq.completion_code}`,
           type: 'request',
           link: '/exchanges',
           is_read: false,
-          created_at: new Date().toISOString(),
-        },
-        ...prev,
-      ]);
+        }]);
+      } catch (_) {}
+
+      await fetchData();
+    } else {
+      setExchangeRequests((prev) =>
+        prev.map((r) => r.id === requestId ? { ...r, status: 'accepted', pickup_date: pickupDate } : r)
+      );
     }
   };
 
-  const rejectExchangeRequest = (requestId: string) => {
-    setExchangeRequests((prev) =>
-      prev.map((r) => (r.id === requestId ? { ...r, status: 'rejected', updated_at: new Date().toISOString() } : r))
-    );
+  const rejectExchangeRequest = async (requestId: string): Promise<void> => {
+    const targetReq = exchangeRequests.find((r) => r.id === requestId);
+    if (!targetReq) throw new Error('Exchange request not found');
+
+    const providerId = targetReq.provider_id || targetReq.listing?.user_id;
+    if (currentUser && providerId && providerId !== currentUser.id) {
+      throw new Error('Permission denied: Only the waste provider can decline this request.');
+    }
+
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('exchange_requests')
+        .update({
+          status: 'rejected',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', requestId);
+
+      if (error) {
+        console.error('Supabase reject error:', error);
+        throw new Error(error.message);
+      }
+
+      // Notify requester
+      try {
+        await supabase.from('notifications').insert([{
+          user_id: targetReq.requester_id,
+          title: 'Request Declined',
+          message: `Your request for "${targetReq.listing?.title || 'waste material'}" was declined by the provider.`,
+          type: 'request',
+          link: '/exchanges',
+          is_read: false,
+        }]);
+      } catch (_) {}
+
+      await fetchData();
+    } else {
+      setExchangeRequests((prev) =>
+        prev.map((r) => (r.id === requestId ? { ...r, status: 'rejected', updated_at: new Date().toISOString() } : r))
+      );
+    }
   };
 
-  const cancelExchangeRequest = (requestId: string) => {
-    setExchangeRequests((prev) =>
-      prev.map((r) => (r.id === requestId ? { ...r, status: 'cancelled', updated_at: new Date().toISOString() } : r))
-    );
+  const cancelExchangeRequest = async (requestId: string): Promise<void> => {
+    const targetReq = exchangeRequests.find((r) => r.id === requestId);
+    if (!targetReq) throw new Error('Exchange request not found');
+
+    if (currentUser && targetReq.requester_id !== currentUser.id) {
+      throw new Error('Permission denied: Only the requester can cancel this request.');
+    }
+
+    if (isSupabaseConfigured) {
+      const { error } = await supabase
+        .from('exchange_requests')
+        .update({
+          status: 'cancelled',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', requestId);
+
+      if (error) throw new Error(error.message);
+      await fetchData();
+    } else {
+      setExchangeRequests((prev) =>
+        prev.map((r) => (r.id === requestId ? { ...r, status: 'cancelled', updated_at: new Date().toISOString() } : r))
+      );
+    }
   };
 
   // Action: Complete Handover & Generate Real Transaction
@@ -1004,14 +1138,31 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const markNotificationAsRead = (notificationId: string) => {
+  const markNotificationAsRead = async (notificationId: string): Promise<void> => {
     setNotifications((prev) =>
       prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
     );
+    if (isSupabaseConfigured && currentUserRef.current) {
+      try {
+        await supabase
+          .from('notifications')
+          .update({ is_read: true })
+          .eq('id', notificationId)
+          .eq('user_id', currentUserRef.current.id);
+      } catch (_) {}
+    }
   };
 
-  const markAllNotificationsAsRead = () => {
+  const markAllNotificationsAsRead = async (): Promise<void> => {
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    if (isSupabaseConfigured && currentUserRef.current) {
+      try {
+        await supabase
+          .from('notifications')
+          .update({ is_read: true })
+          .eq('user_id', currentUserRef.current.id);
+      } catch (_) {}
+    }
   };
 
   // Action: Submit Environmental Report (Honest, clean, no fake municipal squad claims)

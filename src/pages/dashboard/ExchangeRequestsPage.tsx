@@ -28,15 +28,70 @@ export const ExchangeRequestsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'incoming' | 'outgoing'>('incoming');
   const [codeInput, setCodeInput] = useState<{ [reqId: string]: string }>({});
   const [statusFeedback, setStatusFeedback] = useState<{ [reqId: string]: { success: boolean; msg: string } }>({});
+  const [actionLoading, setActionLoading] = useState<{ [reqId: string]: boolean }>({});
 
   const currentUserId = currentUser?.id || '';
 
   const incomingRequests = exchangeRequests.filter((req) => {
-    const listing = listings.find((l) => l.id === req.listing_id);
-    return listing && listing.user_id === currentUserId;
+    const providerId = req.provider_id || req.listing?.user_id || listings.find((l) => l.id === req.listing_id)?.user_id;
+    return Boolean(providerId && providerId === currentUserId);
   });
 
   const outgoingRequests = exchangeRequests.filter((req) => req.requester_id === currentUserId);
+
+  const handleAccept = async (requestId: string) => {
+    setActionLoading((prev) => ({ ...prev, [requestId]: true }));
+    try {
+      await acceptExchangeRequest(requestId);
+      setStatusFeedback((prev) => ({
+        ...prev,
+        [requestId]: { success: true, msg: 'Exchange proposal accepted! Handover verification is ready.' },
+      }));
+    } catch (err: any) {
+      setStatusFeedback((prev) => ({
+        ...prev,
+        [requestId]: { success: false, msg: err.message || 'Failed to accept request' },
+      }));
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [requestId]: false }));
+    }
+  };
+
+  const handleReject = async (requestId: string) => {
+    setActionLoading((prev) => ({ ...prev, [requestId]: true }));
+    try {
+      await rejectExchangeRequest(requestId);
+      setStatusFeedback((prev) => ({
+        ...prev,
+        [requestId]: { success: true, msg: 'Exchange proposal declined.' },
+      }));
+    } catch (err: any) {
+      setStatusFeedback((prev) => ({
+        ...prev,
+        [requestId]: { success: false, msg: err.message || 'Failed to decline request' },
+      }));
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [requestId]: false }));
+    }
+  };
+
+  const handleCancel = async (requestId: string) => {
+    setActionLoading((prev) => ({ ...prev, [requestId]: true }));
+    try {
+      await cancelExchangeRequest(requestId);
+      setStatusFeedback((prev) => ({
+        ...prev,
+        [requestId]: { success: true, msg: 'Request cancelled.' },
+      }));
+    } catch (err: any) {
+      setStatusFeedback((prev) => ({
+        ...prev,
+        [requestId]: { success: false, msg: err.message || 'Failed to cancel request' },
+      }));
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [requestId]: false }));
+    }
+  };
 
   const handleConfirmHandover = (requestId: string) => {
     const code = codeInput[requestId] || '';
@@ -142,8 +197,9 @@ export const ExchangeRequestsPage: React.FC = () => {
           />
         ) : (
           currentList.map((req) => {
-            const listing = listings.find((l) => l.id === req.listing_id);
+            const listing = req.listing || listings.find((l) => l.id === req.listing_id);
             const feedback = statusFeedback[req.id];
+            const isLoadingAction = Boolean(actionLoading[req.id]);
 
             return (
               <Card
@@ -157,6 +213,10 @@ export const ExchangeRequestsPage: React.FC = () => {
                     <span className="font-body-sm text-xs text-outline">
                       Created on {new Date(req.created_at).toLocaleDateString()}
                     </span>
+                    <span className="text-outline text-xs">•</span>
+                    <span className="font-mono text-[11px] text-on-surface-variant">
+                      ID: {req.id.slice(0, 8)}...
+                    </span>
                   </div>
 
                   <h3 className="font-heading font-semibold text-title-md text-on-surface">
@@ -165,7 +225,7 @@ export const ExchangeRequestsPage: React.FC = () => {
 
                   <div className="p-3 rounded-lg bg-surface-container-low text-body-sm text-on-surface space-y-1 border border-outline-variant/40">
                     <div className="flex flex-wrap items-center gap-x-4">
-                      <span><strong>Requested Quantity:</strong> {req.requested_quantity} {listing?.unit}</span>
+                      <span><strong>Requested Quantity:</strong> {req.requested_quantity} {listing?.unit || 'units'}</span>
                       <span>•</span>
                       <span><strong>Purpose:</strong> {req.proposed_action}</span>
                     </div>
@@ -180,7 +240,7 @@ export const ExchangeRequestsPage: React.FC = () => {
                     {activeTab === 'incoming' ? (
                       <span>Requester: <strong>{req.requester?.full_name || 'Community Requester'}</strong></span>
                     ) : (
-                      <span>Generator: <strong>{listing?.user?.full_name || 'Material Generator'}</strong></span>
+                      <span>Provider: <strong>{req.provider?.full_name || listing?.user?.full_name || 'Material Generator'}</strong></span>
                     )}
                   </div>
 
@@ -201,17 +261,19 @@ export const ExchangeRequestsPage: React.FC = () => {
                       <Button
                         size="sm"
                         variant="primary"
-                        onClick={() => acceptExchangeRequest(req.id)}
+                        onClick={() => handleAccept(req.id)}
+                        disabled={isLoadingAction}
                         icon={<Check className="w-3.5 h-3.5" />}
                       >
-                        Accept Proposal
+                        {isLoadingAction ? 'Processing...' : 'Accept Proposal'}
                       </Button>
                       <Button
                         size="sm"
                         variant="danger"
-                        onClick={() => rejectExchangeRequest(req.id)}
+                        onClick={() => handleReject(req.id)}
+                        disabled={isLoadingAction}
                       >
-                        Decline
+                        {isLoadingAction ? 'Processing...' : 'Decline'}
                       </Button>
                     </div>
                   )}
@@ -220,9 +282,10 @@ export const ExchangeRequestsPage: React.FC = () => {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => cancelExchangeRequest(req.id)}
+                      onClick={() => handleCancel(req.id)}
+                      disabled={isLoadingAction}
                     >
-                      Cancel Request
+                      {isLoadingAction ? 'Cancelling...' : 'Cancel Request'}
                     </Button>
                   )}
 

@@ -126,6 +126,7 @@ export interface ExchangeRequest {
   id: string;
   listing_id: string;
   requester_id: string;
+  provider_id?: string;
   proposed_action: string;
   requested_quantity: number;
   message?: string;
@@ -137,6 +138,7 @@ export interface ExchangeRequest {
   // Joins
   listing?: WasteListing;
   requester?: UserProfile;
+  provider?: UserProfile;
 }
 
 export interface Transaction {

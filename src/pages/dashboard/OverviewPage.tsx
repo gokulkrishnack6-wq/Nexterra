@@ -42,7 +42,7 @@ export const OverviewPage: React.FC = () => {
   const currentUserId = currentUser?.id || '';
   const myListings = listings.filter((l) => l.user_id === currentUserId && l.status === 'active');
   const myExchanges = exchangeRequests.filter(
-    (r) => r.requester_id === currentUserId || r.listing?.user_id === currentUserId
+    (r) => r.requester_id === currentUserId || r.provider_id === currentUserId || r.listing?.user_id === currentUserId
   );
   const activeExchanges = myExchanges.filter(
     (r) => r.status === 'accepted' || r.status === 'pending'
