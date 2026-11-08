@@ -105,46 +105,36 @@ async function run() {
       });
     });
 
-    console.log('Navigating to live production marketplace: https://greenloop-9tm5.onrender.com/marketplace');
-    await cdp.send('Page.navigate', { url: 'https://greenloop-9tm5.onrender.com/marketplace' });
+    for (const path of ['/marketplace', '/', '/bins']) {
+      const url = `https://greenloop-9tm5.onrender.com${path}`;
+      console.log(`\n========================================`);
+      console.log(`Navigating to live production: ${url}`);
+      networkRequests.length = 0;
 
-    console.log('Observing activity for 8 seconds...');
-    await sleep(8000);
+      await cdp.send('Page.navigate', { url });
 
-    console.log(`\n--- NETWORK ACTIVITY SUMMARY (${networkRequests.length} total requests) ---`);
-    const urlCounts = {};
-    networkRequests.forEach(r => {
-      const urlBase = r.url.split('?')[0];
-      urlCounts[urlBase] = (urlCounts[urlBase] || 0) + 1;
-    });
-    for (const [url, count] of Object.entries(urlCounts)) {
-      console.log(`[${count}x] ${url}`);
+      console.log('Observing activity for 5 seconds...');
+      await sleep(5000);
+
+      const supabaseReqs = networkRequests.filter(r => r.url.includes('supabase.co'));
+      console.log(`Supabase requests on ${path} in 5s: ${supabaseReqs.length}`);
+
+      const skeletonChecks = [];
+      for (let i = 0; i < 4; i++) {
+        const evalRes = await cdp.send('Runtime.evaluate', {
+          expression: `({
+            skeletonCount: document.querySelectorAll('.animate-pulse').length,
+            title: document.title
+          })`,
+          returnByValue: true
+        });
+        skeletonChecks.push(evalRes?.result?.value?.skeletonCount ?? 0);
+        await sleep(500);
+      }
+      console.log(`Skeleton count samples (every 500ms):`, skeletonChecks.join(' -> '));
+      const stable = skeletonChecks.every(v => v === skeletonChecks[0]);
+      console.log(`Status on ${path}: ${stable ? '✅ 100% STABLE (Zero flicker)' : '❌ OSCILLATING'}`);
     }
-
-    console.log(`\n--- CONSOLE LOGS (${consoleLogs.length} total logs) ---`);
-    consoleLogs.slice(0, 20).forEach(log => {
-      console.log(`[${log.type}] ${log.args}`);
-    });
-    if (consoleLogs.length > 20) {
-      console.log(`... and ${consoleLogs.length - 20} more logs`);
-    }
-
-    // Check DOM mutation or skeleton count over 2 seconds
-    const skeletonChecks = [];
-    for (let i = 0; i < 5; i++) {
-      const evalRes = await cdp.send('Runtime.evaluate', {
-        expression: `({
-          skeletonCount: document.querySelectorAll('.animate-pulse').length,
-          listingCards: document.querySelectorAll('[class*="group hover:shadow-md"]').length,
-          title: document.title
-        })`,
-        returnByValue: true
-      });
-      skeletonChecks.push(evalRes?.result?.value);
-      await sleep(500);
-    }
-    console.log('\n--- SKELETON / CARD OSCILLATION SAMPLES (every 500ms) ---');
-    console.log(skeletonChecks);
 
   } finally {
     try { edgeProcess.kill(); } catch {}
