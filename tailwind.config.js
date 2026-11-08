@@ -6,6 +6,9 @@ export default {
   ],
   theme: {
     extend: {
+      screens: {
+        'xs': '375px',
+      },
       colors: {
         // Base Design Tokens mapped to the refined Earthy Green palette (Stitch / greenloop-updates)
         "surface": "#F6F3EB",

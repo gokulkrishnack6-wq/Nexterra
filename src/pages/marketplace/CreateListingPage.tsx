@@ -128,7 +128,7 @@ export const CreateListingPage: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 space-y-6 text-left">
       {/* Top Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2.5">
         <button
           onClick={() => navigate(-1)}
           className="inline-flex items-center gap-1.5 font-label-md text-xs text-on-surface-variant hover:text-primary transition-colors"
@@ -138,7 +138,7 @@ export const CreateListingPage: React.FC = () => {
         </button>
 
         <Link to="/ai-scanner">
-          <Button variant="secondary" size="sm" icon={<Sparkles className="w-4 h-4 text-primary" />}>
+          <Button variant="secondary" size="sm" icon={<Sparkles className="w-4 h-4 text-primary" />} fullWidth className="xs:w-auto">
             Auto-fill with Smart Scanner
           </Button>
         </Link>
@@ -338,10 +338,12 @@ export const CreateListingPage: React.FC = () => {
             />
           </div>
 
-          <div className="pt-4 border-t border-outline-variant/40 flex items-center justify-end gap-3">
+          <div className="pt-4 border-t border-outline-variant/40 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3 w-full">
             <Button
               type="button"
               variant="outline"
+              fullWidth
+              className="sm:w-auto"
               onClick={() => navigate(-1)}
             >
               Cancel
@@ -351,6 +353,8 @@ export const CreateListingPage: React.FC = () => {
               type="submit"
               variant="primary"
               size="lg"
+              fullWidth
+              className="sm:w-auto"
               loading={submitting}
               icon={<Plus className="w-4 h-4" />}
             >

@@ -34,3 +34,7 @@ supabase/.temp/
 .env.test.local
 .env.production.local
 
+# Nested workspace clones or backups
+Nexterra/
+
+

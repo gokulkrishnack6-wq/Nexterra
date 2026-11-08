@@ -106,7 +106,7 @@ export const OverviewPage: React.FC = () => {
               </span>
             </div>
 
-            <h1 className="font-heading font-extrabold text-3xl sm:text-4xl text-gl-dark tracking-tight leading-tight">
+            <h1 className="font-heading font-extrabold text-2xl sm:text-3xl lg:text-4xl text-gl-dark tracking-tight leading-tight">
               {currentUser ? `Namaskaram, ${currentUser.full_name}` : 'Sustainable Material Exchange in Kerala'}
             </h1>
 
@@ -118,10 +118,10 @@ export const OverviewPage: React.FC = () => {
           </div>
 
           {/* Primary Platform Action Dispatch */}
-          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 shrink-0 w-full sm:w-auto">
             <button
               onClick={() => navigate('/marketplace/new')}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gl-forest hover:bg-gl-dark text-white rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-[0.98]"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gl-forest hover:bg-gl-dark text-white rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-[0.98]"
             >
               <Plus className="w-4 h-4" />
               <span>List Available Material</span>
@@ -129,7 +129,7 @@ export const OverviewPage: React.FC = () => {
 
             <button
               onClick={() => navigate('/ai-scanner')}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-gl-cream hover:bg-white text-gl-forest border border-gl-sand rounded-lg text-sm font-semibold transition-all active:scale-[0.98]"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gl-cream hover:bg-white text-gl-forest border border-gl-sand rounded-lg text-sm font-semibold transition-all active:scale-[0.98]"
             >
               <ScanLine className="w-4 h-4 text-gl-olive" />
               <span>Waste Scanner</span>
@@ -137,11 +137,11 @@ export const OverviewPage: React.FC = () => {
 
             <button
               onClick={() => navigate('/report-issue')}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-gl-ivory hover:bg-gl-clay-light text-gl-charcoal hover:text-gl-clay border border-gl-border hover:border-gl-clay/40 rounded-lg text-sm font-medium transition-all active:scale-[0.98]"
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-gl-ivory hover:bg-gl-clay-light text-gl-charcoal hover:text-gl-clay border border-gl-border hover:border-gl-clay/40 rounded-lg text-sm font-medium transition-all active:scale-[0.98]"
               title="Report Open Dumping or Unmanaged Waste"
             >
               <AlertTriangle className="w-4 h-4 text-gl-clay" />
-              <span className="hidden sm:inline">Report Dumping</span>
+              <span>Report Dumping</span>
             </button>
           </div>
 
@@ -504,7 +504,7 @@ export const OverviewPage: React.FC = () => {
                 No completed material transactions logged yet. When a physical handover is verified using the 6-character pickup code, the empirical weight and carbon offsets automatically populate this audited stream.
               </p>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
+              <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
                 {metrics.category_breakdown.map((cat) => (
                   <div key={cat.category_name} className="flex flex-col p-3.5 rounded-lg bg-gl-ivory border border-gl-cream">
                     <span className="text-[11px] font-semibold text-gl-charcoal-muted truncate">
@@ -695,7 +695,7 @@ export const OverviewPage: React.FC = () => {
           role="dialog"
           aria-modal="true"
         >
-          <div className="bg-white rounded-2xl border border-gl-border p-6 max-w-sm w-full shadow-2xl flex flex-col items-center text-center gap-3">
+          <div className="bg-white rounded-2xl border border-gl-border p-4 sm:p-6 max-w-sm w-full shadow-2xl flex flex-col items-center text-center gap-3">
             <div className="w-12 h-12 rounded-full bg-gl-sage-light text-gl-forest flex items-center justify-center">
               <QrCode className="w-6 h-6" />
             </div>

@@ -186,7 +186,7 @@ export const ListingDetailPage: React.FC = () => {
               </div>
 
               {/* Material Specs */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 bg-surface-container rounded-lg border border-outline-variant/40">
+              <div className="grid grid-cols-1 xs:grid-cols-3 gap-3 p-3 bg-surface-container rounded-lg border border-outline-variant/40">
                 <div>
                   <span className="font-label-sm text-label-sm text-outline block">Available Quantity</span>
                   <span className="font-heading font-bold text-body-lg text-primary">{listing.quantity} {listing.unit}</span>

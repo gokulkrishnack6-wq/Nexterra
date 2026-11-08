@@ -61,6 +61,27 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
   const [locationMenuOpen, setLocationMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
+  // Auto-close open menus on route navigation
+  React.useEffect(() => {
+    setMobileMenuOpen(false);
+    setNotifOpen(false);
+    setCreateMenuOpen(false);
+    setLocationMenuOpen(false);
+    setUserMenuOpen(false);
+  }, [location.pathname]);
+
+  // Lock body scroll when mobile drawer is open
+  React.useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen]);
+
   const keralaDistricts = Object.keys(KERALA_DISTRICT_COORDS);
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
@@ -94,15 +115,15 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-background font-body text-on-surface flex flex-col">
-      {/* Desktop Sidebar (w-64) */}
-      <aside className="fixed left-0 top-0 h-full w-64 bg-surface-container-low z-50 hidden lg:flex flex-col justify-between py-space-md border-r border-outline-variant/60 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
+      {/* Desktop & Tablet Sidebar (w-16 on tablet, w-64 on desktop) */}
+      <aside className="fixed left-0 top-0 h-full w-16 lg:w-64 bg-surface-container-low z-50 hidden md:flex flex-col justify-between py-space-md border-r border-outline-variant/60 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
         <div className="flex flex-col gap-space-sm">
           {/* Logo Brand Header */}
-          <Link to="/" className="px-space-md pb-space-sm flex items-center gap-space-sm hover:opacity-90 transition-opacity">
-            <div className="w-9 h-9 rounded-lg bg-primary-container text-on-primary flex items-center justify-center font-bold shadow-sm">
+          <Link to="/" className="px-2 lg:px-space-md pb-space-sm flex items-center justify-center lg:justify-start gap-space-sm hover:opacity-90 transition-opacity" title="GreenLoop">
+            <div className="w-9 h-9 rounded-lg bg-primary-container text-on-primary flex items-center justify-center font-bold shadow-sm shrink-0">
               <img src="/logo.png" alt="GreenLoop" className="w-6 h-6 object-contain" />
             </div>
-            <div className="flex flex-col">
+            <div className="hidden lg:flex flex-col">
               <span className="font-heading font-bold text-title-md text-primary tracking-tight leading-none">
                 GREENLOOP
               </span>
@@ -113,7 +134,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
           </Link>
 
           {/* Nav Item Links */}
-          <nav className="flex flex-col gap-1 px-space-sm overflow-y-auto max-h-[calc(100vh-170px)]">
+          <nav className="flex flex-col gap-1 px-1.5 lg:px-space-sm overflow-y-auto max-h-[calc(100vh-170px)]">
             {navLinks.map((item) => {
               const active = isLinkActive(item.path, item.exact);
               const Icon = item.icon;
@@ -121,14 +142,15 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center gap-3 px-space-sm py-2 rounded-lg font-label-md text-label-md transition-colors ${
+                  title={item.label}
+                  className={`flex items-center justify-center lg:justify-start gap-3 px-2 lg:px-space-sm py-2 rounded-lg font-label-md text-label-md transition-colors ${
                     active
                       ? 'bg-primary-container text-on-primary shadow-sm font-semibold'
                       : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
                   }`}
                 >
-                  <Icon className={`w-[18px] h-[18px] ${active ? 'text-on-primary' : 'text-outline'}`} />
-                  <span>{item.label}</span>
+                  <Icon className={`w-[18px] h-[18px] shrink-0 ${active ? 'text-on-primary' : 'text-outline'}`} />
+                  <span className="hidden lg:inline truncate">{item.label}</span>
                 </Link>
               );
             })}
@@ -136,22 +158,26 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
         </div>
 
         {/* Bottom Profile / Auth Info */}
-        <div className="px-space-sm pt-space-xs border-t border-outline-variant/40">
+        <div className="px-1.5 lg:px-space-sm pt-space-xs border-t border-outline-variant/40">
           {currentUser ? (
-            <div className="flex items-center justify-between p-2 rounded-lg bg-surface-container/50">
+            <div className="flex items-center justify-center lg:justify-between p-1.5 lg:p-2 rounded-lg bg-surface-container/50">
               <div className="flex items-center gap-2.5 overflow-hidden">
                 {currentUser.avatar_url ? (
                   <img
                     src={currentUser.avatar_url}
                     alt={currentUser.full_name}
                     className="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-outline-variant"
+                    title={currentUser.full_name}
                   />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-primary-container text-on-primary font-bold text-xs flex items-center justify-center shrink-0">
+                  <div
+                    className="w-8 h-8 rounded-full bg-primary-container text-on-primary font-bold text-xs flex items-center justify-center shrink-0"
+                    title={currentUser.full_name}
+                  >
                     {getInitial(currentUser.full_name)}
                   </div>
                 )}
-                <div className="flex flex-col truncate">
+                <div className="hidden lg:flex flex-col truncate">
                   <span className="text-xs font-semibold text-primary truncate leading-tight">
                     {currentUser.full_name}
                   </span>
@@ -162,7 +188,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
               </div>
               <button
                 onClick={() => signOut()}
-                className="p-1.5 text-outline hover:text-error hover:bg-surface-container rounded-md transition-colors"
+                className="hidden lg:block p-1.5 text-outline hover:text-error hover:bg-surface-container rounded-md transition-colors"
                 title="Sign Out"
               >
                 <LogOut className="w-4 h-4" />
@@ -171,23 +197,24 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
           ) : (
             <Link
               to="/login"
-              className="flex items-center justify-center gap-2 w-full py-2 px-3 rounded-lg bg-primary-container text-on-primary text-xs font-semibold hover:bg-primary transition-colors"
+              title="Sign In to GreenLoop"
+              className="flex items-center justify-center gap-2 w-full py-2 px-1.5 lg:px-3 rounded-lg bg-primary-container text-on-primary text-xs font-semibold hover:bg-primary transition-colors"
             >
-              <LogIn className="w-4 h-4" />
-              <span>Sign In to GreenLoop</span>
+              <LogIn className="w-4 h-4 shrink-0" />
+              <span className="hidden lg:inline">Sign In to GreenLoop</span>
             </Link>
           )}
         </div>
       </aside>
 
-      {/* Mobile Drawer (Visible on smaller screens) */}
+      {/* Mobile Drawer (Visible on smaller screens < 768px) */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden flex">
+        <div className="fixed inset-0 z-50 md:hidden flex">
           <div
             className="fixed inset-0 bg-on-surface/40 backdrop-blur-sm transition-opacity"
             onClick={() => setMobileMenuOpen(false)}
           />
-          <div className="relative w-72 max-w-[80vw] bg-surface-container-low h-full flex flex-col justify-between py-space-md px-space-sm shadow-xl z-50">
+          <div className="relative w-72 max-w-[80vw] bg-surface-container-low h-full flex flex-col justify-between py-space-md px-space-sm shadow-xl z-50 overflow-y-auto">
             <div>
               <div className="flex items-center justify-between pb-space-md border-b border-outline-variant/40 px-2">
                 <Link to="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2">
@@ -263,43 +290,43 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
       )}
 
       {/* Main Content Area */}
-      <div className="lg:pl-64 flex flex-col flex-1">
+      <div className="md:pl-16 lg:pl-64 flex flex-col flex-1 min-w-0 w-full">
         {/* Top Header */}
-        <header className="fixed top-0 left-0 lg:left-64 right-0 h-16 bg-surface/90 backdrop-blur-xl border-b border-outline-variant/50 shadow-[0_1px_8px_rgba(0,0,0,0.03)] z-40 px-4 sm:px-space-lg flex items-center justify-between">
+        <header className="fixed top-0 left-0 md:left-16 lg:left-64 right-0 h-16 bg-surface/90 backdrop-blur-xl border-b border-outline-variant/50 shadow-[0_1px_8px_rgba(0,0,0,0.03)] z-40 px-2.5 xs:px-4 sm:px-space-lg flex items-center justify-between">
           {/* Left: Mobile Toggle + Geolocation Context Pill */}
-          <div className="flex items-center gap-2 sm:gap-space-md">
+          <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-space-md min-w-0">
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="lg:hidden p-2 rounded-lg text-on-surface-variant hover:bg-surface-container"
+              className="md:hidden p-1.5 xs:p-2 rounded-lg text-on-surface-variant hover:bg-surface-container shrink-0"
               aria-label="Open Navigation Menu"
             >
               <Menu className="w-5 h-5" />
             </button>
 
             {/* Geolocation Selector Pill */}
-            <div className="relative">
+            <div className="relative min-w-0">
               <button
                 onClick={() => setLocationMenuOpen(!locationMenuOpen)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container text-on-surface text-label-sm font-label-sm cursor-pointer hover:bg-surface-container-high transition-colors border border-outline-variant/40"
+                className="inline-flex items-center gap-1 xs:gap-1.5 px-2 xs:px-3 py-1 xs:py-1.5 rounded-full bg-surface-container text-on-surface text-label-sm font-label-sm cursor-pointer hover:bg-surface-container-high transition-colors border border-outline-variant/40 max-w-full"
                 title="Current Location"
               >
                 {geoLoading ? (
-                  <Loader2 className="w-3.5 h-3.5 text-primary animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 text-primary animate-spin shrink-0" />
                 ) : (
-                  <Navigation className="w-3.5 h-3.5 text-secondary" />
+                  <Navigation className="w-3.5 h-3.5 text-secondary shrink-0" />
                 )}
-                <span className="truncate max-w-[130px] sm:max-w-xs">
+                <span className="truncate max-w-[95px] min-[360px]:max-w-[125px] xs:max-w-[150px] sm:max-w-xs text-[11px] sm:text-xs">
                   {geoLoading
                     ? 'Detecting Location...'
                     : (currentLocality
                         ? `${currentLocality}${currentDistrict && currentDistrict !== currentLocality ? `, ${currentDistrict}` : ''}`
                         : (currentDistrict || (geoSource === 'approximate' ? (geoApproxDistrict ? `Near ${geoApproxDistrict}` : 'GPS Detected') : 'Select Location')))}
                 </span>
-                <ChevronDown className="w-3 h-3 text-outline" />
+                <ChevronDown className="w-3 h-3 text-outline shrink-0" />
               </button>
 
               {locationMenuOpen && (
-                <div className="absolute left-0 mt-2 w-80 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-dropdown py-2 z-50">
+                <div className="fixed inset-x-2 top-16 sm:absolute sm:inset-auto sm:left-0 sm:top-full mt-2 w-auto sm:w-80 max-w-sm bg-surface-container-lowest border border-outline-variant rounded-xl shadow-dropdown py-2 z-50">
                   {/* Current Active Location Summary */}
                   <div className="px-3.5 py-2.5 border-b border-outline-variant/40 bg-surface-container-low/40">
                     <div className="flex items-center justify-between mb-1">
@@ -424,21 +451,21 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
           </div>
 
           {/* Right Action Bar */}
-          <div className="flex items-center gap-2 sm:gap-space-md">
+          <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-space-md shrink-0">
             {/* Quick Create Dropdown */}
             <div className="relative">
               <button
                 onClick={() => setCreateMenuOpen(!createMenuOpen)}
-                className="inline-flex items-center gap-1.5 bg-primary-container text-on-primary px-3 sm:px-space-md py-1.5 rounded-lg font-label-md text-label-md hover:bg-primary transition-all shadow-sm"
+                className="inline-flex items-center gap-1 xs:gap-1.5 bg-primary-container text-on-primary px-2 xs:px-3 sm:px-space-md py-1.5 rounded-lg font-label-md text-xs sm:text-label-md hover:bg-primary transition-all shadow-sm"
                 type="button"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 <span className="hidden sm:inline">New Action</span>
-                <span className="sm:hidden">New</span>
+                <span className="hidden xs:inline sm:hidden">New</span>
               </button>
 
               {createMenuOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-dropdown py-1.5 z-50">
+                <div className="absolute right-0 mt-2 w-48 sm:w-56 max-w-[calc(100vw-1.5rem)] bg-surface-container-lowest border border-outline-variant rounded-xl shadow-dropdown py-1.5 z-50">
                   <button
                     onClick={() => {
                       setCreateMenuOpen(false);
@@ -486,18 +513,18 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
             <div className="relative">
               <button
                 onClick={() => setNotifOpen(!notifOpen)}
-                className="relative p-2 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors"
+                className="relative p-1.5 xs:p-2 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors"
                 type="button"
                 aria-label="Activity Notifications"
               >
-                <Bell className="w-5 h-5" />
+                <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-error ring-2 ring-surface" />
+                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-error ring-2 ring-surface" />
                 )}
               </button>
 
               {notifOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-dropdown z-50 overflow-hidden">
+                <div className="fixed inset-x-2 top-16 sm:absolute sm:inset-auto sm:right-0 sm:top-full mt-2 w-auto sm:w-80 max-w-sm bg-surface-container-lowest border border-outline-variant rounded-xl shadow-dropdown z-50 overflow-hidden">
                   <div className="p-3 bg-surface-container border-b border-outline-variant/60 flex items-center justify-between">
                     <span className="font-label-md text-label-md text-primary font-semibold">
                       Notifications ({unreadCount})
@@ -554,7 +581,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                 <>
                   <button
                     onClick={() => setUserMenuOpen(!userMenuOpen)}
-                    className="flex items-center gap-2 pl-2 border-l border-outline-variant/40 hover:opacity-85 transition-opacity"
+                    className="flex items-center gap-1.5 xs:gap-2 pl-1.5 xs:pl-2 border-l border-outline-variant/40 hover:opacity-85 transition-opacity"
                   >
                     <div className="flex flex-col text-right hidden sm:flex">
                       <span className="font-label-md text-label-md text-on-surface leading-tight font-semibold">
@@ -568,17 +595,17 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                       <img
                         src={currentUser.avatar_url}
                         alt={currentUser.full_name}
-                        className="w-8 h-8 rounded-full object-cover ring-1 ring-outline-variant"
+                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover ring-1 ring-outline-variant shrink-0"
                       />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-primary-container text-on-primary flex items-center justify-center font-bold text-xs ring-1 ring-outline-variant">
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary-container text-on-primary flex items-center justify-center font-bold text-xs ring-1 ring-outline-variant shrink-0">
                         {getInitial(currentUser.full_name)}
                       </div>
                     )}
                   </button>
 
                   {userMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-64 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-dropdown py-2 z-50">
+                    <div className="absolute right-0 mt-2 w-60 sm:w-64 max-w-[calc(100vw-1.5rem)] bg-surface-container-lowest border border-outline-variant rounded-xl shadow-dropdown py-2 z-50">
                       <div className="px-4 py-2 border-b border-outline-variant/40">
                         <span className="font-semibold text-sm text-primary block truncate">
                           {currentUser.full_name}
@@ -635,13 +662,13 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                   )}
                 </>
               ) : (
-                <div className="flex items-center pl-2 border-l border-outline-variant/40">
+                <div className="flex items-center pl-1 xs:pl-2 border-l border-outline-variant/40">
                   <Link
                     to="/login"
-                    className="px-3.5 py-1.5 text-xs font-semibold text-on-primary bg-primary-container hover:bg-primary rounded-lg transition-colors shadow-sm flex items-center gap-1.5"
+                    className="px-2 xs:px-3.5 py-1.5 text-xs font-semibold text-on-primary bg-primary-container hover:bg-primary rounded-lg transition-colors shadow-sm flex items-center gap-1"
                   >
                     <LogIn className="w-3.5 h-3.5" />
-                    <span>Sign In</span>
+                    <span className="hidden xs:inline">Sign In</span>
                   </Link>
                 </div>
               )}
@@ -650,14 +677,14 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
         </header>
 
         {/* Dynamic Route Content */}
-        <main className="w-full pt-16 pb-24 lg:pb-space-lg flex-1 px-4 sm:px-space-lg py-space-lg">
+        <main className="w-full pt-16 pb-24 md:pb-10 lg:pb-space-lg flex-1 px-3 xs:px-4 sm:px-space-lg py-space-md sm:py-space-lg min-w-0 max-w-full">
           {children}
         </main>
 
         {/* Mobile Fixed Bottom Navigation Bar (Stitch Mobile Loop Hub 1:1) */}
         <nav
           aria-label="Mobile Navigation"
-          className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-surface/95 backdrop-blur-xl border-t border-outline-variant/60 shadow-[0_-2px_12px_rgba(0,0,0,0.04)]"
+          className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-surface/95 backdrop-blur-xl border-t border-outline-variant/60 shadow-[0_-2px_12px_rgba(0,0,0,0.04)] safe-bottom"
         >
           <div className="flex justify-around items-center h-16 px-2">
             {[

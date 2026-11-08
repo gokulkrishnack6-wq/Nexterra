@@ -156,10 +156,12 @@ export const ReportIssuePage: React.FC = () => {
             </p>
           </div>
 
-          <div className="pt-4 flex items-center justify-center gap-3">
+          <div className="pt-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 w-full">
             <Button
               variant="primary"
               size="lg"
+              fullWidth
+              className="sm:w-auto"
               onClick={() => navigate('/reports')}
             >
               Track Ticket #{createdTicket}
@@ -167,6 +169,8 @@ export const ReportIssuePage: React.FC = () => {
             <Button
               variant="secondary"
               size="lg"
+              fullWidth
+              className="sm:w-auto"
               onClick={() => {
                 setCreatedTicket(null);
                 setTitle('');
@@ -341,10 +345,12 @@ export const ReportIssuePage: React.FC = () => {
               )}
             </div>
 
-            <div className="pt-4 border-t border-outline-variant/40 flex items-center justify-end gap-3">
+            <div className="pt-4 border-t border-outline-variant/40 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3 w-full">
               <Button
                 type="button"
                 variant="outline"
+                fullWidth
+                className="sm:w-auto"
                 onClick={() => navigate(-1)}
               >
                 Cancel
@@ -354,6 +360,8 @@ export const ReportIssuePage: React.FC = () => {
                 type="submit"
                 variant="primary"
                 size="lg"
+                fullWidth
+                className="sm:w-auto"
                 loading={submitting}
                 icon={<Send className="w-4 h-4" />}
               >

@@ -63,11 +63,11 @@ export const MapPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <select
             value={selectedDistrict}
             onChange={(e) => setSelectedDistrict(e.target.value)}
-            className="py-2 px-3 bg-surface-container-lowest border border-outline-variant hover:border-outline focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg text-body-sm text-on-surface focus:outline-none transition-all"
+            className="w-full sm:w-auto py-2 px-3 bg-surface-container-lowest border border-outline-variant hover:border-outline focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg text-body-sm text-on-surface focus:outline-none transition-all"
           >
             <option value="All Kerala">All Kerala Districts</option>
             {keralaDistricts.map((d) => (

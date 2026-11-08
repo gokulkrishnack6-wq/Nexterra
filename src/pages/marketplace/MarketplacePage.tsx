@@ -116,15 +116,15 @@ export const MarketplacePage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Link to="/smart-match">
-            <Button variant="secondary" size="md" icon={<Sparkles className="w-4 h-4 text-primary" />}>
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <Link to="/smart-match" className="flex-1 sm:flex-initial">
+            <Button variant="secondary" size="md" icon={<Sparkles className="w-4 h-4 text-primary" />} fullWidth className="sm:w-auto">
               Smart Match
             </Button>
           </Link>
 
-          <Link to="/marketplace/new">
-            <Button variant="primary" size="md" icon={<Plus className="w-4 h-4" />}>
+          <Link to="/marketplace/new" className="flex-1 sm:flex-initial">
+            <Button variant="primary" size="md" icon={<Plus className="w-4 h-4" />} fullWidth className="sm:w-auto">
               List Material
             </Button>
           </Link>
@@ -199,7 +199,7 @@ export const MarketplacePage: React.FC = () => {
         </div>
 
         {/* Category Horizontal Scrolling Chips */}
-        <div className="pt-2 border-t border-outline-variant/40 flex items-center gap-2 overflow-x-auto pb-1">
+        <div className="pt-2 border-t border-outline-variant/40 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           <button
             onClick={() => handleCategoryChange('all')}
             className={`px-3 py-1 rounded-full font-label-sm text-label-sm whitespace-nowrap transition-all ${

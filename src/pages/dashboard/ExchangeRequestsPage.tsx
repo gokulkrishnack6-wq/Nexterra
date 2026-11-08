@@ -101,26 +101,28 @@ export const ExchangeRequestsPage: React.FC = () => {
       </div>
 
       {/* Segmented Tabs */}
-      <div className="flex items-center gap-2 border-b border-outline-variant/60 pb-1">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 border-b border-outline-variant/60 pb-2">
         <button
           onClick={() => setActiveTab('incoming')}
-          className={`px-4 py-2 font-label-md text-label-md rounded-lg transition-all ${
+          className={`px-3 sm:px-4 py-2 font-label-md text-xs sm:text-label-md rounded-lg transition-all text-center ${
             activeTab === 'incoming'
               ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
               : 'text-on-surface-variant hover:bg-surface-container'
           }`}
         >
-          Incoming Requests for My Listings ({incomingRequests.length})
+          <span className="sm:hidden">Incoming ({incomingRequests.length})</span>
+          <span className="hidden sm:inline">Incoming Requests for My Listings ({incomingRequests.length})</span>
         </button>
         <button
           onClick={() => setActiveTab('outgoing')}
-          className={`px-4 py-2 font-label-md text-label-md rounded-lg transition-all ${
+          className={`px-3 sm:px-4 py-2 font-label-md text-xs sm:text-label-md rounded-lg transition-all text-center ${
             activeTab === 'outgoing'
               ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
               : 'text-on-surface-variant hover:bg-surface-container'
           }`}
         >
-          My Outgoing Claims ({outgoingRequests.length})
+          <span className="sm:hidden">My Claims ({outgoingRequests.length})</span>
+          <span className="hidden sm:inline">My Outgoing Claims ({outgoingRequests.length})</span>
         </button>
       </div>
 

@@ -22,9 +22,9 @@ const PALETTE = ['#234B35', '#A8B89F', '#526955', '#777E77', '#8EA385', '#3A5C47
 
 export const ImpactCharts: React.FC<ImpactChartsProps> = ({ metrics }) => {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 min-w-0">
       {/* Category Breakdown */}
-      <div className="bg-white p-5 rounded-lg border border-[#E2E2D8] flex flex-col justify-between space-y-4">
+      <div className="bg-white p-5 rounded-lg border border-[#E2E2D8] flex flex-col justify-between space-y-4 min-w-0 overflow-hidden">
         <div>
           <h3 className="font-heading font-semibold text-sm text-charcoal">
             Materials Diverted by Category
@@ -34,7 +34,7 @@ export const ImpactCharts: React.FC<ImpactChartsProps> = ({ metrics }) => {
           </p>
         </div>
 
-        <div className="h-60 w-full">
+        <div className="h-60 w-full min-w-0 overflow-hidden">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -65,7 +65,7 @@ export const ImpactCharts: React.FC<ImpactChartsProps> = ({ metrics }) => {
       </div>
 
       {/* Monthly Trend Growth */}
-      <div className="bg-white p-5 rounded-lg border border-[#E2E2D8] flex flex-col justify-between space-y-4">
+      <div className="bg-white p-5 rounded-lg border border-[#E2E2D8] flex flex-col justify-between space-y-4 min-w-0 overflow-hidden">
         <div>
           <h3 className="font-heading font-semibold text-sm text-charcoal">
             Monthly Progress (kg)
@@ -75,7 +75,7 @@ export const ImpactCharts: React.FC<ImpactChartsProps> = ({ metrics }) => {
           </p>
         </div>
 
-        <div className="h-60 w-full">
+        <div className="h-60 w-full min-w-0 overflow-hidden">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={metrics.monthly_trend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EFEFE6" />

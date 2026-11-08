@@ -101,9 +101,9 @@ export const KeralaCircularMap: React.FC<KeralaCircularMapProps> = ({
   const mapZoom = coords ? 11 : 8;
 
   return (
-    <div className="relative w-full h-[520px] rounded-xl overflow-hidden border border-outline-variant/70 shadow-sm">
+    <div className="relative w-full h-[340px] sm:h-[420px] lg:h-[520px] rounded-xl overflow-hidden border border-outline-variant/70 shadow-sm">
       {/* Map Filter Controls Bar */}
-      <div className="absolute top-3 right-3 z-[400] bg-surface-container-lowest/95 backdrop-blur-md p-1.5 rounded-lg border border-outline-variant shadow-dropdown flex flex-wrap items-center gap-1 text-xs">
+      <div className="absolute top-2 left-2 right-2 sm:left-auto sm:right-3 z-[400] bg-surface-container-lowest/95 backdrop-blur-md p-1 sm:p-1.5 rounded-lg border border-outline-variant shadow-dropdown flex items-center gap-1 text-xs overflow-x-auto max-w-[calc(100%-1rem)] sm:max-w-none scrollbar-none">
         <button
           onClick={() => setFilterType('all')}
           className={`px-3 py-1 rounded-md font-label-md text-xs transition-colors ${

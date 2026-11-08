@@ -43,8 +43,8 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 
       {/* Numerical Value */}
       <div className="mt-space-sm">
-        <div className="flex items-baseline gap-2">
-          <span className="font-headline-lg text-headline-lg text-primary font-bold">{value}</span>
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <span className={`font-headline-lg text-primary font-bold tracking-tight break-words ${typeof value === 'string' && value.length > 8 ? 'text-xl sm:text-2xl' : 'text-2xl sm:text-headline-lg'}`}>{value}</span>
           {unit && <span className="font-label-sm text-label-sm text-secondary font-semibold">{unit}</span>}
         </div>
         {subtext && (

@@ -80,7 +80,7 @@ export const SmartMatchPage: React.FC = () => {
               variant="elevated"
               className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left hover:border-outline transition-all"
             >
-              <div className="flex items-start gap-4 flex-1">
+              <div className="flex flex-col min-[380px]:flex-row items-start gap-3 sm:gap-4 flex-1">
                 <img
                   src={match.listing.images?.[0] || 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=300&q=80'}
                   alt=""
@@ -108,7 +108,7 @@ export const SmartMatchPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0">
+              <div className="flex flex-col xs:flex-row sm:flex-col items-stretch xs:items-center sm:items-end justify-between sm:justify-center gap-2 shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0 w-full sm:w-auto">
                 <div className="text-left sm:text-right">
                   <div className="inline-flex items-center gap-1 font-label-sm text-label-sm text-primary font-bold bg-secondary-container px-2.5 py-0.5 rounded-full">
                     <Sparkles className="w-3 h-3" /> {match.match_score}% Match
@@ -118,8 +118,8 @@ export const SmartMatchPage: React.FC = () => {
                   </span>
                 </div>
 
-                <Link to={`/marketplace/${match.listing.id}`}>
-                  <Button size="sm" variant="primary" icon={<ArrowRight className="w-3.5 h-3.5" />} iconPosition="right">
+                <Link to={`/marketplace/${match.listing.id}`} className="w-full sm:w-auto">
+                  <Button size="sm" variant="primary" fullWidth className="sm:w-auto" icon={<ArrowRight className="w-3.5 h-3.5" />} iconPosition="right">
                     Initiate Exchange
                   </Button>
                 </Link>

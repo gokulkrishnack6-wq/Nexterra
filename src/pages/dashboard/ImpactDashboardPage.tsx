@@ -337,7 +337,7 @@ export const ImpactDashboardPage: React.FC = () => {
       </div>
 
       {/* 4 PRIMARY METRIC CARDS (User-Specific + Empirical) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 min-[360px]:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           label="Current Balance"
           value={userBalance}
@@ -433,7 +433,7 @@ export const ImpactDashboardPage: React.FC = () => {
               </span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-1">
+            <div className="grid grid-cols-1 min-[360px]:grid-cols-2 sm:grid-cols-4 gap-4 pt-1">
               <div className="p-4 rounded-xl bg-surface-container-low border border-outline-variant/60">
                 <span className="font-label-sm text-xs text-outline uppercase block font-semibold">
                   Waste Diverted

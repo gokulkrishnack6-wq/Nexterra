@@ -57,7 +57,7 @@ export const ReportTrackingPage: React.FC = () => {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2 border-b border-outline-variant/60 pb-1">
+      <div className="flex items-center gap-2 border-b border-outline-variant/60 pb-1 overflow-x-auto scrollbar-none whitespace-nowrap">
         <button
           onClick={() => setFilter('all')}
           className={`px-3 py-1.5 font-label-md text-xs rounded-lg transition-all ${
