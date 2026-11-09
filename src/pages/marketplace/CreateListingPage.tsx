@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -17,7 +17,13 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useGeolocation, KERALA_DISTRICT_COORDS, findNearestDistrict } from '../../hooks/useGeolocation';
 import { LocationAutocomplete } from '../../components/ui/LocationAutocomplete';
 import { LocationSuggestion, reverseGeocodeCoordinates } from '../../services/geocoding';
-import { generateListingImage, isAiGeneratedImage, CATEGORY_ILLUSTRATIVE_FALLBACKS } from '../../services/imageGeneration';
+import { 
+  generateListingImage, 
+  isAiGeneratedImage, 
+  CATEGORY_ILLUSTRATIVE_FALLBACKS,
+  NEUTRAL_MATERIAL_PLACEHOLDER,
+  matchCuratedItemFallback 
+} from '../../services/imageGeneration';
 import { ListingPricing, ScanPrefillData } from '../../types';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -70,6 +76,7 @@ export const CreateListingPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [prefillApplied, setPrefillApplied] = useState(false);
+  const latestJobIdRef = useRef<string>('');
 
   // Synchronize asynchronous GPS / district detection when available on mobile/desktop
   useEffect(() => {
@@ -218,6 +225,8 @@ export const CreateListingPage: React.FC = () => {
       return;
     }
     setError('');
+    const jobId = `preview-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+    latestJobIdRef.current = jobId;
     setIsGeneratingPreview(true);
     try {
       const selectedCat = categories.find((c) => c.id === categoryId);
@@ -226,16 +235,25 @@ export const CreateListingPage: React.FC = () => {
         category_id: categoryId,
         category_slug: selectedCat?.slug || 'other',
         material_type: materialType || title,
+        condition,
         description: description.trim(),
+        job_id: jobId,
       });
+
+      // Avoid stale React state and race conditions
+      if (latestJobIdRef.current !== jobId) return;
+
       if (res.image_url) {
         setImageUrl(res.image_url);
         setIsAiImage(true);
       }
     } catch (e: any) {
-      setError('Could not generate AI preview image. Default circular asset will be used upon publishing.');
+      if (latestJobIdRef.current !== jobId) return;
+      setError('Could not generate AI preview image. A neutral placeholder or matching circular asset will be used upon publishing.');
     } finally {
-      setIsGeneratingPreview(false);
+      if (latestJobIdRef.current === jobId) {
+        setIsGeneratingPreview(false);
+      }
     }
   };
 
@@ -274,6 +292,7 @@ export const CreateListingPage: React.FC = () => {
         // Automatically generate AI illustrative image
         setPublishingStage('generating_image');
         const selectedCat = categories.find((c) => c.id === categoryId);
+        const jobId = `publish-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
 
         try {
           const aiImageResult = await generateListingImage({
@@ -281,26 +300,24 @@ export const CreateListingPage: React.FC = () => {
             category_id: categoryId,
             category_slug: selectedCat?.slug || 'other',
             material_type: materialType || title,
+            condition,
             description: description.trim(),
             user_id: currentUser.id,
+            job_id: jobId,
           });
 
           if (aiImageResult.image_url) {
             finalImages = [aiImageResult.image_url];
             listingIsAiImage = true;
           } else {
-            const fallback =
-              CATEGORY_ILLUSTRATIVE_FALLBACKS[selectedCat?.slug || 'other'] ||
-              CATEGORY_ILLUSTRATIVE_FALLBACKS.other;
-            finalImages = [fallback];
+            const itemFallback = matchCuratedItemFallback(title.trim(), materialType, description.trim());
+            finalImages = [itemFallback?.imageUrl || CATEGORY_ILLUSTRATIVE_FALLBACKS[selectedCat?.slug || 'other'] || NEUTRAL_MATERIAL_PLACEHOLDER];
             listingIsAiImage = true;
           }
         } catch (genErr) {
           console.warn('AI image generation fallback during publishing:', genErr);
-          const fallback =
-            CATEGORY_ILLUSTRATIVE_FALLBACKS[selectedCat?.slug || 'other'] ||
-            CATEGORY_ILLUSTRATIVE_FALLBACKS.other;
-          finalImages = [fallback];
+          const itemFallback = matchCuratedItemFallback(title.trim(), materialType, description.trim());
+          finalImages = [itemFallback?.imageUrl || CATEGORY_ILLUSTRATIVE_FALLBACKS[selectedCat?.slug || 'other'] || NEUTRAL_MATERIAL_PLACEHOLDER];
           listingIsAiImage = true;
         }
       }

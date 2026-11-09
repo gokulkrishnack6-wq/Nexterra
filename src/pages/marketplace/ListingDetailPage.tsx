@@ -23,7 +23,7 @@ import { Input, Textarea } from '../../components/ui/Input';
 import { supabase } from '../../lib/supabase';
 import { WasteListing } from '../../types';
 import { ListingCardSkeleton } from '../../components/ui/Skeleton';
-import { isAiGeneratedImage } from '../../services/imageGeneration';
+import { isAiGeneratedImage, generateListingImage } from '../../services/imageGeneration';
 
 export const ListingDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -37,6 +37,7 @@ export const ListingDetailPage: React.FC = () => {
     toggleFavourite, 
     categories, 
     deleteListing, 
+    updateListing,
     isLoading 
   } = useData();
   const { currentUser } = useAuth();
@@ -48,6 +49,7 @@ export const ListingDetailPage: React.FC = () => {
   const [directListing, setDirectListing] = useState<WasteListing | null>(null);
   const [directLoading, setDirectLoading] = useState(false);
   const [createdRequestId, setCreatedRequestId] = useState<string | null>(null);
+  const [isRegeneratingImage, setIsRegeneratingImage] = useState(false);
 
   useEffect(() => {
     if (!inMemoryListing && id) {
@@ -436,6 +438,52 @@ export const ListingDetailPage: React.FC = () => {
               )}
 
               <div className="flex flex-col gap-2 pt-1">
+                {isAiGeneratedImage(listing) && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    fullWidth
+                    disabled={isRegeneratingImage}
+                    onClick={async () => {
+                      if (!listing || !currentUser || listing.user_id !== currentUser.id) return;
+                      setIsRegeneratingImage(true);
+                      try {
+                        const res = await generateListingImage({
+                          title: listing.title,
+                          material_type: listing.material_type,
+                          category_slug: listing.category?.slug,
+                          category_id: listing.category_id,
+                          description: listing.description,
+                          listing_id: listing.id,
+                          user_id: currentUser.id,
+                        });
+
+                        if (res.image_url) {
+                          await updateListing(listing.id, {
+                            images: [res.image_url],
+                            is_ai_image: true,
+                          });
+                          if (directListing) {
+                            setDirectListing({
+                              ...directListing,
+                              images: [res.image_url],
+                              is_ai_image: true,
+                            });
+                          }
+                        }
+                      } catch (err: any) {
+                        alert(err.message || 'Failed to regenerate AI image');
+                      } finally {
+                        setIsRegeneratingImage(false);
+                      }
+                    }}
+                    icon={<Sparkles className={`w-4 h-4 text-secondary ${isRegeneratingImage ? 'animate-spin' : ''}`} />}
+                  >
+                    {isRegeneratingImage ? 'Regenerating AI Image...' : 'Regenerate AI Image'}
+                  </Button>
+                )}
+
                 <Button
                   variant="secondary"
                   fullWidth

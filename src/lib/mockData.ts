@@ -298,7 +298,7 @@ export const INITIAL_LISTINGS: WasteListing[] = [
     suggested_action: 'recycling',
     created_at: new Date(Date.now() - 3600000 * 48).toISOString(),
     images: [
-      'https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=800&q=80'
+      '/images/materials/used-cardboard-boxes.jpg'
     ]
   },
   {
