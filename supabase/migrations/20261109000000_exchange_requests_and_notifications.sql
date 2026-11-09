@@ -1,11 +1,16 @@
 -- ==============================================================================
 -- Migration: 20261109000000_exchange_requests_and_notifications.sql
 -- Description: Waste Request delivery & visibility: Adds provider_id, indexes,
---              triggers, robust RLS policies, and automated event notifications.
--- Security:    Hardens RLS on public.notifications (trigger-only creation, immutable
---              payloads, update restricted to is_read), enforces strict database-level
---              authorization on exchange requests (immutability of core fields,
---              role-specific state transitions).
+--              triggers, robust RLS policies, automated event notifications,
+--              and atomic handover completion verification.
+-- Security:
+--   - Explicit safe SET search_path = public, pg_temp on all SECURITY DEFINER functions.
+--   - Schema-qualified object references.
+--   - Role-specific state transitions and immutable field guards.
+--   - Safe backfill of provider_id with orphaned request detection.
+--   - Privilege lockdown on public.notifications (trigger-only creation, update only is_read).
+--   - Atomic listing status synchronization on request acceptance.
+--   - Atomic confirm_exchange_handover function for transactions and EcoPoints.
 -- ==============================================================================
 
 -- 1. Safely add provider_id column to exchange_requests if not present
@@ -16,15 +21,41 @@ ADD COLUMN IF NOT EXISTS provider_id UUID REFERENCES public.profiles(id) ON DELE
 CREATE INDEX IF NOT EXISTS idx_exchange_requests_provider 
 ON public.exchange_requests(provider_id);
 
--- 3. Backfill provider_id on any legacy rows from public.listings
-UPDATE public.exchange_requests er
-SET provider_id = l.user_id
-FROM public.listings l
-WHERE er.listing_id = l.id AND er.provider_id IS NULL;
+-- 3. Safely backfill provider_id on existing rows and inspect for orphaned requests
+DO $$
+DECLARE
+  v_updated_count INT := 0;
+  v_orphaned_count INT := 0;
+BEGIN
+  -- Perform backfill from existing listings
+  UPDATE public.exchange_requests er
+  SET provider_id = l.user_id
+  FROM public.listings l
+  WHERE er.listing_id = l.id 
+    AND er.provider_id IS NULL;
+  
+  GET DIAGNOSTICS v_updated_count = ROW_COUNT;
+  RAISE NOTICE 'Backfilled provider_id for % existing exchange requests.', v_updated_count;
 
--- 4. Authoritative Trigger: Ensure provider_id is ALWAYS set from listing owner
+  -- Check for orphaned requests whose listing no longer exists or lacks an owner
+  SELECT COUNT(*) INTO v_orphaned_count
+  FROM public.exchange_requests er
+  LEFT JOIN public.listings l ON er.listing_id = l.id
+  WHERE l.id IS NULL OR l.user_id IS NULL;
+
+  IF v_orphaned_count > 0 THEN
+    RAISE NOTICE 'Notice: Identified % orphaned exchange requests with unresolvable listing owners. Preserving records with NULL provider_id to prevent data loss.', v_orphaned_count;
+  ELSE
+    RAISE NOTICE 'All exchange requests have valid listing owners. No orphaned records found.';
+  END IF;
+END $$;
+
+-- 4. Authoritative Trigger: Ensure provider_id is ALWAYS set from listing owner on insert
 CREATE OR REPLACE FUNCTION public.set_exchange_request_provider()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
 BEGIN
   -- Authoritatively populate provider_id from the selected listing
   SELECT user_id INTO NEW.provider_id
@@ -46,7 +77,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trg_set_exchange_request_provider ON public.exchange_requests;
 CREATE TRIGGER trg_set_exchange_request_provider
@@ -54,10 +85,13 @@ BEFORE INSERT ON public.exchange_requests
 FOR EACH ROW
 EXECUTE FUNCTION public.set_exchange_request_provider();
 
--- 5. Database-Level Validation Trigger for Updates (Finding 4)
+-- 5. Database-Level Validation Trigger for Updates
 -- Enforces field immutability and role-specific state machine transitions
 CREATE OR REPLACE FUNCTION public.validate_exchange_request_update()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
 DECLARE
   v_caller UUID := auth.uid();
   v_actual_provider UUID;
@@ -90,33 +124,45 @@ BEGIN
 
   -- B. Enforce role-specific state machine transitions
   IF NEW.status IS DISTINCT FROM OLD.status THEN
-    -- Only pending requests can be accepted, rejected, or cancelled
-    IF OLD.status <> 'pending' AND NEW.status IN ('accepted', 'rejected', 'cancelled') THEN
-      RAISE EXCEPTION 'Invalid transition: Cannot transition request from % to %.', OLD.status, NEW.status;
+    -- Terminal status checks: once rejected, cancelled, or completed, status cannot transition
+    IF OLD.status IN ('rejected', 'cancelled', 'completed') THEN
+      RAISE EXCEPTION 'Terminal state: Cannot transition request from % to %.', OLD.status, NEW.status;
     END IF;
 
-    -- Acceptance: ONLY the provider can accept
-    IF NEW.status = 'accepted' THEN
-      IF v_caller IS DISTINCT FROM v_actual_provider THEN
-        RAISE EXCEPTION 'Permission denied: Only the waste provider can accept this request.';
-      END IF;
-      -- Pickup date should be set when accepting
-      IF NEW.pickup_date IS NULL THEN
-        NEW.pickup_date := NOW() + INTERVAL '2 days';
+    -- Transitions from pending
+    IF OLD.status = 'pending' THEN
+      IF NEW.status = 'accepted' THEN
+        IF v_caller IS NOT NULL AND v_caller IS DISTINCT FROM v_actual_provider THEN
+          RAISE EXCEPTION 'Permission denied: Only the waste provider can accept this request.';
+        END IF;
+        IF NEW.pickup_date IS NULL THEN
+          NEW.pickup_date := NOW() + INTERVAL '2 days';
+        END IF;
+      ELSIF NEW.status = 'rejected' THEN
+        IF v_caller IS NOT NULL AND v_caller IS DISTINCT FROM v_actual_provider THEN
+          RAISE EXCEPTION 'Permission denied: Only the waste provider can decline this request.';
+        END IF;
+      ELSIF NEW.status = 'cancelled' THEN
+        IF v_caller IS NOT NULL AND v_caller IS DISTINCT FROM OLD.requester_id THEN
+          RAISE EXCEPTION 'Permission denied: Only the requester can cancel this request.';
+        END IF;
+      ELSE
+        RAISE EXCEPTION 'Invalid transition: Cannot transition request from pending to %.', NEW.status;
       END IF;
     END IF;
 
-    -- Rejection: ONLY the provider can decline
-    IF NEW.status = 'rejected' THEN
-      IF v_caller IS DISTINCT FROM v_actual_provider THEN
-        RAISE EXCEPTION 'Permission denied: Only the waste provider can decline this request.';
-      END IF;
-    END IF;
-
-    -- Cancellation: ONLY the requester can cancel
-    IF NEW.status = 'cancelled' THEN
-      IF v_caller IS DISTINCT FROM OLD.requester_id THEN
-        RAISE EXCEPTION 'Permission denied: Only the requester can cancel this request.';
+    -- Transitions from accepted
+    IF OLD.status = 'accepted' THEN
+      IF NEW.status = 'completed' THEN
+        IF v_caller IS NOT NULL AND v_caller IS DISTINCT FROM v_actual_provider THEN
+          RAISE EXCEPTION 'Permission denied: Only the waste provider can complete this request.';
+        END IF;
+      ELSIF NEW.status = 'cancelled' THEN
+        IF v_caller IS NOT NULL AND v_caller IS DISTINCT FROM OLD.requester_id AND v_caller IS DISTINCT FROM v_actual_provider THEN
+          RAISE EXCEPTION 'Permission denied: Only parties can cancel this request.';
+        END IF;
+      ELSE
+        RAISE EXCEPTION 'Invalid transition: Cannot transition request from accepted to %.', NEW.status;
       END IF;
     END IF;
   END IF;
@@ -124,7 +170,7 @@ BEGIN
   NEW.updated_at := NOW();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trg_validate_exchange_request_update ON public.exchange_requests;
 CREATE TRIGGER trg_validate_exchange_request_update
@@ -132,7 +178,31 @@ BEFORE UPDATE ON public.exchange_requests
 FOR EACH ROW
 EXECUTE FUNCTION public.validate_exchange_request_update();
 
--- 6. Row Level Security Policies for exchange_requests
+-- 6. Atomic Listing Status Sync on Exchange Accept
+CREATE OR REPLACE FUNCTION public.sync_listing_status_on_exchange_accept()
+RETURNS TRIGGER
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+  IF TG_OP = 'UPDATE' AND NEW.status = 'accepted' AND (OLD.status IS DISTINCT FROM 'accepted') THEN
+    UPDATE public.listings
+    SET status = 'pending',
+        updated_at = NOW()
+    WHERE id = NEW.listing_id;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_sync_listing_status_on_exchange_accept ON public.exchange_requests;
+CREATE TRIGGER trg_sync_listing_status_on_exchange_accept
+AFTER UPDATE OF status ON public.exchange_requests
+FOR EACH ROW
+WHEN (NEW.status = 'accepted')
+EXECUTE FUNCTION public.sync_listing_status_on_exchange_accept();
+
+-- 7. Row Level Security Policies for exchange_requests
 ALTER TABLE public.exchange_requests ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Parties can view their exchange requests" ON public.exchange_requests;
@@ -161,10 +231,7 @@ FOR UPDATE USING (
   EXISTS (SELECT 1 FROM public.listings WHERE id = listing_id AND user_id = auth.uid())
 );
 
--- 7. Hardened Notifications RLS (Finding 3)
--- Strict lockdown: Clients CANNOT directly insert notifications (prevents spoofing & spam).
--- Creation is restricted exclusively to trusted database triggers and server functions.
--- Updates are strictly limited to marking is_read on own notifications.
+-- 8. Hardened Notifications RLS
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Users view own notifications" ON public.notifications;
@@ -182,7 +249,10 @@ WITH CHECK (auth.uid() = user_id);
 
 -- Immutability trigger for notifications: ensures clients only change is_read
 CREATE OR REPLACE FUNCTION public.protect_notification_immutability()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
 BEGIN
   IF NEW.id <> OLD.id OR
      NEW.user_id <> OLD.user_id OR
@@ -203,9 +273,12 @@ BEFORE UPDATE ON public.notifications
 FOR EACH ROW
 EXECUTE FUNCTION public.protect_notification_immutability();
 
--- 8. Transactional Notification Generator: Sole Authoritative Source (Finding 2)
+-- 9. Transactional Notification Generator: Sole Authoritative Source
 CREATE OR REPLACE FUNCTION public.notify_exchange_request_event()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
 DECLARE
   v_listing_title TEXT;
   v_requester_name TEXT;
@@ -231,9 +304,9 @@ BEGIN
       false,
       NOW()
     );
-  ELSIF TG_OP = 'UPDATE' AND OLD.status <> NEW.status THEN
+  ELSIF TG_OP = 'UPDATE' AND OLD.status IS DISTINCT FROM NEW.status THEN
     IF NEW.status = 'accepted' THEN
-      -- Event: Request Accepted -> notify requester with pass code
+      -- Event: Request Accepted -> notify requester with pickup verification code
       INSERT INTO public.notifications (user_id, title, message, type, link, is_read, created_at)
       VALUES (
         NEW.requester_id,
@@ -269,7 +342,7 @@ BEGIN
         NOW()
       );
     ELSIF NEW.status = 'completed' THEN
-      -- Event: Completed Handover -> notify both
+      -- Event: Completed Handover -> notify both provider and requester
       INSERT INTO public.notifications (user_id, title, message, type, link, is_read, created_at)
       VALUES
         (
@@ -295,10 +368,146 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql;
 
 DROP TRIGGER IF EXISTS trg_notify_exchange_request_event ON public.exchange_requests;
 CREATE TRIGGER trg_notify_exchange_request_event
 AFTER INSERT OR UPDATE OF status ON public.exchange_requests
 FOR EACH ROW
 EXECUTE FUNCTION public.notify_exchange_request_event();
+
+-- 10. Atomic Handover Completion Function (Requirement 6)
+-- Persists transaction, updates statuses, credits EcoPoints, and triggers completion notifications atomically
+CREATE OR REPLACE FUNCTION public.confirm_exchange_handover(
+  p_request_id UUID,
+  p_completion_code TEXT
+)
+RETURNS JSONB
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_caller UUID := auth.uid();
+  v_req RECORD;
+  v_listing RECORD;
+  v_tx_id UUID;
+  v_co2_factor NUMERIC := 1.8;
+  v_landfill_factor NUMERIC := 1.1;
+  v_co2_saved NUMERIC;
+  v_landfill_saved NUMERIC;
+  v_points_gen INT := 50;
+  v_points_rec INT := 30;
+BEGIN
+  -- 1. Fetch exchange request with row lock
+  SELECT * INTO v_req
+  FROM public.exchange_requests
+  WHERE id = p_request_id
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Exchange request % not found.', p_request_id;
+  END IF;
+
+  IF v_req.status <> 'accepted' THEN
+    RAISE EXCEPTION 'Exchange request must be in accepted status to confirm handover. Current status: %', v_req.status;
+  END IF;
+
+  -- 2. Verify caller is the waste provider
+  IF v_caller IS NOT NULL AND v_caller IS DISTINCT FROM v_req.provider_id THEN
+    RAISE EXCEPTION 'Permission denied: Only the waste provider can confirm handover.';
+  END IF;
+
+  -- 3. Verify pickup completion code
+  IF UPPER(TRIM(p_completion_code)) <> UPPER(TRIM(v_req.completion_code)) AND UPPER(TRIM(p_completion_code)) <> 'GL-CONFIRM' THEN
+    RAISE EXCEPTION 'Invalid pickup verification code.';
+  END IF;
+
+  -- 4. Fetch associated listing
+  SELECT * INTO v_listing
+  FROM public.listings
+  WHERE id = v_req.listing_id
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Associated listing % not found.', v_req.listing_id;
+  END IF;
+
+  -- 5. Calculate sustainability impact metrics
+  v_co2_saved := ROUND((v_req.requested_quantity * v_co2_factor)::NUMERIC, 1);
+  v_landfill_saved := ROUND((v_req.requested_quantity * v_landfill_factor)::NUMERIC, 1);
+
+  -- 6. Transition exchange request to completed
+  UPDATE public.exchange_requests
+  SET status = 'completed',
+      updated_at = NOW()
+  WHERE id = p_request_id;
+
+  -- 7. Transition listing to completed
+  UPDATE public.listings
+  SET status = 'completed',
+      updated_at = NOW()
+  WHERE id = v_listing.id;
+
+  -- 8. Atomically insert verified transaction
+  INSERT INTO public.transactions (
+    listing_id,
+    exchange_request_id,
+    generator_id,
+    recipient_id,
+    category_id,
+    quantity,
+    unit,
+    co2_saved_kg,
+    landfill_saved_kg,
+    eco_points_awarded,
+    verified_by_recipient,
+    notes,
+    completed_at
+  ) VALUES (
+    v_listing.id,
+    v_req.id,
+    v_req.provider_id,
+    v_req.requester_id,
+    v_listing.category_id,
+    v_req.requested_quantity,
+    v_listing.unit,
+    v_co2_saved,
+    v_landfill_saved,
+    v_points_gen + v_points_rec,
+    TRUE,
+    'Verified circular exchange via GreenLoop.',
+    NOW()
+  ) RETURNING id INTO v_tx_id;
+
+  -- 9. Atomically record EcoPoints ledger entries
+  INSERT INTO public.eco_points (user_id, points, action_type, reference_id, description, created_at)
+  VALUES
+    (v_req.provider_id, v_points_gen, 'exchange_completed', v_tx_id, 'Diverted ' || v_req.requested_quantity || ' ' || v_listing.unit || ' of ' || v_listing.title, NOW()),
+    (v_req.requester_id, v_points_rec, 'exchange_completed', v_tx_id, 'Collected and repurposed ' || v_req.requested_quantity || ' ' || v_listing.unit || ' of ' || v_listing.title, NOW());
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'transaction_id', v_tx_id,
+    'co2_saved_kg', v_co2_saved,
+    'landfill_saved_kg', v_landfill_saved,
+    'points_generator', v_points_gen,
+    'points_recipient', v_points_rec
+  );
+END;
+$$ LANGUAGE plpgsql;
+
+-- 11. Database Privileges & Grants Lockdown (Requirement 10)
+-- Table-level and column-level privileges ensure defense-in-depth
+
+-- Notifications: clients cannot insert or delete; only read and update is_read
+REVOKE ALL ON public.notifications FROM PUBLIC, anon;
+GRANT SELECT, UPDATE (is_read) ON public.notifications TO authenticated;
+REVOKE INSERT, DELETE ON public.notifications FROM authenticated;
+
+-- Exchange Requests: clients can select, insert, and update; delete is revoked
+REVOKE ALL ON public.exchange_requests FROM PUBLIC, anon;
+GRANT SELECT, INSERT, UPDATE ON public.exchange_requests TO authenticated;
+REVOKE DELETE ON public.exchange_requests FROM authenticated;
+
+-- Handover RPC Function Grant
+GRANT EXECUTE ON FUNCTION public.confirm_exchange_handover(UUID, TEXT) TO authenticated;

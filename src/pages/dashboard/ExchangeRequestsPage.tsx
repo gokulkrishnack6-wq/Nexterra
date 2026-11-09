@@ -93,21 +93,31 @@ export const ExchangeRequestsPage: React.FC = () => {
     }
   };
 
-  const handleConfirmHandover = (requestId: string) => {
+  const handleConfirmHandover = async (requestId: string) => {
     const code = codeInput[requestId] || '';
     if (!code.trim()) {
       alert('Please enter the pickup verification code.');
       return;
     }
 
-    const res = confirmHandover(requestId, code);
-    setStatusFeedback((prev) => ({
-      ...prev,
-      [requestId]: { success: res.success, msg: res.message },
-    }));
+    setActionLoading((prev) => ({ ...prev, [requestId]: true }));
+    try {
+      const res = await confirmHandover(requestId, code);
+      setStatusFeedback((prev) => ({
+        ...prev,
+        [requestId]: { success: res.success, msg: res.message },
+      }));
 
-    if (res.success) {
-      setCodeInput((prev) => ({ ...prev, [requestId]: '' }));
+      if (res.success) {
+        setCodeInput((prev) => ({ ...prev, [requestId]: '' }));
+      }
+    } catch (err: any) {
+      setStatusFeedback((prev) => ({
+        ...prev,
+        [requestId]: { success: false, msg: err.message || 'Handover confirmation failed' },
+      }));
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [requestId]: false }));
     }
   };
 

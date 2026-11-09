@@ -52,7 +52,7 @@ interface DataContextType {
   acceptExchangeRequest: (requestId: string) => Promise<void>;
   rejectExchangeRequest: (requestId: string) => Promise<void>;
   cancelExchangeRequest: (requestId: string) => Promise<void>;
-  confirmHandover: (requestId: string, completionCodeInput: string) => { success: boolean; message: string };
+  confirmHandover: (requestId: string, completionCodeInput: string) => Promise<{ success: boolean; message: string }>;
   toggleFavourite: (listingId: string) => void;
   joinChallenge: (challengeId: string) => void;
   markNotificationAsRead: (notificationId: string) => Promise<void>;
@@ -1006,10 +1006,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Action: Complete Handover & Generate Real Transaction
-  const confirmHandover = (
+  const confirmHandover = async (
     requestId: string,
     completionCodeInput: string
-  ): { success: boolean; message: string } => {
+  ): Promise<{ success: boolean; message: string }> => {
     const req = exchangeRequests.find((r) => r.id === requestId);
     if (!req) return { success: false, message: 'Exchange request not found.' };
 
@@ -1033,78 +1033,148 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const pointsGen = 50;
     const pointsRec = 30;
 
-    // Create Real Transaction
-    const newTransaction: Transaction = {
-      id: `tx-${Date.now()}`,
-      listing_id: listing.id,
-      exchange_request_id: req.id,
-      generator_id: listing.user_id,
-      recipient_id: req.requester_id,
-      category_id: listing.category_id,
-      quantity: req.requested_quantity,
-      unit: listing.unit,
-      co2_saved_kg: co2Saved,
-      landfill_saved_kg: landfillSaved,
-      eco_points_awarded: pointsGen + pointsRec,
-      verified_by_recipient: true,
-      notes: `Verified circular exchange of ${req.requested_quantity} ${listing.unit} via GreenLoop.`,
-      completed_at: new Date().toISOString(),
-    };
+    if (isSupabaseConfigured) {
+      try {
+        // Authoritative atomic RPC function
+        const { data: rpcData, error: rpcError } = await supabase.rpc('confirm_exchange_handover', {
+          p_request_id: requestId,
+          p_completion_code: completionCodeInput.trim().toUpperCase(),
+        });
 
-    setTransactions((prev) => [newTransaction, ...prev]);
+        if (rpcError) {
+          // If the RPC is not yet present on production database, gracefully execute coordinated updates
+          console.warn('RPC confirm_exchange_handover unavailable, falling back to coordinated table writes:', rpcError);
+          
+          const { error: reqErr } = await supabase
+            .from('exchange_requests')
+            .update({ status: 'completed', updated_at: new Date().toISOString() })
+            .eq('id', requestId);
+          if (reqErr) throw new Error(`Failed to complete exchange request: ${reqErr.message}`);
 
-    setExchangeRequests((prev) =>
-      prev.map((r) => (r.id === req.id ? { ...r, status: 'completed', updated_at: new Date().toISOString() } : r))
-    );
-    updateListing(listing.id, { status: 'completed' });
+          const { error: listErr } = await supabase
+            .from('listings')
+            .update({ status: 'completed', updated_at: new Date().toISOString() })
+            .eq('id', listing.id);
+          if (listErr) console.warn('Listing status completion warning:', listErr);
 
-    // Award EcoPoints to Generator and Recipient
-    setEcoPointsLedger((prev) => [
-      {
-        id: `pt-${Date.now()}-1`,
-        user_id: listing.user_id,
-        points: pointsGen,
-        action_type: 'exchange_completed',
-        reference_id: newTransaction.id,
-        description: `Diverted ${req.requested_quantity} ${listing.unit} of ${category?.name || 'material'}`,
-        created_at: new Date().toISOString(),
-      },
-      {
-        id: `pt-${Date.now()}-2`,
-        user_id: req.requester_id,
-        points: pointsRec,
-        action_type: 'exchange_completed',
-        reference_id: newTransaction.id,
-        description: `Collected and repurposed ${req.requested_quantity} ${listing.unit} of ${category?.name || 'material'}`,
-        created_at: new Date().toISOString(),
-      },
-      ...prev,
-    ]);
+          // Insert transaction record
+          const txId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `00000000-0000-4000-8000-${Date.now().toString(16).padStart(12, '0')}`;
+          await supabase.from('transactions').insert([
+            {
+              id: txId,
+              listing_id: listing.id,
+              exchange_request_id: req.id,
+              generator_id: listing.user_id,
+              recipient_id: req.requester_id,
+              category_id: listing.category_id,
+              quantity: req.requested_quantity,
+              unit: listing.unit,
+              co2_saved_kg: co2Saved,
+              landfill_saved_kg: landfillSaved,
+              eco_points_awarded: pointsGen + pointsRec,
+              verified_by_recipient: true,
+              notes: 'Verified circular exchange via GreenLoop.',
+              completed_at: new Date().toISOString(),
+            },
+          ]);
 
-    // Send notifications
-    setNotifications((prev) => [
-      {
-        id: `notif-${Date.now()}-1`,
-        user_id: listing.user_id,
-        title: 'Exchange Completed',
-        message: `Your exchange of "${listing.title}" is complete. Saved ${co2Saved}kg CO2e & earned ${pointsGen} EcoPoints.`,
-        type: 'points',
-        link: '/impact',
-        is_read: false,
-        created_at: new Date().toISOString(),
-      },
-      {
-        id: `notif-${Date.now()}-2`,
-        user_id: req.requester_id,
-        title: 'Material Received',
-        message: `Collection verified. Diverted ${landfillSaved}kg from landfill & earned ${pointsRec} EcoPoints.`,
-        type: 'points',
-        link: '/impact',
-        is_read: false,
-        created_at: new Date().toISOString(),
-      },
-      ...prev,
-    ]);
+          // Insert eco_points ledger records
+          await supabase.from('eco_points').insert([
+            {
+              user_id: listing.user_id,
+              points: pointsGen,
+              action_type: 'exchange_completed',
+              reference_id: txId,
+              description: `Diverted ${req.requested_quantity} ${listing.unit} of ${listing.title}`,
+              created_at: new Date().toISOString(),
+            },
+            {
+              user_id: req.requester_id,
+              points: pointsRec,
+              action_type: 'exchange_completed',
+              reference_id: txId,
+              description: `Collected and repurposed ${req.requested_quantity} ${listing.unit} of ${listing.title}`,
+              created_at: new Date().toISOString(),
+            },
+          ]);
+        }
+
+        await fetchData();
+      } catch (err: any) {
+        console.error('Handover completion failed:', err);
+        return { success: false, message: err.message || 'Failed to persist handover completion to database.' };
+      }
+    } else {
+      // Offline fallback
+      const newTransaction: Transaction = {
+        id: `tx-${Date.now()}`,
+        listing_id: listing.id,
+        exchange_request_id: req.id,
+        generator_id: listing.user_id,
+        recipient_id: req.requester_id,
+        category_id: listing.category_id,
+        quantity: req.requested_quantity,
+        unit: listing.unit,
+        co2_saved_kg: co2Saved,
+        landfill_saved_kg: landfillSaved,
+        eco_points_awarded: pointsGen + pointsRec,
+        verified_by_recipient: true,
+        notes: `Verified circular exchange of ${req.requested_quantity} ${listing.unit} via GreenLoop.`,
+        completed_at: new Date().toISOString(),
+      };
+
+      setTransactions((prev) => [newTransaction, ...prev]);
+      setExchangeRequests((prev) =>
+        prev.map((r) => (r.id === req.id ? { ...r, status: 'completed', updated_at: new Date().toISOString() } : r))
+      );
+      updateListing(listing.id, { status: 'completed' });
+
+      setEcoPointsLedger((prev) => [
+        {
+          id: `pt-${Date.now()}-1`,
+          user_id: listing.user_id,
+          points: pointsGen,
+          action_type: 'exchange_completed',
+          reference_id: newTransaction.id,
+          description: `Diverted ${req.requested_quantity} ${listing.unit} of ${category?.name || 'material'}`,
+          created_at: new Date().toISOString(),
+        },
+        {
+          id: `pt-${Date.now()}-2`,
+          user_id: req.requester_id,
+          points: pointsRec,
+          action_type: 'exchange_completed',
+          reference_id: newTransaction.id,
+          description: `Collected and repurposed ${req.requested_quantity} ${listing.unit} of ${category?.name || 'material'}`,
+          created_at: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+
+      setNotifications((prev) => [
+        {
+          id: `notif-${Date.now()}-1`,
+          user_id: listing.user_id,
+          title: 'Exchange Completed',
+          message: `Your exchange of "${listing.title}" is complete. Saved ${co2Saved}kg CO2e & earned ${pointsGen} EcoPoints.`,
+          type: 'points',
+          link: '/impact',
+          is_read: false,
+          created_at: new Date().toISOString(),
+        },
+        {
+          id: `notif-${Date.now()}-2`,
+          user_id: req.requester_id,
+          title: 'Material Received',
+          message: `Collection verified. Diverted ${landfillSaved}kg from landfill & earned ${pointsRec} EcoPoints.`,
+          type: 'points',
+          link: '/impact',
+          is_read: false,
+          created_at: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+    }
 
     try {
       confetti({
@@ -1152,29 +1222,51 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const markNotificationAsRead = async (notificationId: string): Promise<void> => {
+    const prevNotifications = notifications;
     setNotifications((prev) =>
       prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
     );
     if (isSupabaseConfigured && currentUserRef.current) {
       try {
-        await supabase
+        const { error } = await supabase
           .from('notifications')
           .update({ is_read: true })
           .eq('id', notificationId)
           .eq('user_id', currentUserRef.current.id);
-      } catch (_) {}
+
+        if (error) {
+          console.error('Failed to mark notification as read in Supabase:', error);
+          setNotifications(prevNotifications);
+          throw new Error(error.message || 'Failed to update notification status.');
+        }
+      } catch (err) {
+        console.error('Exception marking notification as read:', err);
+        setNotifications(prevNotifications);
+        throw err;
+      }
     }
   };
 
   const markAllNotificationsAsRead = async (): Promise<void> => {
+    const prevNotifications = notifications;
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
     if (isSupabaseConfigured && currentUserRef.current) {
       try {
-        await supabase
+        const { error } = await supabase
           .from('notifications')
           .update({ is_read: true })
           .eq('user_id', currentUserRef.current.id);
-      } catch (_) {}
+
+        if (error) {
+          console.error('Failed to mark all notifications as read in Supabase:', error);
+          setNotifications(prevNotifications);
+          throw new Error(error.message || 'Failed to update notifications status.');
+        }
+      } catch (err) {
+        console.error('Exception marking all notifications as read:', err);
+        setNotifications(prevNotifications);
+        throw err;
+      }
     }
   };
 
