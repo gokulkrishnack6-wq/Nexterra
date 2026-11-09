@@ -379,14 +379,14 @@ export const CreateListingPage: React.FC = () => {
       <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2.5">
         <button
           onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-1.5 font-label-md text-xs text-on-surface-variant hover:text-primary transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-gl-charcoal-muted hover:text-gl-forest transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Marketplace</span>
         </button>
 
         <Link to="/scanner">
-          <Button variant="secondary" size="sm" icon={<Sparkles className="w-4 h-4 text-primary" />} fullWidth className="xs:w-auto">
+          <Button variant="secondary" size="sm" icon={<Sparkles className="w-4 h-4 text-gl-forest" />} fullWidth className="xs:w-auto rounded-xl">
             Scan Material
           </Button>
         </Link>
@@ -401,20 +401,20 @@ export const CreateListingPage: React.FC = () => {
             </Badge>
           )}
         </div>
-        <h1 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight">
+        <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-gl-charcoal tracking-tight">
           Add a Listing
         </h1>
-        <p className="font-body-sm text-body-sm text-on-surface-variant">
-          Share recyclable materials or reusable items with people nearby.
+        <p className="text-sm text-gl-charcoal-muted">
+          Share recyclable materials or reusable items with verified partners nearby.
         </p>
 
         {!currentUser && (
-          <div className="mt-2 p-3 bg-secondary-container/40 rounded-lg text-xs text-primary flex items-center justify-between border border-primary/20">
+          <div className="mt-2 p-3 bg-gl-sage-light/40 rounded-xl text-xs text-gl-charcoal flex items-center justify-between border border-gl-border">
             <span>Listing as guest. Sign in to link this to your account and earn EcoPoints.</span>
             <Link
               to="/login"
               state={{ from: '/marketplace/new' }}
-              className="font-bold underline hover:opacity-80 shrink-0 ml-2"
+              className="font-bold text-gl-forest underline hover:opacity-80 shrink-0 ml-2"
             >
               Sign In
             </Link>
@@ -422,10 +422,10 @@ export const CreateListingPage: React.FC = () => {
         )}
       </div>
 
-      <Card variant="elevated" className="p-6 sm:p-8 space-y-6">
+      <Card variant="elevated" className="p-6 sm:p-8 space-y-6 bg-white border border-gl-border rounded-2xl shadow-card">
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <div className="p-3.5 bg-error-container text-on-error-container rounded-lg text-body-sm font-medium border border-error/20 flex items-start gap-2">
+            <div className="p-3.5 bg-error-container text-on-error-container rounded-xl text-sm font-medium border border-error/20 flex items-start gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-error" />
               <span>{error}</span>
             </div>
@@ -555,19 +555,19 @@ export const CreateListingPage: React.FC = () => {
           )}
 
           {/* Unified Location Picker */}
-          <div className="pt-4 border-t border-outline-variant/50 space-y-4">
+          <div className="pt-4 border-t border-gl-border space-y-4">
             <div>
-              <h2 className="font-heading font-bold text-base text-primary flex items-center gap-1.5">
-                <MapPin className="w-4 h-4 text-primary" />
+              <h2 className="font-heading font-bold text-base text-gl-charcoal flex items-center gap-1.5">
+                <MapPin className="w-4 h-4 text-gl-forest" />
                 <span>Pickup Location *</span>
               </h2>
-              <p className="font-body-sm text-xs text-on-surface-variant mt-0.5">
+              <p className="text-xs text-gl-charcoal-muted mt-0.5">
                 Select your location so buyers nearby can find your listing.
               </p>
             </div>
 
             {locationError && (
-              <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 rounded-lg text-xs flex items-start gap-2">
+              <div className="p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl text-xs flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                 <span>{locationError}</span>
               </div>
@@ -591,7 +591,7 @@ export const CreateListingPage: React.FC = () => {
                 onClick={handleUseCurrentLocation}
                 disabled={isDetectingGps}
                 icon={isDetectingGps ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
-                className="shrink-0"
+                className="shrink-0 rounded-xl"
               >
                 {isDetectingGps
                   ? 'Locating...'
@@ -603,13 +603,13 @@ export const CreateListingPage: React.FC = () => {
 
             {/* Selected Location Display */}
             {hasSelectedLocation && (
-              <div className="p-3.5 rounded-xl border border-outline-variant bg-surface-container-low/50 space-y-3">
+              <div className="p-3.5 rounded-xl border border-gl-border bg-gl-cream/50 space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-primary font-semibold text-sm">
+                    <span className="text-gl-charcoal font-semibold text-sm">
                       📍 {locality}, {district}
                     </span>
-                    <span className="text-xs text-on-surface-variant">
+                    <span className="text-xs text-gl-charcoal-muted">
                       ({state})
                     </span>
                   </div>
@@ -618,7 +618,7 @@ export const CreateListingPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setIsEditingLocationDetails(!isEditingLocationDetails)}
-                      className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1"
+                      className="text-xs font-semibold text-gl-forest hover:underline inline-flex items-center gap-1"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
                       <span>{isEditingLocationDetails ? 'Done' : 'Edit'}</span>
@@ -626,7 +626,7 @@ export const CreateListingPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={handleClearLocation}
-                      className="text-xs font-semibold text-on-surface-variant hover:text-error inline-flex items-center gap-1"
+                      className="text-xs font-semibold text-gl-charcoal-muted hover:text-error inline-flex items-center gap-1"
                       title="Clear location"
                     >
                       <X className="w-3.5 h-3.5" />
@@ -754,12 +754,12 @@ export const CreateListingPage: React.FC = () => {
             )}
           </div>
 
-          <div className="pt-4 border-t border-outline-variant/40 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3 w-full">
+          <div className="pt-4 border-t border-gl-border flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3 w-full">
             <Button
               type="button"
               variant="outline"
               fullWidth
-              className="sm:w-auto"
+              className="sm:w-auto rounded-xl"
               disabled={submitting}
               onClick={() => navigate(-1)}
             >
@@ -771,12 +771,12 @@ export const CreateListingPage: React.FC = () => {
               variant="primary"
               size="lg"
               fullWidth
-              className="sm:w-auto"
+              className="sm:w-auto rounded-xl"
               loading={submitting}
               disabled={submitting}
               icon={
                 publishingStage === 'generating_image' ? (
-                  <Sparkles className="w-4 h-4 text-tertiary-fixed animate-spin" />
+                  <Sparkles className="w-4 h-4 text-white animate-spin" />
                 ) : (
                   <Plus className="w-4 h-4" />
                 )

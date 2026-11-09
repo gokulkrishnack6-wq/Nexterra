@@ -100,26 +100,26 @@ export const OverviewPage: React.FC = () => {
     <div className="flex flex-col w-full gap-6 lg:gap-8 pb-14 max-w-7xl mx-auto text-left min-w-0">
 
       {/* 1. MASTHEAD */}
-      <header className="border-b border-gl-border/80 pb-6 pt-0">
+      <header className="border-b border-gl-border/70 pb-6 pt-0">
         <div className="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-5 min-w-0">
 
           {/* Brand Introduction & Context */}
           <div className="flex flex-col gap-2 max-w-2xl min-w-0">
             <div className="inline-flex flex-wrap items-center gap-2 text-xs">
-              <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-gl-olive flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-gl-forest" />
+              <span className="font-sans text-[11px] font-semibold text-gl-forest bg-gl-sage-light px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-gl-fresh animate-pulse" />
                 Waste Has a Second Life
               </span>
               <span className="text-gl-sand">•</span>
-              <span className="font-mono text-[11px] text-gl-charcoal-muted flex items-center gap-1">
-                <Compass className="w-3.5 h-3.5 text-gl-olive" />
+              <span className="text-[12px] text-gl-charcoal-muted flex items-center gap-1 font-medium">
+                <Compass className="w-3.5 h-3.5 text-gl-forest" />
                 {userDistrict
                   ? (userLocality && userLocality !== userDistrict ? `${userLocality}, ${userDistrict}` : userDistrict)
-                  : 'Kerala'}
+                  : 'Kerala Circular Network'}
               </span>
             </div>
 
-            <h1 className="font-heading font-extrabold text-2xl sm:text-3xl lg:text-4xl text-gl-dark tracking-tight leading-tight">
+            <h1 className="font-heading font-extrabold text-2xl sm:text-3xl lg:text-4xl text-gl-charcoal tracking-tight leading-tight">
               {currentUser ? `Welcome, ${currentUser.full_name}` : 'Sustainable Material Exchange'}
             </h1>
 
@@ -134,7 +134,7 @@ export const OverviewPage: React.FC = () => {
           <div className="flex flex-wrap items-center gap-2.5 shrink-0 w-full xl:w-auto">
             <button
               onClick={() => navigate('/marketplace/new')}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gl-forest hover:bg-gl-dark text-white rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-[0.98] w-full sm:w-auto"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gl-forest hover:bg-gl-dark text-white rounded-xl text-sm font-semibold shadow-sm hover:shadow transition-all active:scale-[0.98] w-full sm:w-auto"
             >
               <Plus className="w-4 h-4" />
               <span>Add Listing</span>
@@ -142,15 +142,15 @@ export const OverviewPage: React.FC = () => {
 
             <button
               onClick={() => navigate('/scanner')}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gl-cream hover:bg-white text-gl-forest border border-gl-sand rounded-lg text-sm font-semibold transition-all active:scale-[0.98] w-full sm:w-auto"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-gl-cream text-gl-forest border border-gl-border rounded-xl text-sm font-semibold shadow-sm transition-all active:scale-[0.98] w-full sm:w-auto"
             >
-              <ScanLine className="w-4 h-4 text-gl-olive" />
+              <ScanLine className="w-4 h-4 text-gl-fresh" />
               <span>Waste Scanner</span>
             </button>
 
             <button
               onClick={() => navigate('/report-issue')}
-              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-gl-ivory hover:bg-gl-clay-light text-gl-charcoal hover:text-gl-clay border border-gl-border hover:border-gl-clay/40 rounded-lg text-sm font-medium transition-all active:scale-[0.98] w-full sm:w-auto"
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-white hover:bg-gl-cream text-gl-charcoal border border-gl-border rounded-xl text-sm font-medium shadow-sm transition-all active:scale-[0.98] w-full sm:w-auto"
               title="Report an Issue"
             >
               <AlertTriangle className="w-4 h-4 text-gl-clay" />
@@ -161,26 +161,26 @@ export const OverviewPage: React.FC = () => {
         </div>
       </header>
 
-      {/* 2. OPERATIONAL TELEMETRY HORIZON (Connected Stat Band with Clear Hierarchy) */}
-      <section className="bg-gl-border border border-gl-border rounded-xl shadow-card overflow-hidden grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-px">
+      {/* 2. OPERATIONAL TELEMETRY HORIZON (4 Minimal White KPI Cards) */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
 
-        {/* Metric 1: Verified Material Diverted (The North Star Metric) */}
-        <div className="bg-white p-4 sm:p-5 flex flex-col justify-between min-w-0">
+        {/* Metric 1: Verified Material Diverted */}
+        <div className="bg-white p-5 rounded-2xl border border-gl-border shadow-card hover:shadow-card-hover transition-all duration-200 flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-[11px] uppercase tracking-wider text-gl-charcoal-muted font-bold">
+            <span className="text-[11px] uppercase tracking-wider text-gl-charcoal-muted font-bold font-sans">
               Verified Diversion
             </span>
-            <span className="p-1 rounded bg-gl-sage-light text-gl-forest">
-              <Leaf className="w-3.5 h-3.5" />
+            <span className="w-8 h-8 rounded-xl bg-gl-sage-light text-gl-forest flex items-center justify-center shadow-xs">
+              <Leaf className="w-4 h-4" />
             </span>
           </div>
 
           <div className="my-3">
             <div className="flex items-baseline gap-2">
-              <span className="font-heading font-black text-3xl sm:text-4xl text-gl-dark tracking-tight">
+              <span className="font-heading font-black text-3xl sm:text-4xl text-gl-charcoal tracking-tight">
                 {metrics.total_waste_diverted_kg}
               </span>
-              <span className="text-sm font-bold text-gl-olive">
+              <span className="text-sm font-bold text-gl-fresh">
                 kg
               </span>
             </div>
@@ -189,31 +189,31 @@ export const OverviewPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="pt-2.5 border-t border-gl-border-subtle flex flex-wrap items-center justify-between gap-1 text-xs text-gl-charcoal-muted min-w-0">
+          <div className="pt-3 border-t border-gl-border/70 flex flex-wrap items-center justify-between gap-1 text-xs text-gl-charcoal-muted min-w-0">
             <span className="truncate">Avoided Emissions</span>
-            <span className="font-semibold text-gl-dark shrink-0">
+            <span className="font-semibold text-gl-forest shrink-0">
               {metrics.total_co2e_avoided_kg} kg CO₂e
             </span>
           </div>
         </div>
 
         {/* Metric 2: Active Inventory */}
-        <div className="bg-white p-4 sm:p-5 flex flex-col justify-between min-w-0">
+        <div className="bg-white p-5 rounded-2xl border border-gl-border shadow-card hover:shadow-card-hover transition-all duration-200 flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-[11px] uppercase tracking-wider text-gl-charcoal-muted font-bold">
+            <span className="text-[11px] uppercase tracking-wider text-gl-charcoal-muted font-bold font-sans">
               Your Active Listings
             </span>
-            <span className="p-1 rounded bg-gl-sage-light text-gl-forest">
-              <Package className="w-3.5 h-3.5" />
+            <span className="w-8 h-8 rounded-xl bg-gl-sage-light text-gl-forest flex items-center justify-center shadow-xs">
+              <Package className="w-4 h-4" />
             </span>
           </div>
 
           <div className="my-3">
             <div className="flex items-baseline gap-2">
-              <span className="font-heading font-black text-3xl sm:text-4xl text-gl-forest tracking-tight">
+              <span className="font-heading font-black text-3xl sm:text-4xl text-gl-charcoal tracking-tight">
                 {myListings.length}
               </span>
-              <span className="text-sm font-semibold text-gl-olive">
+              <span className="text-sm font-semibold text-gl-fresh">
                 batches
               </span>
             </div>
@@ -222,31 +222,31 @@ export const OverviewPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="pt-2.5 border-t border-gl-border-subtle flex flex-wrap items-center justify-between gap-1 text-xs text-gl-charcoal-muted min-w-0">
+          <div className="pt-3 border-t border-gl-border/70 flex flex-wrap items-center justify-between gap-1 text-xs text-gl-charcoal-muted min-w-0">
             <span className="truncate">Statewide Marketplace</span>
-            <span className="font-semibold text-gl-dark shrink-0">
+            <span className="font-semibold text-gl-forest shrink-0">
               {activeMarketplaceCount} available
             </span>
           </div>
         </div>
 
         {/* Metric 3: Active Handovers */}
-        <div className="bg-white p-4 sm:p-5 flex flex-col justify-between min-w-0">
+        <div className="bg-white p-5 rounded-2xl border border-gl-border shadow-card hover:shadow-card-hover transition-all duration-200 flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-[11px] uppercase tracking-wider text-gl-charcoal-muted font-bold">
+            <span className="text-[11px] uppercase tracking-wider text-gl-charcoal-muted font-bold font-sans">
               Custody Handovers
             </span>
-            <span className="p-1 rounded bg-gl-sage-light text-gl-forest">
-              <Repeat className="w-3.5 h-3.5" />
+            <span className="w-8 h-8 rounded-xl bg-gl-sage-light text-gl-forest flex items-center justify-center shadow-xs">
+              <Repeat className="w-4 h-4" />
             </span>
           </div>
 
           <div className="my-3">
             <div className="flex items-baseline gap-2">
-              <span className="font-heading font-black text-3xl sm:text-4xl text-gl-forest tracking-tight">
+              <span className="font-heading font-black text-3xl sm:text-4xl text-gl-charcoal tracking-tight">
                 {activeExchanges.length}
               </span>
-              <span className="text-sm font-semibold text-gl-olive">
+              <span className="text-sm font-semibold text-gl-fresh">
                 active
               </span>
             </div>
@@ -255,22 +255,22 @@ export const OverviewPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="pt-2.5 border-t border-gl-border-subtle flex flex-wrap items-center justify-between gap-1 text-xs text-gl-charcoal-muted min-w-0">
+          <div className="pt-3 border-t border-gl-border/70 flex flex-wrap items-center justify-between gap-1 text-xs text-gl-charcoal-muted min-w-0">
             <span className="truncate">Completed Custodies</span>
-            <span className="font-semibold text-gl-dark shrink-0">
+            <span className="font-semibold text-gl-forest shrink-0">
               {metrics.total_completed_exchanges} verified
             </span>
           </div>
         </div>
 
         {/* Metric 4: EcoPoints Balance */}
-        <div className="bg-white p-4 sm:p-5 flex flex-col justify-between min-w-0">
+        <div className="bg-white p-5 rounded-2xl border border-gl-border shadow-card hover:shadow-card-hover transition-all duration-200 flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between">
-            <span className="font-mono text-[11px] uppercase tracking-wider text-gl-charcoal-muted font-bold">
+            <span className="text-[11px] uppercase tracking-wider text-gl-charcoal-muted font-bold font-sans">
               EcoPoints Balance
             </span>
-            <span className="p-1 rounded bg-gl-clay-light text-gl-clay">
-              <Award className="w-3.5 h-3.5" />
+            <span className="w-8 h-8 rounded-xl bg-amber-100 text-gl-clay flex items-center justify-center shadow-xs">
+              <Award className="w-4 h-4" />
             </span>
           </div>
 
@@ -288,7 +288,7 @@ export const OverviewPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="pt-2.5 border-t border-gl-border-subtle flex flex-wrap items-center justify-between gap-1 text-xs min-w-0">
+          <div className="pt-3 border-t border-gl-border/70 flex flex-wrap items-center justify-between gap-1 text-xs min-w-0">
             <span className="text-gl-charcoal-muted truncate">Account Tier</span>
             <span className="font-semibold text-gl-forest capitalize shrink-0">
               {currentUser ? `${currentUser.role} Participant` : 'Public Visitor'}
@@ -343,32 +343,32 @@ export const OverviewPage: React.FC = () => {
                 {suggestedListings.map((listing) => (
                   <article
                     key={listing.id}
-                    className="bg-white rounded-xl p-5 border border-gl-border shadow-card hover:border-gl-sage transition-all flex flex-col justify-between min-w-0"
+                    className="bg-white rounded-2xl p-5 border border-gl-border shadow-card hover:border-gl-sage hover:shadow-card-hover transition-all duration-200 flex flex-col justify-between min-w-0"
                   >
                     <div className="min-w-0">
                       {/* Material Category & Exchange Terms */}
                       <div className="flex items-start justify-between gap-2">
-                        <span className="font-mono text-[11px] font-bold text-gl-forest bg-gl-sage-light px-2.5 py-0.5 rounded uppercase tracking-wider">
+                        <span className="text-[11px] font-semibold text-gl-forest bg-gl-sage-light px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                           {listing.category?.name || 'Recyclable Stream'}
                         </span>
-                        <span className="text-xs font-semibold text-gl-charcoal-muted">
+                        <span className="text-xs font-semibold text-gl-charcoal bg-gl-cream px-2 py-0.5 rounded-md">
                           {listing.listing_type === 'free' ? 'Free Material' : listing.listing_type === 'exchange' ? 'Barter Exchange' : `₹${listing.price || 0}`}
                         </span>
                       </div>
 
-                      <h3 className="font-heading font-bold text-base text-gl-dark mt-3 line-clamp-1">
+                      <h3 className="font-heading font-bold text-base text-gl-charcoal mt-3 line-clamp-1">
                         {listing.title}
                       </h3>
 
                       {/* Technical Specifications Ledger Strip */}
-                      <div className="my-3 py-2 px-3 rounded-lg bg-gl-ivory border border-gl-cream flex items-center justify-between text-xs text-gl-charcoal">
+                      <div className="my-3 py-2 px-3 rounded-xl bg-gl-cream/60 border border-gl-border/70 flex items-center justify-between text-xs text-gl-charcoal">
                         <div>
-                          <span className="text-gl-charcoal-muted text-[10px] uppercase font-mono block">Batch Weight</span>
+                          <span className="text-gl-charcoal-muted text-[10px] uppercase font-semibold block">Batch Weight</span>
                           <span className="font-bold text-gl-forest">{listing.quantity} {listing.unit}</span>
                         </div>
                         <div className="text-right">
-                          <span className="text-gl-charcoal-muted text-[10px] uppercase font-mono block">District</span>
-                          <span className="font-medium text-gl-dark">{listing.district}</span>
+                          <span className="text-gl-charcoal-muted text-[10px] uppercase font-semibold block">District</span>
+                          <span className="font-medium text-gl-charcoal">{listing.district}</span>
                         </div>
                       </div>
 
@@ -377,17 +377,17 @@ export const OverviewPage: React.FC = () => {
                       </p>
                     </div>
 
-                    <div className="pt-3.5 mt-3.5 border-t border-gl-border-subtle flex items-center justify-between">
-                      <span className="text-[11px] text-gl-olive font-semibold flex items-center gap-1">
-                        <Sparkles className="w-3 h-3" />
+                    <div className="pt-3.5 mt-3.5 border-t border-gl-border/70 flex items-center justify-between">
+                      <span className="text-[11px] text-gl-fresh font-semibold flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5 text-gl-fresh" />
                         <span>High Proximity Fit</span>
                       </span>
                       <button
                         onClick={() => navigate(`/marketplace/${listing.id}`)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gl-cream hover:bg-gl-forest text-gl-forest hover:text-white border border-gl-sand text-xs font-semibold transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gl-forest hover:bg-gl-dark text-white text-xs font-semibold shadow-xs transition-colors"
                       >
                         <span>Inspect Batch</span>
-                        <ArrowRight className="w-3 h-3" />
+                        <ArrowRight className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </article>
@@ -401,10 +401,10 @@ export const OverviewPage: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 pb-1">
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="font-heading font-bold text-xl text-gl-dark">
+                  <h2 className="font-heading font-bold text-xl text-gl-charcoal">
                     Active Custody Handovers
                   </h2>
-                  <span className="font-mono text-[11px] px-2 py-0.5 rounded bg-gl-cream text-gl-charcoal font-semibold uppercase tracking-wider">
+                  <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-gl-cream text-gl-charcoal font-semibold uppercase tracking-wider border border-gl-border">
                     {myExchanges.length} in custody log
                   </span>
                 </div>
@@ -435,37 +435,37 @@ export const OverviewPage: React.FC = () => {
                 {activeExchanges.map((req) => (
                   <div
                     key={req.id}
-                    className="bg-white p-4 sm:p-5 rounded-xl border border-gl-border shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-4 min-w-0"
+                    className="bg-white p-4 sm:p-5 rounded-2xl border border-gl-border shadow-card hover:shadow-card-hover transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 min-w-0"
                   >
                     <div className="flex items-start gap-3.5 min-w-0 flex-1">
-                      <div className="w-10 h-10 rounded-lg bg-gl-sage-light flex items-center justify-center shrink-0 text-gl-forest">
+                      <div className="w-10 h-10 rounded-xl bg-gl-sage-light flex items-center justify-center shrink-0 text-gl-forest shadow-xs">
                         <Package className="w-5 h-5" />
                       </div>
                       <div className="flex flex-col gap-1 min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <h4 className="font-heading font-bold text-sm text-gl-dark truncate">
+                          <h4 className="font-heading font-bold text-sm text-gl-charcoal truncate">
                             {req.listing?.title || 'Material Exchange Batch'}
                           </h4>
                           <span className="text-xs font-semibold text-gl-charcoal-muted shrink-0">
                             ({req.requested_quantity} {req.listing?.unit || 'kg'})
                           </span>
-                          <span className={`font-mono text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded shrink-0 ${
+                          <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full shrink-0 ${
                             req.status === 'accepted'
                               ? 'bg-gl-sage-light text-gl-forest'
-                              : 'bg-gl-cream text-gl-charcoal'
+                              : 'bg-amber-100 text-amber-900'
                           }`}>
                             {req.status === 'accepted' ? 'Accepted • Ready for Pickup' : 'Pending Generator Confirmation'}
                           </span>
                         </div>
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gl-charcoal-muted">
-                          <span className="flex items-center gap-1 font-mono text-[11px] shrink-0">
-                            <Clock className="w-3 h-3 text-gl-sand" />
+                          <span className="flex items-center gap-1 text-[11px] shrink-0 font-medium">
+                            <Clock className="w-3 h-3 text-gl-charcoal-muted" />
                             <span>{new Date(req.created_at).toLocaleDateString()}</span>
                           </span>
-                          <span className="text-gl-sand shrink-0">•</span>
+                          <span className="text-gl-border shrink-0">•</span>
                           <span className="flex flex-wrap items-center gap-1">
                             <span>Pickup Verification Code:</span>
-                            <strong className="font-mono font-bold tracking-widest text-gl-forest bg-gl-cream border border-gl-sand px-2 py-0.5 rounded text-xs">
+                            <strong className="font-mono font-bold tracking-widest text-gl-forest bg-gl-cream border border-gl-border px-2.5 py-0.5 rounded-md text-xs">
                               {req.completion_code}
                             </strong>
                           </span>
@@ -476,16 +476,16 @@ export const OverviewPage: React.FC = () => {
                     <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
                       <button
                         onClick={() => setSelectedExchangeForPass(req)}
-                        className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-gl-ivory hover:bg-gl-cream text-gl-forest border border-gl-border text-xs font-semibold shadow-sm transition-colors"
+                        className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-gl-cream text-gl-forest border border-gl-border text-xs font-semibold shadow-xs transition-colors"
                         type="button"
                       >
-                        <QrCode className="w-3.5 h-3.5 text-gl-olive" />
+                        <QrCode className="w-3.5 h-3.5 text-gl-forest" />
                         <span>Digital Pass</span>
                       </button>
 
                       <button
                         onClick={() => navigate('/exchanges')}
-                        className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-gl-forest hover:bg-gl-dark text-white text-xs font-semibold shadow-sm transition-colors"
+                        className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-gl-forest hover:bg-gl-dark text-white text-xs font-semibold shadow-sm transition-colors"
                       >
                         <span>Manage Transfer</span>
                       </button>
@@ -497,18 +497,18 @@ export const OverviewPage: React.FC = () => {
           </section>
 
           {/* Section C: Audited Stream Diversion (Empirical Climate Accounting) */}
-          <section className="bg-white p-5 sm:p-6 rounded-xl border border-gl-border shadow-card flex flex-col gap-4 min-w-0">
-            <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 pb-3 border-b border-gl-border-subtle">
+          <section className="bg-white p-5 sm:p-6 rounded-2xl border border-gl-border shadow-card flex flex-col gap-4 min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 pb-3 border-b border-gl-border/70">
               <div>
-                <h3 className="font-heading font-bold text-lg text-gl-dark">
+                <h3 className="font-heading font-bold text-lg text-gl-charcoal">
                   Audited Material Stream Accounting
                 </h3>
                 <p className="text-xs text-gl-charcoal-muted mt-0.5">
                   Empirical biomass and recyclable volume diverted through verified physical handovers.
                 </p>
               </div>
-              <span className="font-mono text-[11px] text-gl-olive font-semibold self-start sm:self-auto bg-gl-sage-light px-2.5 py-1 rounded uppercase tracking-wider">
-                KSPCB & IPCC Conversion Model
+              <span className="text-[11px] text-gl-forest font-semibold self-start sm:self-auto bg-gl-sage-light px-2.5 py-1 rounded-full uppercase tracking-wider">
+                KSPCB & IPCC Model
               </span>
             </div>
 
@@ -519,20 +519,20 @@ export const OverviewPage: React.FC = () => {
             ) : (
               <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
                 {metrics.category_breakdown.map((cat) => (
-                  <div key={cat.category_name} className="flex flex-col p-3.5 rounded-lg bg-gl-ivory border border-gl-cream min-w-0">
+                  <div key={cat.category_name} className="flex flex-col p-4 rounded-xl bg-gl-cream/60 border border-gl-border/70 min-w-0">
                     <span className="text-[11px] font-semibold text-gl-charcoal-muted truncate">
                       {cat.category_name}
                     </span>
                     <span className="font-heading font-extrabold text-xl text-gl-forest mt-1">
                       {cat.diverted_kg} kg
                     </span>
-                    <div className="mt-2.5 w-full bg-gl-cream h-1.5 rounded-full overflow-hidden">
+                    <div className="mt-2.5 w-full bg-gl-border h-1.5 rounded-full overflow-hidden">
                       <div
-                        className="bg-gl-forest h-full rounded-full"
+                        className="bg-gl-fresh h-full rounded-full"
                         style={{ width: `${Math.min(100, Math.max(8, cat.percentage))}%` }}
                       />
                     </div>
-                    <span className="font-mono text-[10px] text-gl-charcoal-muted mt-1.5">
+                    <span className="text-[10px] text-gl-charcoal-muted mt-1.5 font-medium">
                       {cat.percentage}% of aggregate
                     </span>
                   </div>
@@ -546,20 +546,20 @@ export const OverviewPage: React.FC = () => {
         {/* Right Column (4 Cols): Regional Mobilization & Civic Surveillance */}
         <div className="xl:col-span-4 flex flex-col gap-6 lg:gap-8 min-w-0">
 
-          {/* Section D: Regional Community Spotlight (Editorial & Human) */}
+          {/* Section D: Regional Community Spotlight */}
           {spotlightDrive ? (
-            <aside className="bg-gl-cream border border-gl-sand rounded-xl p-5 sm:p-6 shadow-card flex flex-col gap-4 min-w-0">
+            <aside className="bg-white border border-gl-border rounded-2xl p-5 sm:p-6 shadow-card hover:shadow-card-hover transition-all flex flex-col gap-4 min-w-0">
               <div className="flex items-center justify-between">
-                <span className="font-mono text-[10px] uppercase tracking-wider text-gl-charcoal-muted font-bold">
+                <span className="text-[10px] uppercase tracking-wider text-gl-charcoal-muted font-bold font-sans">
                   Regional Mobilization
                 </span>
-                <span className="font-mono text-[11px] font-bold text-gl-forest bg-white px-2.5 py-0.5 rounded border border-gl-border">
+                <span className="text-[11px] font-semibold text-gl-forest bg-gl-sage-light px-2.5 py-0.5 rounded-full border border-gl-sage/40">
                   {spotlightDrive.district}
                 </span>
               </div>
 
               <div className="flex flex-col gap-2">
-                <h3 className="font-heading font-extrabold text-lg text-gl-dark leading-snug">
+                <h3 className="font-heading font-extrabold text-lg text-gl-charcoal leading-snug">
                   {spotlightDrive.title}
                 </h3>
                 <p className="text-xs text-gl-charcoal-muted leading-relaxed line-clamp-3">
@@ -567,11 +567,11 @@ export const OverviewPage: React.FC = () => {
                 </p>
               </div>
 
-              {/* Reward incentive banner with warm clay accent */}
-              <div className="p-3 rounded-lg bg-gl-clay-light border border-gl-clay/20 flex flex-wrap items-center justify-between gap-2">
+              {/* Reward incentive banner with warm amber accent */}
+              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200/60 flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Award className="w-4 h-4 text-gl-clay" />
-                  <span className="text-xs font-semibold text-gl-charcoal">Participation Incentive</span>
+                  <span className="text-xs font-semibold text-amber-950">Participation Incentive</span>
                 </div>
                 <span className="font-heading font-bold text-sm text-gl-clay">
                   +{spotlightDrive.reward_points} EcoPoints
@@ -580,9 +580,9 @@ export const OverviewPage: React.FC = () => {
 
               <button
                 onClick={() => setRsvpDone(!rsvpDone)}
-                className={`w-full py-2.5 px-4 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-sm ${
+                className={`w-full py-2.5 px-4 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-sm ${
                   rsvpDone
-                    ? 'bg-white text-gl-forest border border-gl-sage font-bold'
+                    ? 'bg-gl-cream text-gl-forest border border-gl-sage font-bold'
                     : 'bg-gl-forest hover:bg-gl-dark text-white'
                 }`}
               >
@@ -591,11 +591,11 @@ export const OverviewPage: React.FC = () => {
               </button>
             </aside>
           ) : (
-            <aside className="bg-gl-cream border border-gl-sand rounded-xl p-5 shadow-card flex flex-col gap-2 min-w-0">
-              <span className="font-mono text-[10px] uppercase tracking-wider text-gl-charcoal-muted font-bold">
+            <aside className="bg-white border border-gl-border rounded-2xl p-5 shadow-card flex flex-col gap-2 min-w-0">
+              <span className="text-[10px] uppercase tracking-wider text-gl-charcoal-muted font-bold font-sans">
                 Regional Mobilization
               </span>
-              <h3 className="font-heading font-bold text-sm text-gl-dark">
+              <h3 className="font-heading font-bold text-sm text-gl-charcoal">
                 No Scheduled Drives in District
               </h3>
               <p className="text-xs text-gl-charcoal-muted">
@@ -603,7 +603,7 @@ export const OverviewPage: React.FC = () => {
               </p>
               <button
                 onClick={() => navigate('/community')}
-                className="mt-2 py-2 px-3 bg-white hover:bg-gl-sage-light text-gl-forest border border-gl-border rounded-md text-xs font-semibold transition-colors text-center"
+                className="mt-2 py-2 px-3 bg-white hover:bg-gl-cream text-gl-forest border border-gl-border rounded-xl text-xs font-semibold transition-colors text-center"
               >
                 Explore Community Initiatives
               </button>
@@ -611,13 +611,13 @@ export const OverviewPage: React.FC = () => {
           )}
 
           {/* Section E: Local Civic Environmental Watch */}
-          <aside className="bg-white rounded-xl p-5 sm:p-6 border border-gl-border shadow-card flex flex-col gap-4 min-w-0">
+          <aside className="bg-white rounded-2xl p-5 sm:p-6 border border-gl-border shadow-card flex flex-col gap-4 min-w-0">
             <div className="flex items-center justify-between">
               <div>
-                <span className="font-mono text-[10px] uppercase tracking-wider text-gl-charcoal-muted font-bold block">
+                <span className="text-[10px] uppercase tracking-wider text-gl-charcoal-muted font-bold block font-sans">
                   Civic Watch & Remediation
                 </span>
-                <h3 className="font-heading font-bold text-lg text-gl-dark">
+                <h3 className="font-heading font-bold text-lg text-gl-charcoal">
                   Local Incident Logs
                 </h3>
               </div>
@@ -631,7 +631,7 @@ export const OverviewPage: React.FC = () => {
             </div>
 
             {recentReports.length === 0 ? (
-              <div className="p-4 rounded-lg bg-gl-ivory border border-gl-cream text-center">
+              <div className="p-4 rounded-xl bg-gl-cream/60 border border-gl-border/70 text-center">
                 <p className="text-xs text-gl-charcoal-muted">
                   No open environmental incidents reported in your area.
                 </p>
@@ -641,24 +641,24 @@ export const OverviewPage: React.FC = () => {
                 {recentReports.map((report) => (
                   <div
                     key={report.id}
-                    className="p-3.5 rounded-lg bg-gl-ivory border border-gl-cream flex flex-col gap-1.5 min-w-0"
+                    className="p-3.5 rounded-xl bg-gl-cream/50 border border-gl-border/70 flex flex-col gap-1.5 min-w-0"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className={`font-mono text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
                         report.status === 'resolved'
                           ? 'bg-gl-sage-light text-gl-forest'
                           : report.status === 'in_progress'
-                          ? 'bg-gl-cream text-gl-charcoal'
-                          : 'bg-gl-clay-light text-gl-clay'
+                          ? 'bg-amber-100 text-amber-900'
+                          : 'bg-gl-cream text-gl-charcoal'
                       }`}>
                         {report.status === 'resolved' ? 'Resolved' : report.status === 'in_progress' ? 'In Review' : 'Reported'}
                       </span>
-                      <span className="font-mono text-[10px] text-gl-charcoal-muted">
+                      <span className="text-[10px] text-gl-charcoal-muted font-medium">
                         {new Date(report.created_at).toLocaleDateString()}
                       </span>
                     </div>
 
-                    <h5 className="font-heading font-bold text-xs text-gl-dark line-clamp-1">
+                    <h5 className="font-heading font-bold text-xs text-gl-charcoal line-clamp-1">
                       {report.title}
                     </h5>
 
@@ -666,8 +666,8 @@ export const OverviewPage: React.FC = () => {
                       {report.locality}, {report.district}
                     </p>
 
-                    <div className="pt-2 border-t border-gl-cream flex items-center justify-between text-[11px]">
-                      <span className="font-mono text-gl-charcoal-muted font-medium">#{report.ticket_number}</span>
+                    <div className="pt-2 border-t border-gl-border/70 flex items-center justify-between text-[11px]">
+                      <span className="text-gl-charcoal-muted font-medium">#{report.ticket_number}</span>
                       <Link to="/reports" className="text-gl-forest font-semibold hover:underline">
                         Status →
                       </Link>
@@ -679,7 +679,7 @@ export const OverviewPage: React.FC = () => {
 
             <button
               onClick={() => navigate('/report-issue')}
-              className="w-full py-2.5 px-3 rounded-lg bg-gl-ivory hover:bg-gl-clay-light text-gl-charcoal hover:text-gl-clay border border-gl-border hover:border-gl-clay/40 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+              className="w-full py-2.5 px-3 rounded-xl bg-white hover:bg-gl-cream text-gl-charcoal hover:text-gl-dark border border-gl-border text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-xs"
             >
               <AlertTriangle className="w-3.5 h-3.5 text-gl-clay" />
               <span>Submit Geo-Tagged Report</span>
@@ -687,7 +687,7 @@ export const OverviewPage: React.FC = () => {
           </aside>
 
           {/* Section F: Honest Community Verification */}
-          <aside className="bg-gl-ivory rounded-xl p-4 border border-gl-cream flex flex-col gap-1.5 min-w-0">
+          <aside className="bg-gl-sage-light/60 rounded-2xl p-4 border border-gl-sage/40 flex flex-col gap-1.5 min-w-0">
             <span className="font-heading font-semibold text-xs text-gl-forest flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-gl-forest" />
               Community Circular Verification

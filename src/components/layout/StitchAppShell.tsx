@@ -157,16 +157,16 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
   return (
     <div className="min-h-screen bg-background font-body text-on-surface flex flex-col">
       {/* Desktop & Tablet Sidebar (w-16 on tablet, w-64 on desktop) */}
-      <aside className="fixed left-0 top-0 h-full w-16 lg:w-64 bg-surface-container-low z-50 hidden md:flex flex-col justify-between py-space-md border-r border-outline-variant/60 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
+      <aside className="fixed left-0 top-0 h-full w-16 lg:w-64 bg-white z-50 hidden md:flex flex-col justify-between py-space-md border-r border-gl-border shadow-subtle">
         <div className="flex flex-col gap-space-sm">
           {/* Logo Brand Header */}
           <Link to="/" className="px-2 lg:px-space-md pb-space-sm flex items-center justify-center lg:justify-start gap-space-sm hover:opacity-90 transition-opacity" title="GreenLoop">
             <img src="/logo.png" alt="GreenLoop" className="w-8 h-8 object-contain shrink-0" />
             <div className="hidden lg:flex flex-col">
-              <span className="font-heading font-bold text-title-md text-primary tracking-tight leading-none">
+              <span className="font-heading font-extrabold text-[17px] text-gl-forest tracking-tight leading-none">
                 GREENLOOP
               </span>
-              <span className="font-label-sm text-[10px] text-secondary uppercase tracking-wider mt-0.5 font-semibold">
+              <span className="font-label-sm text-[10px] text-gl-charcoal-muted uppercase tracking-wider mt-0.5 font-semibold">
                 Kerala Circular Action
               </span>
             </div>
@@ -182,13 +182,13 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                   key={item.path}
                   to={item.path}
                   title={item.label}
-                  className={`flex items-center justify-center lg:justify-start gap-3 px-2 lg:px-space-sm py-2 rounded-lg font-label-md text-label-md transition-colors ${
+                  className={`flex items-center justify-center lg:justify-start gap-3 px-2.5 lg:px-3 py-2.5 rounded-xl font-label-md text-label-md transition-all duration-150 ${
                     active
-                      ? 'bg-primary-container text-on-primary shadow-sm font-semibold'
-                      : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
+                      ? 'bg-gl-forest text-white shadow-sm font-semibold'
+                      : 'text-gl-charcoal-muted hover:bg-gl-cream/70 hover:text-gl-charcoal'
                   }`}
                 >
-                  <Icon className={`w-[18px] h-[18px] shrink-0 ${active ? 'text-on-primary' : 'text-outline'}`} />
+                  <Icon className={`w-[18px] h-[18px] shrink-0 transition-colors ${active ? 'text-white' : 'text-gl-charcoal-muted'}`} />
                   <span className="hidden lg:inline truncate">{item.label}</span>
                 </Link>
               );
@@ -197,37 +197,37 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
         </div>
 
         {/* Bottom Profile / Auth Info */}
-        <div className="px-1.5 lg:px-space-sm pt-space-xs border-t border-outline-variant/40">
+        <div className="px-1.5 lg:px-space-sm pt-space-xs border-t border-gl-border/70">
           {currentUser ? (
-            <div className="flex items-center justify-center lg:justify-between p-1.5 lg:p-2 rounded-lg bg-surface-container/50">
+            <div className="flex items-center justify-center lg:justify-between p-2 rounded-xl bg-gl-cream/60 border border-gl-border/60">
               <div className="flex items-center gap-2.5 overflow-hidden">
                 {currentUser.avatar_url ? (
                   <img
                     src={currentUser.avatar_url}
                     alt={currentUser.full_name}
-                    className="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-outline-variant"
+                    className="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-gl-border"
                     title={currentUser.full_name}
                   />
                 ) : (
                   <div
-                    className="w-8 h-8 rounded-full bg-primary-container text-on-primary font-bold text-xs flex items-center justify-center shrink-0"
+                    className="w-8 h-8 rounded-full bg-gl-forest text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm"
                     title={currentUser.full_name}
                   >
                     {getInitial(currentUser.full_name)}
                   </div>
                 )}
                 <div className="hidden lg:flex flex-col truncate">
-                  <span className="text-xs font-semibold text-primary truncate leading-tight">
+                  <span className="text-xs font-semibold text-gl-charcoal truncate leading-tight">
                     {currentUser.full_name}
                   </span>
-                  <span className="text-[10px] text-outline capitalize truncate">
-                    {currentUser.role}
+                  <span className="text-[10px] text-gl-olive font-semibold capitalize truncate">
+                    {currentUser.role} Participant
                   </span>
                 </div>
               </div>
               <button
                 onClick={() => signOut()}
-                className="hidden lg:block p-1.5 text-outline hover:text-error hover:bg-surface-container rounded-md transition-colors"
+                className="hidden lg:block p-1.5 text-gl-charcoal-muted hover:text-error hover:bg-white rounded-lg transition-colors"
                 title="Sign Out"
               >
                 <LogOut className="w-4 h-4" />
@@ -237,7 +237,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
             <Link
               to="/login"
               title="Sign In to GreenLoop"
-              className="flex items-center justify-center gap-2 w-full py-2 px-1.5 lg:px-3 rounded-lg bg-primary-container text-on-primary text-xs font-semibold hover:bg-primary transition-colors"
+              className="flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-xl bg-gl-forest text-white text-xs font-semibold hover:bg-gl-dark transition-all shadow-sm"
             >
               <LogIn className="w-4 h-4 shrink-0" />
               <span className="hidden lg:inline">Sign In to GreenLoop</span>
@@ -253,19 +253,19 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
             className="fixed inset-0 bg-on-surface/40 backdrop-blur-sm transition-opacity"
             onClick={closeAllMenus}
           />
-          <div className="relative w-72 max-w-[80vw] bg-surface-container-low h-full flex flex-col justify-between py-space-md px-space-sm shadow-xl z-50 overflow-y-auto">
+          <div className="relative w-72 max-w-[80vw] bg-white h-full flex flex-col justify-between py-space-md px-space-sm shadow-xl z-50 overflow-y-auto">
             <div>
-              <div className="flex items-center justify-between pb-space-md border-b border-outline-variant/40 px-2">
-                <Link to="/" onClick={closeAllMenus} className="flex items-center gap-2">
+              <div className="flex items-center justify-between pb-space-md border-b border-gl-border/70 px-2">
+                <Link to="/" onClick={closeAllMenus} className="flex items-center gap-2.5">
                   <img src="/logo.png" alt="GreenLoop" className="w-8 h-8 object-contain shrink-0" />
                   <div>
-                    <span className="font-heading font-bold text-title-md text-primary">GREENLOOP</span>
-                    <span className="text-[10px] text-secondary block font-semibold">Kerala Circular Action</span>
+                    <span className="font-heading font-extrabold text-[17px] text-gl-forest tracking-tight block leading-none">GREENLOOP</span>
+                    <span className="text-[10px] text-gl-charcoal-muted block font-semibold uppercase tracking-wider mt-0.5">Kerala Circular Action</span>
                   </div>
                 </Link>
                 <button
                   onClick={closeAllMenus}
-                  className="p-1 rounded-md text-on-surface-variant hover:bg-surface-container"
+                  className="p-1 rounded-md text-gl-charcoal-muted hover:bg-gl-cream"
                   aria-label="Close navigation"
                 >
                   <X className="w-5 h-5" />
@@ -281,10 +281,10 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                       key={item.path}
                       to={item.path}
                       onClick={closeAllMenus}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-label-md text-label-md transition-colors ${
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-label-md text-label-md transition-all ${
                         active
-                          ? 'bg-primary-container text-on-primary font-semibold'
-                          : 'text-on-surface-variant hover:bg-surface-container-high'
+                          ? 'bg-gl-forest text-white font-semibold shadow-sm'
+                          : 'text-gl-charcoal-muted hover:bg-gl-cream hover:text-gl-charcoal'
                       }`}
                     >
                       <Icon className="w-4 h-4" />
@@ -295,19 +295,19 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
               </nav>
             </div>
 
-            <div className="pt-2 border-t border-outline-variant/40 px-2">
+            <div className="pt-2 border-t border-gl-border/70 px-2">
               {currentUser ? (
                 <div className="flex items-center justify-between">
                   <div className="truncate">
-                    <span className="text-xs font-semibold text-primary block truncate">{currentUser.full_name}</span>
-                    <span className="text-[10px] text-outline block truncate">{currentUser.email}</span>
+                    <span className="text-xs font-semibold text-gl-forest block truncate">{currentUser.full_name}</span>
+                    <span className="text-[10px] text-gl-charcoal-muted block truncate">{currentUser.email}</span>
                   </div>
                   <button
                     onClick={() => {
                       signOut();
                       closeAllMenus();
                     }}
-                    className="p-1.5 text-outline hover:text-error"
+                    className="p-1.5 text-gl-charcoal-muted hover:text-error"
                     title="Sign Out"
                   >
                     <LogOut className="w-4 h-4" />
@@ -317,7 +317,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                 <Link
                   to="/login"
                   onClick={closeAllMenus}
-                  className="block text-center py-2 text-xs font-semibold text-on-primary bg-primary-container rounded-lg"
+                  className="block text-center py-2.5 text-xs font-semibold text-white bg-gl-forest hover:bg-gl-dark rounded-xl transition-all shadow-sm"
                 >
                   Sign In
                 </Link>
@@ -330,12 +330,12 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
       {/* Main Content Area */}
       <div className="md:pl-16 lg:pl-64 flex flex-col flex-1 min-w-0 w-full">
         {/* Top Header */}
-        <header className="fixed top-0 left-0 md:left-16 lg:left-64 right-0 h-16 bg-surface/90 backdrop-blur-xl border-b border-outline-variant/50 shadow-[0_1px_8px_rgba(0,0,0,0.03)] z-40 px-3 xs:px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+        <header className="fixed top-0 left-0 md:left-16 lg:left-64 right-0 h-16 bg-white/95 backdrop-blur-md border-b border-gl-border shadow-subtle z-40 px-3 xs:px-4 sm:px-6 lg:px-8 flex items-center justify-between">
           {/* Left: Mobile Toggle + Geolocation Context Pill */}
           <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-space-md min-w-0">
             <button
               onClick={() => toggleMenu('mobile')}
-              className="md:hidden p-1.5 xs:p-2 rounded-lg text-on-surface-variant hover:bg-surface-container shrink-0"
+              className="md:hidden p-1.5 xs:p-2 rounded-lg text-gl-charcoal-muted hover:bg-gl-cream shrink-0"
               aria-label="Open Navigation Menu"
             >
               <Menu className="w-5 h-5" />
@@ -345,15 +345,15 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
             <div ref={locationRef} className="relative min-w-0">
               <button
                 onClick={() => toggleMenu('location')}
-                className="inline-flex items-center gap-1 xs:gap-1.5 px-2 xs:px-3 py-1 xs:py-1.5 rounded-full bg-surface-container text-on-surface text-label-sm font-label-sm cursor-pointer hover:bg-surface-container-high transition-colors border border-outline-variant/40 max-w-full"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gl-cream hover:bg-gl-cream/80 text-gl-charcoal text-xs font-medium cursor-pointer transition-colors border border-gl-border max-w-full"
                 title="Current Location"
                 aria-expanded={locationMenuOpen}
                 aria-haspopup="true"
               >
                 {geoLoading ? (
-                  <Loader2 className="w-3.5 h-3.5 text-primary animate-spin shrink-0" />
+                  <Loader2 className="w-3.5 h-3.5 text-gl-forest animate-spin shrink-0" />
                 ) : (
-                  <Navigation className="w-3.5 h-3.5 text-secondary shrink-0" />
+                  <Navigation className="w-3.5 h-3.5 text-gl-fresh shrink-0" />
                 )}
                 <span className="truncate max-w-[95px] min-[360px]:max-w-[125px] xs:max-w-[150px] sm:max-w-xs text-[11px] sm:text-xs">
                   {geoLoading
@@ -362,7 +362,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                         ? `${currentLocality}${currentDistrict && currentDistrict !== currentLocality ? `, ${currentDistrict}` : ''}`
                         : (currentDistrict || (geoSource === 'approximate' ? (geoApproxDistrict ? `Near ${geoApproxDistrict}` : 'GPS Detected') : 'Select Location')))}
                 </span>
-                <ChevronDown className="w-3 h-3 text-outline shrink-0" />
+                <ChevronDown className="w-3 h-3 text-gl-charcoal-muted shrink-0" />
               </button>
 
               {locationMenuOpen && (

@@ -331,29 +331,29 @@ export const ImpactDashboardPage: React.FC = () => {
       {/* Header & Personal Identity Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight">
+          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-gl-charcoal tracking-tight">
             Environmental Impact
           </h1>
-          <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">
+          <p className="text-sm text-gl-charcoal-muted mt-1">
             Track your waste diverted, emissions saved, and EcoPoints earned.
           </p>
         </div>
 
         {/* User Identity Chip */}
-        <div className="bg-surface-container-lowest p-3 rounded-xl border border-outline-variant shadow-sm flex items-center gap-3 self-start sm:self-auto">
-          <div className="w-11 h-11 rounded-xl bg-primary-container text-on-primary flex items-center justify-center font-heading font-bold text-base shadow-sm">
+        <div className="bg-white p-3 rounded-2xl border border-gl-border shadow-2xs flex items-center gap-3 self-start sm:self-auto">
+          <div className="w-11 h-11 rounded-xl bg-gl-forest text-white flex items-center justify-center font-heading font-extrabold text-base shadow-sm">
             {userBalance}
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-heading font-semibold text-xs text-primary">
+              <span className="font-heading font-bold text-xs text-gl-charcoal">
                 {currentUser.full_name}
               </span>
               <span className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold ${tier.color}`}>
                 {tier.badge}
               </span>
             </div>
-            <span className="font-body-sm text-[11px] text-outline block capitalize mt-0.5">
+            <span className="text-[11px] text-gl-charcoal-muted block capitalize mt-0.5 font-medium">
               {currentUser.district} • {currentUser.role}
             </span>
           </div>
@@ -395,43 +395,43 @@ export const ImpactDashboardPage: React.FC = () => {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-outline-variant/60 pb-1 overflow-x-auto">
+      <div className="inline-flex p-1 bg-gl-cream/80 border border-gl-border rounded-xl overflow-x-auto scrollbar-none whitespace-nowrap">
         <button
           onClick={() => setActiveTab('overview')}
-          className={`px-4 py-2 font-label-md text-xs rounded-lg transition-all whitespace-nowrap ${
+          className={`px-4 py-2 text-xs rounded-lg transition-all whitespace-nowrap ${
             activeTab === 'overview'
-              ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
-              : 'text-on-surface-variant hover:bg-surface-container'
+              ? 'bg-gl-forest text-white font-semibold shadow-sm'
+              : 'text-gl-charcoal-muted hover:text-gl-charcoal'
           }`}
         >
           Overview
         </button>
         <button
           onClick={() => setActiveTab('points')}
-          className={`px-4 py-2 font-label-md text-xs rounded-lg transition-all whitespace-nowrap ${
+          className={`px-4 py-2 text-xs rounded-lg transition-all whitespace-nowrap ${
             activeTab === 'points'
-              ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
-              : 'text-on-surface-variant hover:bg-surface-container'
+              ? 'bg-gl-forest text-white font-semibold shadow-sm'
+              : 'text-gl-charcoal-muted hover:text-gl-charcoal'
           }`}
         >
           EcoPoints Ledger ({userPointsHistory.length})
         </button>
         <button
           onClick={() => setActiveTab('rewards')}
-          className={`px-4 py-2 font-label-md text-xs rounded-lg transition-all whitespace-nowrap ${
+          className={`px-4 py-2 text-xs rounded-lg transition-all whitespace-nowrap ${
             activeTab === 'rewards'
-              ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
-              : 'text-on-surface-variant hover:bg-surface-container'
+              ? 'bg-gl-forest text-white font-semibold shadow-sm'
+              : 'text-gl-charcoal-muted hover:text-gl-charcoal'
           }`}
         >
           Rewards ({AVAILABLE_REWARDS.length})
         </button>
         <button
           onClick={() => setActiveTab('factors')}
-          className={`px-4 py-2 font-label-md text-xs rounded-lg transition-all whitespace-nowrap ${
+          className={`px-4 py-2 text-xs rounded-lg transition-all whitespace-nowrap ${
             activeTab === 'factors'
-              ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
-              : 'text-on-surface-variant hover:bg-surface-container'
+              ? 'bg-gl-forest text-white font-semibold shadow-sm'
+              : 'text-gl-charcoal-muted hover:text-gl-charcoal'
           }`}
         >
           How to Earn

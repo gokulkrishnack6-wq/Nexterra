@@ -210,10 +210,10 @@ export const ListingDetailPage: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 space-y-6 text-left">
       {/* Top Breadcrumb */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between border-b border-gl-border/70 pb-4">
         <button
           onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-1.5 font-label-md text-xs text-on-surface-variant hover:text-primary transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs text-gl-charcoal-muted hover:text-gl-forest font-semibold transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Marketplace</span>
@@ -221,13 +221,13 @@ export const ListingDetailPage: React.FC = () => {
 
         <button
           onClick={() => toggleFavourite(listing.id)}
-          className={`px-3 py-1.5 rounded-lg border text-xs font-label-md flex items-center gap-1.5 transition-colors ${
+          className={`px-3.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs ${
             isFav 
-              ? 'bg-surface-container-lowest text-error border-error/30' 
-              : 'bg-surface-container-lowest text-on-surface-variant border-outline-variant hover:text-on-surface'
+              ? 'bg-white text-red-500 border-red-200' 
+              : 'bg-white text-gl-charcoal-muted border-gl-border hover:text-gl-charcoal'
           }`}
         >
-          <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-error text-error' : ''}`} />
+          <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-red-500 text-red-500' : ''}`} />
           <span>{isFav ? 'Saved' : 'Save Material'}</span>
         </button>
       </div>
@@ -236,135 +236,135 @@ export const ListingDetailPage: React.FC = () => {
         {/* Left Col (7 cols): Images & Description */}
         <div className="lg:col-span-7 space-y-6">
           {listing.is_demo && (
-            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/80 rounded-xl p-3 flex items-center gap-2.5 text-xs text-amber-900 dark:text-amber-200">
-              <span className="font-bold uppercase tracking-wider text-[10px] bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100 px-2 py-0.5 rounded">Sample</span>
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3.5 flex items-center gap-2.5 text-xs text-amber-900">
+              <span className="font-bold uppercase tracking-wider text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">Sample</span>
               <span>This is a sample listing to demonstrate how materials are shared on GreenLoop.</span>
             </div>
           )}
 
-          <Card variant="elevated" className="overflow-hidden p-0 border border-outline-variant/70">
-            <div className="aspect-[16/10] w-full bg-surface-container-low overflow-hidden relative">
+          <div className="bg-white rounded-2xl border border-gl-border overflow-hidden shadow-card">
+            <div className="aspect-[16/10] w-full bg-gl-cream overflow-hidden relative">
               <img
                 src={images[0]}
                 alt={listing.title}
                 className="w-full h-full object-cover"
               />
               <div className="absolute top-3 left-3 flex gap-2 flex-wrap">
-                <span className="font-label-sm text-xs text-primary font-bold bg-surface-container-lowest/90 backdrop-blur-xs px-3 py-1 rounded-full shadow-sm">
+                <span className="text-xs text-gl-forest font-bold bg-white/95 backdrop-blur-xs px-3 py-1 rounded-full shadow-xs border border-gl-border/70">
                   {listing.listing_type === 'free' ? 'Free' : listing.listing_type === 'exchange' ? 'Exchange' : `₹${listing.price}`}
                 </span>
                 {listing.is_demo && (
-                  <span className="font-label-sm text-xs font-bold text-amber-800 bg-amber-100/95 dark:bg-amber-950/90 dark:text-amber-300 border border-amber-300 px-2.5 py-1 rounded-full shadow-sm">
-                    Sample
+                  <span className="text-xs font-bold text-amber-900 bg-amber-50/95 border border-amber-200 px-2.5 py-1 rounded-full shadow-xs">
+                    Sample Stream
                   </span>
                 )}
               </div>
             </div>
 
-            <div className="p-space-md sm:p-space-lg space-y-4">
+            <div className="p-6 sm:p-7 space-y-5">
               <div>
-                <span className="font-label-sm text-xs text-secondary uppercase tracking-wider block font-semibold">
+                <span className="text-[11px] text-gl-forest uppercase tracking-wider block font-semibold bg-gl-sage-light px-2.5 py-0.5 rounded-full w-fit">
                   {category?.name || 'Recyclable Material'}
                 </span>
-                <h1 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight mt-1">
+                <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-gl-charcoal tracking-tight mt-2">
                   {listing.title}
                 </h1>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-on-surface-variant font-body-sm text-xs mt-2">
-                  <span className="flex items-center gap-1 font-medium text-primary">
-                    <MapPin className="w-3.5 h-3.5 text-primary" />
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-gl-charcoal-muted font-body text-xs mt-2.5">
+                  <span className="flex items-center gap-1 font-semibold text-gl-forest">
+                    <MapPin className="w-3.5 h-3.5 text-gl-forest" />
                     {distanceKm !== null ? `${distanceKm} km • ` : ''}
                     {listing.locality ? `${listing.locality}, ` : ''}{listing.district}
                   </span>
                   <span>•</span>
-                  <span className="flex items-center gap-1 text-outline">
+                  <span className="flex items-center gap-1 text-gl-charcoal-muted">
                     <Calendar className="w-3.5 h-3.5" /> Listed on {new Date(listing.created_at).toLocaleDateString()}
                   </span>
                 </div>
               </div>
 
               {/* Material Specs */}
-              <div className="grid grid-cols-1 xs:grid-cols-3 gap-3 p-3 bg-surface-container rounded-lg border border-outline-variant/40">
+              <div className="grid grid-cols-1 xs:grid-cols-3 gap-3 p-4 bg-gl-cream/60 rounded-xl border border-gl-border/70">
                 <div>
-                  <span className="font-label-sm text-xs text-outline block">Quantity</span>
-                  <span className="font-heading font-bold text-sm text-primary">{listing.quantity} {listing.unit}</span>
+                  <span className="text-xs text-gl-charcoal-muted block font-medium">Quantity</span>
+                  <span className="font-heading font-bold text-base text-gl-forest">{listing.quantity} {listing.unit}</span>
                 </div>
                 <div>
-                  <span className="font-label-sm text-xs text-outline block">Condition</span>
-                  <span className="font-heading font-semibold text-sm text-on-surface capitalize">{listing.condition}</span>
+                  <span className="text-xs text-gl-charcoal-muted block font-medium">Condition</span>
+                  <span className="font-heading font-semibold text-base text-gl-charcoal capitalize">{listing.condition}</span>
                 </div>
                 <div>
-                  <span className="font-label-sm text-xs text-outline block">Listing Type</span>
-                  <span className="font-heading font-semibold text-sm text-on-surface capitalize">
+                  <span className="text-xs text-gl-charcoal-muted block font-medium">Listing Type</span>
+                  <span className="font-heading font-semibold text-base text-gl-charcoal capitalize">
                     {listing.listing_type === 'free' ? 'Free' : listing.listing_type === 'exchange' ? 'Exchange' : 'For Sale'}
                   </span>
                 </div>
               </div>
 
               <div>
-                <h3 className="font-heading font-semibold text-base text-primary mb-1">
-                  Details
+                <h3 className="font-heading font-bold text-base text-gl-charcoal mb-1.5">
+                  Material Details
                 </h3>
-                <p className="font-body text-sm text-on-surface-variant leading-relaxed">
+                <p className="font-body text-sm text-gl-charcoal-muted leading-relaxed">
                   {listing.description}
                 </p>
               </div>
 
               {/* Circular Guidance if present */}
               {listing.suggested_action && (
-                <div className="p-3.5 rounded-lg bg-surface-container-low border border-outline-variant/60 flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-secondary-container text-primary mt-0.5">
-                    <Sparkles className="w-4 h-4" />
+                <div className="p-4 rounded-xl bg-gl-sage-light/60 border border-gl-sage/50 flex items-start gap-3">
+                  <div className="p-2 rounded-xl bg-white text-gl-forest mt-0.5 shadow-xs">
+                    <Sparkles className="w-4 h-4 text-gl-fresh" />
                   </div>
                   <div>
-                    <span className="font-heading font-semibold text-body-md text-primary block">
+                    <span className="font-heading font-semibold text-sm text-gl-forest block">
                       Smart Circular Suggestion
                     </span>
-                    <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
-                      Suggested Action: <strong className="capitalize text-primary">{listing.suggested_action.replace('_', ' ')}</strong>
+                    <p className="font-body text-xs text-gl-charcoal-muted mt-0.5">
+                      Suggested Action: <strong className="capitalize text-gl-charcoal">{listing.suggested_action.replace('_', ' ')}</strong>
                       {listing.ai_confidence ? ` • Confidence ${Math.round(listing.ai_confidence * 100)}%` : ''}
                     </p>
                   </div>
                 </div>
               )}
             </div>
-          </Card>
+          </div>
         </div>
 
         {/* Right Col (5 cols): Seller Card & Request Form */}
         <div className="lg:col-span-5 space-y-4">
           
           {/* Generator Info */}
-          <Card variant="elevated" className="space-y-3 p-4">
+          <div className="bg-white rounded-2xl border border-gl-border shadow-card p-5 space-y-3">
             <div className="flex items-center gap-3">
               {listing.user?.avatar_url ? (
                 <img
                   src={listing.user.avatar_url}
                   alt={ownerName}
-                  className="w-12 h-12 rounded-full object-cover ring-1 ring-outline-variant"
+                  className="w-12 h-12 rounded-full object-cover ring-1 ring-gl-border"
                 />
               ) : (
-                <div className="w-12 h-12 rounded-full bg-primary-container text-on-primary font-bold text-base flex items-center justify-center ring-1 ring-outline-variant">
+                <div className="w-12 h-12 rounded-full bg-gl-forest text-white font-bold text-base flex items-center justify-center shadow-xs">
                   {ownerInitial}
                 </div>
               )}
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="font-heading font-semibold text-title-md text-on-surface">
+                  <span className="font-heading font-bold text-base text-gl-charcoal">
                     {ownerName}
                   </span>
-                  <ShieldCheck className="w-4 h-4 text-primary" />
+                  <ShieldCheck className="w-4 h-4 text-gl-fresh" />
                 </div>
-                <span className="font-body-sm text-body-sm text-outline block capitalize">
+                <span className="text-xs text-gl-charcoal-muted block capitalize font-medium">
                   {listing.user?.role || 'Community Member'} • {listing.district}
                 </span>
               </div>
             </div>
 
-            <div className="pt-2 border-t border-outline-variant/40 flex items-center justify-between text-body-sm text-on-surface-variant">
+            <div className="pt-3 border-t border-gl-border/70 flex items-center justify-between text-xs text-gl-charcoal-muted">
               <span>Location:</span>
-              <span className="font-semibold text-primary">{listing.locality ? `${listing.locality}, ` : ''}{listing.district}</span>
+              <span className="font-semibold text-gl-forest">{listing.locality ? `${listing.locality}, ` : ''}{listing.district}</span>
             </div>
-          </Card>
+          </div>
 
           {/* Request Form or Owner Controls */}
           {isOwner ? (

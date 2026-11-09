@@ -34,59 +34,59 @@ export const ReportTrackingPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight">
+          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-gl-charcoal tracking-tight">
             Reported Issues
           </h1>
-          <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">
+          <p className="text-sm text-gl-charcoal-muted mt-1">
             Track community-reported waste alerts and cleanup progress.
           </p>
         </div>
 
         <Link to="/report-issue">
-          <Button variant="primary" size="md" icon={<Plus className="w-4 h-4" />}>
+          <Button variant="primary" size="md" icon={<Plus className="w-4 h-4" />} className="rounded-xl shadow-sm">
             Report an Issue
           </Button>
         </Link>
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2 border-b border-outline-variant/60 pb-1 overflow-x-auto scrollbar-none whitespace-nowrap">
+      <div className="inline-flex p-1 bg-gl-cream/80 border border-gl-border rounded-xl overflow-x-auto scrollbar-none whitespace-nowrap">
         <button
           onClick={() => setFilter('all')}
-          className={`px-3 py-1.5 font-label-md text-xs rounded-lg transition-all ${
+          className={`px-4 py-2 text-xs rounded-lg transition-all ${
             filter === 'all'
-              ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
-              : 'text-on-surface-variant hover:bg-surface-container'
+              ? 'bg-gl-forest text-white font-semibold shadow-sm'
+              : 'text-gl-charcoal-muted hover:text-gl-charcoal'
           }`}
         >
           All Reports ({reports.length})
         </button>
         <button
           onClick={() => setFilter('in_progress')}
-          className={`px-3 py-1.5 font-label-md text-xs rounded-lg transition-all ${
+          className={`px-4 py-2 text-xs rounded-lg transition-all ${
             filter === 'in_progress'
-              ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
-              : 'text-on-surface-variant hover:bg-surface-container'
+              ? 'bg-gl-forest text-white font-semibold shadow-sm'
+              : 'text-gl-charcoal-muted hover:text-gl-charcoal'
           }`}
         >
           In Progress ({reports.filter(r => r.status !== 'resolved').length})
         </button>
         <button
           onClick={() => setFilter('resolved')}
-          className={`px-3 py-1.5 font-label-md text-xs rounded-lg transition-all ${
+          className={`px-4 py-2 text-xs rounded-lg transition-all ${
             filter === 'resolved'
-              ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
-              : 'text-on-surface-variant hover:bg-surface-container'
+              ? 'bg-gl-forest text-white font-semibold shadow-sm'
+              : 'text-gl-charcoal-muted hover:text-gl-charcoal'
           }`}
         >
-          Cleared & Verified ({reports.filter(r => r.status === 'resolved').length})
+          Cleared &amp; Verified ({reports.filter(r => r.status === 'resolved').length})
         </button>
       </div>
 
       {/* Tickets Feed */}
       {filteredReports.length === 0 ? (
         <EmptyState
-          icon={<AlertTriangle className="w-6 h-6" />}
+          icon={<AlertTriangle className="w-6 h-6 text-gl-charcoal-muted" />}
           title="No Incident Tickets Logged"
           description="There are currently no environmental reports matching this status. Help keep Kerala's communities clean by reporting overflowing public bins or unauthorized dumps."
           actionLabel="Report an Environmental Issue"
@@ -98,54 +98,54 @@ export const ReportTrackingPage: React.FC = () => {
             <Card
               key={ticket.id}
               variant="elevated"
-              className="p-5 flex flex-col md:flex-row md:items-start justify-between gap-5"
+              className="p-5 sm:p-6 flex flex-col md:flex-row md:items-start justify-between gap-5 bg-white border border-gl-border rounded-2xl shadow-card hover:shadow-card-hover transition-all"
             >
               <div className="flex items-start gap-4 flex-1">
                 {ticket.photo_url && (
                   <img
                     src={ticket.photo_url}
                     alt={ticket.title}
-                    className="w-24 h-24 rounded-lg object-cover border border-outline-variant/60 shrink-0 bg-surface-container"
+                    className="w-24 h-24 rounded-xl object-cover border border-gl-border shrink-0 bg-gl-cream"
                   />
                 )}
 
-                <div className="space-y-1.5 flex-1">
+                <div className="space-y-2 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     {ticket.status === 'resolved' ? (
-                      <span className="font-label-sm text-xs font-bold text-primary bg-secondary-container px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-primary" /> Cleared • Verified
+                      <span className="text-xs font-bold text-gl-dark bg-gl-sage-light border border-gl-sage px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-gl-fresh" /> Cleared • Verified
                       </span>
                     ) : (
-                      <span className="font-label-sm text-xs font-bold text-secondary bg-surface-container px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
-                        <span className="w-2 h-2 rounded-full bg-secondary"></span> Action in Progress
+                      <span className="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Action in Progress
                       </span>
                     )}
 
-                    <span className="font-mono text-xs font-semibold text-primary">
+                    <span className="font-mono text-xs font-bold text-gl-forest">
                       Ticket: #{ticket.ticket_number}
                     </span>
-                    <span className="text-outline text-xs">•</span>
-                    <span className="text-xs text-outline">
+                    <span className="text-gl-charcoal-muted text-xs">•</span>
+                    <span className="text-xs text-gl-charcoal-muted font-medium">
                       Reported {new Date(ticket.created_at).toLocaleDateString()}
                     </span>
                   </div>
 
-                  <h3 className="font-heading font-semibold text-title-md text-on-surface">
+                  <h3 className="font-heading font-bold text-base text-gl-charcoal">
                     {ticket.title}
                   </h3>
 
-                  <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+                  <p className="text-xs text-gl-charcoal-muted leading-relaxed">
                     {ticket.description}
                   </p>
 
-                  <div className="p-2.5 rounded-lg bg-surface-container-low text-body-sm text-on-surface space-y-1 border border-outline-variant/40 mt-2">
+                  <div className="p-3 rounded-xl bg-gl-cream/50 text-xs text-gl-charcoal space-y-1 border border-gl-border mt-2">
                     <div className="flex flex-wrap items-center gap-x-4">
-                      <span className="flex items-center gap-1 text-xs">
-                        <MapPin className="w-3.5 h-3.5 text-primary" /> {ticket.locality}, {ticket.ward} ({ticket.landmark})
+                      <span className="flex items-center gap-1 text-xs text-gl-charcoal font-medium">
+                        <MapPin className="w-3.5 h-3.5 text-gl-forest" /> {ticket.locality}, {ticket.ward} ({ticket.landmark})
                       </span>
                     </div>
                     {ticket.resolution_notes && (
-                      <p className="text-xs text-on-surface-variant italic pt-0.5">
+                      <p className="text-xs text-gl-charcoal-muted italic pt-0.5">
                         Notes: {ticket.resolution_notes}
                       </p>
                     )}
@@ -161,6 +161,7 @@ export const ReportTrackingPage: React.FC = () => {
                     variant="primary"
                     onClick={() => updateReportStatus(ticket.id, 'resolved', 'Cleared and remediated by local cleanup initiative.')}
                     icon={<CheckCircle2 className="w-3.5 h-3.5" />}
+                    className="rounded-xl shadow-sm"
                   >
                     Mark as Cleared
                   </Button>
@@ -169,6 +170,7 @@ export const ReportTrackingPage: React.FC = () => {
                     size="sm"
                     variant="subtle"
                     onClick={() => updateReportStatus(ticket.id, 'in_progress', 'Re-opened for additional site review.')}
+                    className="rounded-xl"
                   >
                     Re-open Ticket
                   </Button>

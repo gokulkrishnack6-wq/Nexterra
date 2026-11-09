@@ -44,20 +44,20 @@ export const AdminDashboardPage: React.FC = () => {
         <div>
           <div className="inline-flex items-center gap-1.5 mb-1">
             <Badge variant="brand">Admin Governance</Badge>
-            <span className="text-outline text-xs">•</span>
-            <span className="font-label-sm text-label-sm text-secondary">
-              Community Moderation & Verification
+            <span className="text-gl-charcoal-muted text-xs">•</span>
+            <span className="text-xs text-gl-forest font-semibold">
+              Community Moderation &amp; Verification
             </span>
           </div>
-          <h1 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight">
+          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-gl-charcoal tracking-tight">
             Platform Administration Console
           </h1>
-          <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
+          <p className="text-sm text-gl-charcoal-muted mt-0.5">
             Content moderation, reported incident resolution, facility approvals, and platform metrics.
           </p>
         </div>
 
-        <span className="font-label-sm text-xs font-semibold text-primary bg-secondary-container px-3 py-1.5 rounded-full border border-primary/20 self-start sm:self-auto">
+        <span className="text-xs font-bold text-gl-dark bg-gl-sage-light px-3.5 py-1.5 rounded-full border border-gl-sage self-start sm:self-auto">
           Admin: {currentUser.full_name}
         </span>
       </div>
@@ -68,57 +68,57 @@ export const AdminDashboardPage: React.FC = () => {
           label="Active Listings"
           value={listings.length}
           subtext="Available circular batches"
-          icon={<ShieldCheck className="w-5 h-5" />}
+          icon={<ShieldCheck className="w-5 h-5 text-gl-forest" />}
         />
         <MetricCard
           label="Reported Issues"
           value={reports.length}
           subtext="Incident reports"
-          icon={<AlertTriangle className="w-5 h-5 text-error" />}
-          iconColor="text-error"
+          icon={<AlertTriangle className="w-5 h-5 text-rose-600" />}
+          iconColor="text-rose-600"
         />
         <MetricCard
           label="Recycling Facilities"
           value={recyclingCentres.length}
           subtext="Registered collection hubs"
-          icon={<Building2 className="w-5 h-5" />}
+          icon={<Building2 className="w-5 h-5 text-gl-forest" />}
         />
         <MetricCard
           label="Completed Exchanges"
           value={transactions.length}
           subtext="Verified handovers"
-          icon={<Users className="w-5 h-5" />}
+          icon={<Users className="w-5 h-5 text-gl-forest" />}
         />
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-outline-variant/60 pb-1 overflow-x-auto scrollbar-none whitespace-nowrap">
+      <div className="inline-flex p-1 bg-gl-cream/80 border border-gl-border rounded-xl overflow-x-auto scrollbar-none whitespace-nowrap">
         <button
           onClick={() => setActiveTab('listings')}
-          className={`px-4 py-2 font-label-md text-xs rounded-lg transition-all ${
+          className={`px-4 py-2 text-xs rounded-lg transition-all ${
             activeTab === 'listings'
-              ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
-              : 'text-on-surface-variant hover:bg-surface-container'
+              ? 'bg-gl-forest text-white font-semibold shadow-sm'
+              : 'text-gl-charcoal-muted hover:text-gl-charcoal'
           }`}
         >
           Listing Moderation ({listings.length})
         </button>
         <button
           onClick={() => setActiveTab('reports')}
-          className={`px-4 py-2 font-label-md text-xs rounded-lg transition-all ${
+          className={`px-4 py-2 text-xs rounded-lg transition-all ${
             activeTab === 'reports'
-              ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
-              : 'text-on-surface-variant hover:bg-surface-container'
+              ? 'bg-gl-forest text-white font-semibold shadow-sm'
+              : 'text-gl-charcoal-muted hover:text-gl-charcoal'
           }`}
         >
           Incident Tickets ({reports.length})
         </button>
         <button
           onClick={() => setActiveTab('centres')}
-          className={`px-4 py-2 font-label-md text-xs rounded-lg transition-all ${
+          className={`px-4 py-2 text-xs rounded-lg transition-all ${
             activeTab === 'centres'
-              ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
-              : 'text-on-surface-variant hover:bg-surface-container'
+              ? 'bg-gl-forest text-white font-semibold shadow-sm'
+              : 'text-gl-charcoal-muted hover:text-gl-charcoal'
           }`}
         >
           Facility Approvals ({recyclingCentres.length})
@@ -134,31 +134,31 @@ export const AdminDashboardPage: React.FC = () => {
             description="There are currently no listings posted for moderation."
           />
         ) : (
-          <Card variant="elevated" className="overflow-x-auto p-0">
-            <table className="w-full text-left text-body-sm">
-              <thead className="bg-surface-container-low font-label-sm text-xs text-outline uppercase border-b border-outline-variant">
+          <Card variant="elevated" className="overflow-x-auto p-0 bg-white border border-gl-border rounded-2xl shadow-card">
+            <table className="w-full text-left text-xs sm:text-sm">
+              <thead className="bg-gl-cream/60 text-xs text-gl-charcoal uppercase font-bold border-b border-gl-border">
                 <tr>
-                  <th className="p-3">Material Title</th>
-                  <th className="p-3">Category</th>
-                  <th className="p-3">Quantity</th>
-                  <th className="p-3">Location</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3 text-right">Moderation</th>
+                  <th className="p-3.5">Material Title</th>
+                  <th className="p-3.5">Category</th>
+                  <th className="p-3.5">Quantity</th>
+                  <th className="p-3.5">Location</th>
+                  <th className="p-3.5">Status</th>
+                  <th className="p-3.5 text-right">Moderation</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-outline-variant/40">
+              <tbody className="divide-y divide-gl-border">
                 {listings.map((l) => (
-                  <tr key={l.id} className="hover:bg-surface-container-low/50">
-                    <td className="p-3 font-semibold text-on-surface">{l.title}</td>
-                    <td className="p-3 text-on-surface-variant">{l.category?.name || 'Recyclable'}</td>
-                    <td className="p-3 font-medium text-primary">{l.quantity} {l.unit}</td>
-                    <td className="p-3 text-outline">{l.locality}, {l.district}</td>
-                    <td className="p-3">
-                      <span className="font-label-sm text-[10px] font-bold text-primary uppercase bg-surface-container px-2 py-0.5 rounded-full">
+                  <tr key={l.id} className="hover:bg-gl-cream/30">
+                    <td className="p-3.5 font-bold text-gl-charcoal">{l.title}</td>
+                    <td className="p-3.5 text-gl-charcoal-muted">{l.category?.name || 'Recyclable'}</td>
+                    <td className="p-3.5 font-bold text-gl-forest">{l.quantity} {l.unit}</td>
+                    <td className="p-3.5 text-gl-charcoal-muted">{l.locality}, {l.district}</td>
+                    <td className="p-3.5">
+                      <span className="text-[10px] font-bold text-gl-dark uppercase bg-gl-sage-light border border-gl-sage px-2 py-0.5 rounded-full">
                         {l.status}
                       </span>
                     </td>
-                    <td className="p-3 text-right">
+                    <td className="p-3.5 text-right">
                       <Button
                         size="sm"
                         variant="danger"
@@ -168,6 +168,7 @@ export const AdminDashboardPage: React.FC = () => {
                           }
                         }}
                         icon={<Trash2 className="w-3.5 h-3.5" />}
+                        className="rounded-xl"
                       >
                         Remove
                       </Button>
@@ -189,41 +190,42 @@ export const AdminDashboardPage: React.FC = () => {
             description="There are currently no civic reports logged for review."
           />
         ) : (
-          <Card variant="elevated" className="overflow-x-auto p-0">
-            <table className="w-full text-left text-body-sm">
-              <thead className="bg-surface-container-low font-label-sm text-xs text-outline uppercase border-b border-outline-variant">
+          <Card variant="elevated" className="overflow-x-auto p-0 bg-white border border-gl-border rounded-2xl shadow-card">
+            <table className="w-full text-left text-xs sm:text-sm">
+              <thead className="bg-gl-cream/60 text-xs text-gl-charcoal uppercase font-bold border-b border-gl-border">
                 <tr>
-                  <th className="p-3">Ticket</th>
-                  <th className="p-3">Issue Title</th>
-                  <th className="p-3">Locality & Ward</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3 text-right">Action</th>
+                  <th className="p-3.5">Ticket</th>
+                  <th className="p-3.5">Issue Title</th>
+                  <th className="p-3.5">Locality &amp; Ward</th>
+                  <th className="p-3.5">Status</th>
+                  <th className="p-3.5 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-outline-variant/40">
+              <tbody className="divide-y divide-gl-border">
                 {reports.map((r) => (
-                  <tr key={r.id} className="hover:bg-surface-container-low/50">
-                    <td className="p-3 font-mono font-bold text-primary">#{r.ticket_number}</td>
-                    <td className="p-3 font-semibold text-on-surface">{r.title}</td>
-                    <td className="p-3 text-outline">{r.locality}, {r.ward}</td>
-                    <td className="p-3">
-                      <span className={`font-label-sm text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
-                        r.status === 'resolved' ? 'bg-secondary-container text-primary' : 'bg-surface-container text-secondary'
+                  <tr key={r.id} className="hover:bg-gl-cream/30">
+                    <td className="p-3.5 font-mono font-bold text-gl-forest">#{r.ticket_number}</td>
+                    <td className="p-3.5 font-bold text-gl-charcoal">{r.title}</td>
+                    <td className="p-3.5 text-gl-charcoal-muted">{r.locality}, {r.ward}</td>
+                    <td className="p-3.5">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                        r.status === 'resolved' ? 'bg-gl-sage-light text-gl-dark border border-gl-sage' : 'bg-amber-50 text-amber-800 border border-amber-200'
                       }`}>
                         {r.status.replace('_', ' ')}
                       </span>
                     </td>
-                    <td className="p-3 text-right">
+                    <td className="p-3.5 text-right">
                       {r.status !== 'resolved' ? (
                         <Button
                           size="sm"
                           variant="primary"
                           onClick={() => updateReportStatus(r.id, 'resolved', 'Cleared and verified.')}
+                          className="rounded-xl shadow-sm"
                         >
                           Resolve
                         </Button>
                       ) : (
-                        <span className="text-xs text-primary font-semibold">Resolved</span>
+                        <span className="text-xs text-gl-forest font-bold">Resolved</span>
                       )}
                     </td>
                   </tr>
@@ -238,31 +240,31 @@ export const AdminDashboardPage: React.FC = () => {
       {activeTab === 'centres' && (
         recyclingCentres.length === 0 ? (
           <EmptyState
-            icon={<Building2 className="w-6 h-6" />}
+            icon={<Building2 className="w-6 h-6 text-gl-charcoal-muted" />}
             title="No Facilities Registered"
             description="No registered recycling centres or MCF hubs in the database yet."
           />
         ) : (
-          <Card variant="elevated" className="overflow-x-auto p-0">
-            <table className="w-full text-left text-body-sm">
-              <thead className="bg-surface-container-low font-label-sm text-xs text-outline uppercase border-b border-outline-variant">
+          <Card variant="elevated" className="overflow-x-auto p-0 bg-white border border-gl-border rounded-2xl shadow-card">
+            <table className="w-full text-left text-xs sm:text-sm">
+              <thead className="bg-gl-cream/60 text-xs text-gl-charcoal uppercase font-bold border-b border-gl-border">
                 <tr>
-                  <th className="p-3">Facility Name</th>
-                  <th className="p-3">Operator Type</th>
-                  <th className="p-3">District</th>
-                  <th className="p-3">Contact</th>
-                  <th className="p-3">Status</th>
+                  <th className="p-3.5">Facility Name</th>
+                  <th className="p-3.5">Operator Type</th>
+                  <th className="p-3.5">District</th>
+                  <th className="p-3.5">Contact</th>
+                  <th className="p-3.5">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-outline-variant/40">
+              <tbody className="divide-y divide-gl-border">
                 {recyclingCentres.map((c) => (
-                  <tr key={c.id} className="hover:bg-surface-container-low/50">
-                    <td className="p-3 font-semibold text-on-surface">{c.name}</td>
-                    <td className="p-3 capitalize text-on-surface-variant">{c.operator_type.replace(/_/g, ' ')}</td>
-                    <td className="p-3 text-outline">{c.district}</td>
-                    <td className="p-3 text-xs">{c.phone}</td>
-                    <td className="p-3">
-                      <span className="font-label-sm text-[10px] text-primary font-bold uppercase bg-secondary-container px-2 py-0.5 rounded-full">
+                  <tr key={c.id} className="hover:bg-gl-cream/30">
+                    <td className="p-3.5 font-bold text-gl-charcoal">{c.name}</td>
+                    <td className="p-3.5 capitalize text-gl-charcoal-muted">{c.operator_type.replace(/_/g, ' ')}</td>
+                    <td className="p-3.5 text-gl-charcoal-muted">{c.district}</td>
+                    <td className="p-3.5 text-xs text-gl-charcoal font-medium">{c.phone}</td>
+                    <td className="p-3.5">
+                      <span className="text-[10px] text-gl-dark font-bold uppercase bg-gl-sage-light border border-gl-sage px-2 py-0.5 rounded-full">
                         Verified Hub
                       </span>
                     </td>

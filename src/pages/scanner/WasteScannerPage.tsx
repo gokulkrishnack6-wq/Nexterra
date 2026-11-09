@@ -311,22 +311,22 @@ export const WasteScannerPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-space-md pt-space-xs">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pt-1">
           <div className="max-w-3xl">
-            <h1 className="font-heading font-bold text-2xl sm:text-3xl lg:text-headline-lg text-primary tracking-tight">
+            <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-gl-charcoal tracking-tight">
               Waste Scanner
             </h1>
-            <p className="font-body-lg text-body-md text-on-surface-variant mt-1 leading-relaxed">
+            <p className="text-sm text-gl-charcoal-muted mt-1 leading-relaxed">
               Take or upload a photo to identify recyclable materials and pre-fill your marketplace listing.
             </p>
           </div>
-          <div className="flex items-center gap-space-sm">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => navigate('/marketplace')}
-              className="inline-flex items-center gap-2 px-space-md py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-label-md text-xs font-semibold transition-colors shadow-sm border border-outline-variant/40"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-gl-cream text-gl-charcoal font-semibold text-xs transition-colors shadow-2xs border border-gl-border"
               type="button"
             >
-              <Recycle className="w-4 h-4 text-secondary" />
+              <Recycle className="w-4 h-4 text-gl-forest" />
               <span>Browse Marketplace</span>
             </button>
           </div>
@@ -373,14 +373,14 @@ export const WasteScannerPage: React.FC = () => {
         {/* LEFT COLUMN: Diagnostic Capture & Active Viewport (7 Cols) */}
         <section className="lg:col-span-7 flex flex-col gap-space-md">
 
-          {/* Ingestion Mode Selector Tabs (Stitch 1:1) */}
-          <div className="bg-surface-container-lowest rounded-xl p-1.5 border border-outline-variant/60 shadow-sm flex items-center justify-between gap-1">
+          {/* Ingestion Mode Selector Tabs */}
+          <div className="bg-white rounded-xl p-1.5 border border-gl-border shadow-2xs flex items-center justify-between gap-1">
             <button
               onClick={startCamera}
-              className={`flex-1 inline-flex items-center justify-center gap-2 py-2 px-space-sm rounded-lg font-label-md text-xs transition-colors shadow-sm ${
+              className={`flex-1 inline-flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs transition-colors shadow-2xs ${
                 activeTab === 'live' || cameraActive
-                  ? 'bg-primary-container text-on-primary font-semibold'
-                  : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
+                  ? 'bg-gl-forest text-white font-semibold'
+                  : 'text-gl-charcoal-muted hover:bg-gl-cream hover:text-gl-charcoal'
               }`}
               type="button"
             >
@@ -394,10 +394,10 @@ export const WasteScannerPage: React.FC = () => {
                 setActiveTab('upload');
                 fileInputRef.current?.click();
               }}
-              className={`flex-1 inline-flex items-center justify-center gap-2 py-2 px-space-sm rounded-lg font-label-md text-xs transition-colors shadow-sm ${
+              className={`flex-1 inline-flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs transition-colors shadow-2xs ${
                 activeTab === 'upload' && !cameraActive
-                  ? 'bg-primary-container text-on-primary font-semibold'
-                  : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
+                  ? 'bg-gl-forest text-white font-semibold'
+                  : 'text-gl-charcoal-muted hover:bg-gl-cream hover:text-gl-charcoal'
               }`}
               type="button"
             >
@@ -536,75 +536,75 @@ export const WasteScannerPage: React.FC = () => {
         </section>
 
         {/* RIGHT COLUMN: Diagnostic Results & Conversion (5 Cols) */}
-        <section className="lg:col-span-5 flex flex-col gap-space-md">
+        <section className="lg:col-span-5 flex flex-col gap-4">
 
           {/* Card 1: Primary Material Identity Card */}
-          <div className="bg-surface-container-lowest rounded-xl p-space-lg border border-outline-variant/60 shadow-sm flex flex-col gap-space-sm">
-            <div className="flex items-center justify-between pb-space-xs border-b border-outline-variant/40">
+          <div className="bg-white rounded-2xl p-6 border border-gl-border shadow-card flex flex-col gap-3">
+            <div className="flex items-center justify-between pb-2 border-b border-gl-border">
               <div className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-primary-container" />
-                <h3 className="font-heading font-bold text-title-md text-primary">
+                <Zap className="w-4 h-4 text-gl-forest" />
+                <h3 className="font-heading font-bold text-base text-gl-charcoal">
                   Material Identification
                 </h3>
               </div>
-              <span className={`px-2 py-0.5 rounded-full font-label-sm text-[11px] font-semibold ${
+              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
                 scanResult
-                  ? 'bg-secondary-container text-on-secondary-container'
-                  : 'bg-surface-container text-on-surface-variant'
+                  ? 'bg-gl-sage-light text-gl-dark border border-gl-sage'
+                  : 'bg-gl-cream text-gl-charcoal-muted border border-gl-border'
               }`}>
                 {scanResult ? `${scanResult.confidence.toFixed(1)}% Confidence` : 'Awaiting Image'}
               </span>
             </div>
 
             {scanResult ? (
-              <div className="flex flex-col gap-space-sm pt-1">
+              <div className="flex flex-col gap-3 pt-1">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex flex-col">
-                    <span className="font-heading font-bold text-lg text-on-surface">
+                    <span className="font-heading font-bold text-lg text-gl-charcoal">
                       {detectedMaterialName || scanResult.detected_material}
                     </span>
-                    <span className="font-label-sm text-xs text-secondary font-medium">
-                      Category: <strong className="text-primary">{
+                    <span className="text-xs text-gl-charcoal-muted font-medium">
+                      Category: <strong className="text-gl-forest">{
                         categories.find((c) => c.slug === selectedCategory)?.name || scanResult.category_name
                       }</strong>
                     </span>
                   </div>
-                  <span className="font-label-sm text-xs font-semibold px-2 py-1 rounded-md bg-surface-container text-primary border border-outline-variant/40 shrink-0">
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-gl-sage-light text-gl-dark border border-gl-sage shrink-0">
                     {scanResult.subcategory || selectedCategory}
                   </span>
                 </div>
 
-                {/* Editable Material Name & Category Confirmation (Phase 4 User Override) */}
-                <div className="bg-surface-container/70 rounded-lg p-3 border border-outline-variant/60 flex flex-col gap-2.5">
+                {/* Editable Material Name & Category Confirmation */}
+                <div className="bg-gl-cream/60 rounded-xl p-3.5 border border-gl-border flex flex-col gap-2.5">
                   <div className="flex items-center justify-between">
-                    <span className="font-label-sm text-xs font-semibold text-primary flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-secondary" />
+                    <span className="text-xs font-semibold text-gl-charcoal flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-gl-fresh" />
                       Confirm or Correct Material Classification
                     </span>
-                    <span className="text-[11px] text-on-surface-variant font-label-sm">Editable</span>
+                    <span className="text-[11px] text-gl-charcoal-muted">Editable</span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                     <div>
-                      <label className="block text-[11px] font-medium text-secondary mb-1">
+                      <label className="block text-[11px] font-semibold text-gl-charcoal mb-1">
                         Material Title
                       </label>
                       <input
                         type="text"
                         value={detectedMaterialName}
                         onChange={(e) => setDetectedMaterialName(e.target.value)}
-                        className="w-full px-2.5 py-1.5 rounded-md bg-surface-container-lowest border border-outline-variant text-on-surface text-xs focus:ring-1 focus:ring-primary focus:outline-none"
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-white border border-gl-border text-gl-charcoal text-xs focus:ring-2 focus:ring-gl-forest/20 focus:border-gl-forest focus:outline-none"
                         placeholder="Material title..."
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-medium text-secondary mb-1">
+                      <label className="block text-[11px] font-semibold text-gl-charcoal mb-1">
                         Waste Category
                       </label>
                       <select
                         value={selectedCategory}
                         onChange={(e) => setSelectedCategory(e.target.value)}
-                        className="w-full px-2.5 py-1.5 rounded-md bg-surface-container-lowest border border-outline-variant text-on-surface text-xs focus:ring-1 focus:ring-primary focus:outline-none"
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-white border border-gl-border text-gl-charcoal text-xs focus:ring-2 focus:ring-gl-forest/20 focus:border-gl-forest focus:outline-none"
                       >
                         <option value="plastics">Plastics (PET bottles, HDPE, PP)</option>
                         <option value="metals">Metals (Aluminium cans, scrap iron)</option>
@@ -622,7 +622,7 @@ export const WasteScannerPage: React.FC = () => {
 
                 {/* Ambiguity or Clarity Notification */}
                 {scanResult.is_ambiguous && (
-                  <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2">
+                  <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                     <div className="flex flex-col">
                       <strong className="font-semibold">Photo Ambiguity Detected:</strong>
@@ -633,8 +633,8 @@ export const WasteScannerPage: React.FC = () => {
 
                 {/* Discarded vs Commercial Product Observation */}
                 {scanResult.product_vs_waste_notes && (
-                  <div className="p-2.5 rounded-lg bg-surface-container-low text-xs text-on-surface-variant border border-outline-variant/40">
-                    <strong className="text-primary font-medium">Condition Check: </strong>
+                  <div className="p-2.5 rounded-xl bg-gl-cream/50 text-xs text-gl-charcoal-muted border border-gl-border">
+                    <strong className="text-gl-charcoal font-medium">Condition Check: </strong>
                     {scanResult.product_vs_waste_notes}
                   </div>
                 )}
@@ -642,12 +642,12 @@ export const WasteScannerPage: React.FC = () => {
                 {/* Visible Physical Features */}
                 {scanResult.visible_characteristics && scanResult.visible_characteristics.length > 0 && (
                   <div className="flex flex-col gap-1">
-                    <span className="font-label-sm text-xs text-secondary uppercase tracking-wide font-semibold">
+                    <span className="text-xs text-gl-charcoal-muted uppercase tracking-wide font-semibold">
                       Observed Characteristics
                     </span>
                     <div className="flex flex-wrap gap-1.5">
                       {scanResult.visible_characteristics.map((char, i) => (
-                        <span key={i} className="px-2 py-0.5 rounded bg-surface-container text-[11px] text-on-surface font-medium">
+                        <span key={i} className="px-2 py-0.5 rounded-md bg-gl-cream text-[11px] text-gl-charcoal font-medium border border-gl-border">
                           {char}
                         </span>
                       ))}
@@ -658,12 +658,12 @@ export const WasteScannerPage: React.FC = () => {
                 {/* Recyclability Score Gauge */}
                 <div className="flex flex-col gap-1 pt-1">
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-secondary font-medium">Recyclability Score</span>
-                    <span className="font-bold text-primary">{scanResult.recyclability_score} / 100</span>
+                    <span className="text-gl-charcoal-muted font-medium">Recyclability Score</span>
+                    <span className="font-bold text-gl-forest">{scanResult.recyclability_score} / 100</span>
                   </div>
-                  <div className="w-full bg-surface-container h-2 rounded-full overflow-hidden">
+                  <div className="w-full bg-gl-cream h-2.5 rounded-full overflow-hidden border border-gl-border">
                     <div
-                      className="bg-primary-container h-full rounded-full transition-all duration-500"
+                      className="bg-gl-forest h-full rounded-full transition-all duration-500"
                       style={{ width: `${scanResult.recyclability_score}%` }}
                     />
                   </div>
@@ -672,21 +672,21 @@ export const WasteScannerPage: React.FC = () => {
                 {/* Circular Pathways Guidance */}
                 {scanResult.recycling_methods && scanResult.recycling_methods.length > 0 && (
                   <div className="flex flex-col gap-1 pt-1">
-                    <span className="font-label-sm text-xs text-secondary uppercase tracking-wide font-semibold">
+                    <span className="text-xs text-gl-charcoal-muted uppercase tracking-wide font-semibold">
                       Recommended Recovery Method
                     </span>
-                    <p className="font-body-md text-xs text-on-surface-variant leading-relaxed">
+                    <p className="text-xs text-gl-charcoal leading-relaxed">
                       {scanResult.recycling_methods[0]}
                     </p>
                   </div>
                 )}
 
                 {/* Action Conversion Trigger */}
-                <div className="pt-2 border-t border-outline-variant/40">
+                <div className="pt-2 border-t border-gl-border">
                   <button
                     type="button"
                     onClick={handleProceedToCreateListing}
-                    className="w-full py-2.5 px-4 rounded-lg bg-primary-container text-on-primary font-label-md text-xs sm:text-sm font-semibold hover:bg-primary active:scale-[0.99] transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full py-2.5 px-4 rounded-xl bg-gl-forest text-white text-xs sm:text-sm font-semibold hover:bg-gl-dark active:scale-[0.99] transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <span>Convert to Marketplace Listing</span>
                     <ArrowRight className="w-4 h-4" />
@@ -694,51 +694,51 @@ export const WasteScannerPage: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="py-8 flex flex-col items-center justify-center text-center gap-2 text-outline">
-                <FileText className="w-8 h-8 opacity-40" />
-                <span className="text-xs">No analysis performed yet.</span>
-                <span className="text-[11px] text-zinc-400 max-w-xs">
+              <div className="py-8 flex flex-col items-center justify-center text-center gap-2 text-gl-charcoal-muted">
+                <FileText className="w-8 h-8 opacity-40 text-gl-charcoal-muted" />
+                <span className="text-xs font-medium">No analysis performed yet.</span>
+                <span className="text-[11px] text-gl-charcoal-muted max-w-xs">
                   Position your material in the reticle frame on the left and capture a photo.
                 </span>
               </div>
             )}
           </div>
 
-          {/* Card 2: Kerala Circular Resource Pathways (Stitch 1:1) */}
-          <div className="bg-surface-container-lowest rounded-xl p-space-lg border border-outline-variant/60 shadow-sm flex flex-col gap-3">
+          {/* Card 2: Kerala Circular Resource Pathways */}
+          <div className="bg-white rounded-2xl p-6 border border-gl-border shadow-card flex flex-col gap-3">
             <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-primary-container" />
-              <h4 className="font-heading font-bold text-title-md text-primary">
+              <TrendingUp className="w-4 h-4 text-gl-forest" />
+              <h4 className="font-heading font-bold text-base text-gl-charcoal">
                 Circular Value Channels
               </h4>
             </div>
 
-            <p className="text-xs text-on-surface-variant leading-relaxed">
+            <p className="text-xs text-gl-charcoal-muted leading-relaxed">
               Materials scanned through GreenLoop are automatically evaluated for the three main decentralized disposal channels in Kerala:
             </p>
 
             <div className="flex flex-col gap-2 pt-1 text-xs">
-              <div className="p-2.5 rounded-lg bg-surface-container-low flex items-start gap-2 border border-outline-variant/40">
-                <Leaf className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+              <div className="p-3 rounded-xl bg-gl-cream/50 flex items-start gap-2.5 border border-gl-border">
+                <Leaf className="w-4 h-4 text-gl-forest shrink-0 mt-0.5" />
                 <div className="flex flex-col">
-                  <strong className="text-primary font-semibold">Agricultural Mulch &amp; Composting</strong>
-                  <span className="text-on-surface-variant text-[11px]">For wet kitchen discards, coconut husks, coir pith, and garden foliage.</span>
+                  <strong className="text-gl-charcoal font-semibold">Agricultural Mulch &amp; Composting</strong>
+                  <span className="text-gl-charcoal-muted text-[11px]">For wet kitchen discards, coconut husks, coir pith, and garden foliage.</span>
                 </div>
               </div>
 
-              <div className="p-2.5 rounded-lg bg-surface-container-low flex items-start gap-2 border border-outline-variant/40">
-                <Recycle className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+              <div className="p-3 rounded-xl bg-gl-cream/50 flex items-start gap-2.5 border border-gl-border">
+                <Recycle className="w-4 h-4 text-gl-forest shrink-0 mt-0.5" />
                 <div className="flex flex-col">
-                  <strong className="text-primary font-semibold">Haritha Karma Sena Aggregation</strong>
-                  <span className="text-on-surface-variant text-[11px]">Clean segregated polymers, cardboard cartons, metal tins, and e-waste.</span>
+                  <strong className="text-gl-charcoal font-semibold">Haritha Karma Sena Aggregation</strong>
+                  <span className="text-gl-charcoal-muted text-[11px]">Clean segregated polymers, cardboard cartons, metal tins, and e-waste.</span>
                 </div>
               </div>
 
-              <div className="p-2.5 rounded-lg bg-surface-container-low flex items-start gap-2 border border-outline-variant/40">
-                <Factory className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+              <div className="p-3 rounded-xl bg-gl-cream/50 flex items-start gap-2.5 border border-gl-border">
+                <Factory className="w-4 h-4 text-gl-forest shrink-0 mt-0.5" />
                 <div className="flex flex-col">
-                  <strong className="text-primary font-semibold">Artisanal &amp; Upcycling Studios</strong>
-                  <span className="text-on-surface-variant text-[11px]">Intact glass bottles, tailoring textile cutoffs, and wooden crates.</span>
+                  <strong className="text-gl-charcoal font-semibold">Artisanal &amp; Upcycling Studios</strong>
+                  <span className="text-gl-charcoal-muted text-[11px]">Intact glass bottles, tailoring textile cutoffs, and wooden crates.</span>
                 </div>
               </div>
             </div>

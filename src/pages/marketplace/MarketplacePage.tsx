@@ -237,25 +237,25 @@ export const MarketplacePage: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 space-y-6 text-left">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gl-border/70 pb-5">
         <div>
-          <h1 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight">
+          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-gl-charcoal tracking-tight">
             Waste Marketplace
           </h1>
-          <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">
+          <p className="font-body text-sm text-gl-charcoal-muted mt-1">
             Browse recyclable and reusable materials available across Kerala.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
           {/* View Mode Toggle: Grid vs Map */}
-          <div className="inline-flex p-0.5 bg-surface-container rounded-lg border border-outline-variant">
+          <div className="inline-flex p-1 bg-gl-cream rounded-xl border border-gl-border">
             <button
               onClick={() => setViewMode('grid')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-label-sm text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 viewMode === 'grid'
-                  ? 'bg-surface-container-lowest text-primary shadow-sm'
-                  : 'text-on-surface-variant hover:text-on-surface'
+                  ? 'bg-white text-gl-forest shadow-xs'
+                  : 'text-gl-charcoal-muted hover:text-gl-charcoal'
               }`}
               title="Grid View"
             >
@@ -264,10 +264,10 @@ export const MarketplacePage: React.FC = () => {
             </button>
             <button
               onClick={() => setViewMode('map')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-label-sm text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 viewMode === 'map'
-                  ? 'bg-surface-container-lowest text-primary shadow-sm'
-                  : 'text-on-surface-variant hover:text-on-surface'
+                  ? 'bg-white text-gl-forest shadow-xs'
+                  : 'text-gl-charcoal-muted hover:text-gl-charcoal'
               }`}
               title="Map View"
             >
@@ -277,22 +277,24 @@ export const MarketplacePage: React.FC = () => {
           </div>
 
           <Link to="/smart-match" className="flex-1 sm:flex-initial">
-            <Button variant="secondary" size="md" icon={<Sparkles className="w-4 h-4 text-primary" />} fullWidth className="sm:w-auto">
-              Smart Match
-            </Button>
+            <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-gl-cream text-gl-forest border border-gl-border rounded-xl text-sm font-semibold shadow-xs transition-all active:scale-[0.98]">
+              <Sparkles className="w-4 h-4 text-gl-fresh" />
+              <span>Smart Match</span>
+            </button>
           </Link>
 
           <Link to="/marketplace/new" className="flex-1 sm:flex-initial">
-            <Button variant="primary" size="md" icon={<Plus className="w-4 h-4" />} fullWidth className="sm:w-auto">
-              Add Listing
-            </Button>
+            <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gl-forest hover:bg-gl-dark text-white rounded-xl text-sm font-semibold shadow-sm transition-all active:scale-[0.98]">
+              <Plus className="w-4 h-4" />
+              <span>Add Listing</span>
+            </button>
           </Link>
         </div>
       </div>
 
       {/* Sync Error Alert Banner */}
       {dataError && (
-        <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-800 rounded-lg text-xs text-red-700 dark:text-red-300 flex items-center justify-between">
+        <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center justify-between">
           <span>{dataError}</span>
           <button
             onClick={() => refreshData()}
@@ -304,13 +306,13 @@ export const MarketplacePage: React.FC = () => {
       )}
 
       {/* Filter Toolbar */}
-      <Card variant="elevated" className="space-y-3 p-4">
+      <div className="bg-white border border-gl-border rounded-2xl p-4 sm:p-5 shadow-card space-y-4">
         {/* Row 1: Location Filter */}
-        <div className="p-3 bg-surface-container-low rounded-lg border border-outline-variant/60 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+        <div className="p-3 bg-gl-cream/60 rounded-xl border border-gl-border/70 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
           <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-2">
-            <div className="flex items-center gap-1.5 text-primary font-semibold shrink-0">
-              <MapPin className="w-4 h-4 text-primary" />
-              <span className="font-label-sm">Location:</span>
+            <div className="flex items-center gap-1.5 text-gl-forest font-semibold shrink-0">
+              <MapPin className="w-4 h-4 text-gl-forest" />
+              <span className="font-sans">Location:</span>
             </div>
 
             <div className="flex-1 max-w-sm">
@@ -324,22 +326,22 @@ export const MarketplacePage: React.FC = () => {
             <button
               onClick={handleUseGps}
               disabled={isDetectingGps}
-              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-surface-container-lowest hover:bg-surface-container border border-outline-variant text-on-surface rounded-lg font-label-sm text-xs font-medium transition-colors shrink-0 disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white hover:bg-gl-cream border border-gl-border text-gl-charcoal rounded-xl text-xs font-semibold transition-colors shrink-0 disabled:opacity-50 shadow-xs"
               title="Use current location"
             >
-              <Navigation className={`w-3.5 h-3.5 text-primary ${isDetectingGps ? 'animate-spin' : ''}`} />
+              <Navigation className={`w-3.5 h-3.5 text-gl-forest ${isDetectingGps ? 'animate-spin' : ''}`} />
               <span>{isDetectingGps ? 'Locating...' : 'Use current location'}</span>
             </button>
           </div>
 
           <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-secondary-container text-primary rounded-full font-label-sm text-xs font-semibold border border-primary/20">
-              <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-gl-sage-light text-gl-forest rounded-full text-xs font-semibold border border-gl-sage/40">
+              <CheckCircle2 className="w-3.5 h-3.5 text-gl-fresh" />
               <span>Near: {activeReferenceLabel}</span>
               {customRefLocation && (
                 <button
                   onClick={handleClearRefLocation}
-                  className="ml-1 hover:text-error transition-colors"
+                  className="ml-1 hover:text-red-500 transition-colors"
                   title="Reset location"
                 >
                   <X className="w-3 h-3" />
@@ -350,7 +352,7 @@ export const MarketplacePage: React.FC = () => {
         </div>
 
         {gpsNotice && (
-          <div className="text-xs text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 p-2 rounded-lg border border-amber-300/60">
+          <div className="text-xs text-amber-900 bg-amber-50 p-2.5 rounded-xl border border-amber-200">
             {gpsNotice}
           </div>
         )}
@@ -359,18 +361,18 @@ export const MarketplacePage: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 text-xs">
           {/* Keyword Search */}
           <div className="sm:col-span-3 relative">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-outline" />
+            <Search className="w-4 h-4 absolute left-3 top-2.5 text-gl-charcoal-muted" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search materials (e.g. bottles, cartons)..."
-              className="w-full pl-9 pr-8 py-2 bg-surface-container-lowest border border-outline-variant hover:border-outline focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg text-body-sm text-on-surface focus:outline-none transition-all placeholder:text-outline"
+              className="w-full pl-9 pr-8 py-2.5 bg-white border border-gl-border hover:border-gl-sage focus:border-gl-forest focus:ring-2 focus:ring-gl-forest/20 rounded-xl text-xs text-gl-charcoal focus:outline-none transition-all placeholder:text-gl-charcoal-muted"
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm('')}
-                className="absolute right-2.5 top-2.5 text-outline hover:text-on-surface"
+                className="absolute right-2.5 top-2.5 text-gl-charcoal-muted hover:text-gl-charcoal"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -382,7 +384,7 @@ export const MarketplacePage: React.FC = () => {
             <select
               value={selectedDistrict}
               onChange={(e) => setSelectedDistrict(e.target.value)}
-              className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant hover:border-outline focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg text-body-sm text-on-surface focus:outline-none transition-all"
+              className="w-full px-3 py-2.5 bg-white border border-gl-border hover:border-gl-sage focus:border-gl-forest focus:ring-2 focus:ring-gl-forest/20 rounded-xl text-xs text-gl-charcoal focus:outline-none transition-all"
             >
               <option value="All Kerala">All Kerala</option>
               {keralaDistricts.map((d) => (
@@ -398,7 +400,7 @@ export const MarketplacePage: React.FC = () => {
             <select
               value={selectedRadius}
               onChange={(e) => setSelectedRadius(e.target.value)}
-              className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant hover:border-outline focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg text-body-sm text-on-surface focus:outline-none transition-all"
+              className="w-full px-3 py-2.5 bg-white border border-gl-border hover:border-gl-sage focus:border-gl-forest focus:ring-2 focus:ring-gl-forest/20 rounded-xl text-xs text-gl-charcoal focus:outline-none transition-all"
               title="Search radius"
             >
               <option value="all">All Kerala</option>
@@ -414,7 +416,7 @@ export const MarketplacePage: React.FC = () => {
             <select
               value={selectedPricing}
               onChange={(e) => setSelectedPricing(e.target.value)}
-              className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant hover:border-outline focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg text-body-sm text-on-surface focus:outline-none transition-all"
+              className="w-full px-3 py-2.5 bg-white border border-gl-border hover:border-gl-sage focus:border-gl-forest focus:ring-2 focus:ring-gl-forest/20 rounded-xl text-xs text-gl-charcoal focus:outline-none transition-all"
             >
               <option value="all">All Types</option>
               <option value="free">Free Only</option>
@@ -428,7 +430,7 @@ export const MarketplacePage: React.FC = () => {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant hover:border-outline focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg text-body-sm text-on-surface focus:outline-none transition-all"
+              className="w-full px-3 py-2.5 bg-white border border-gl-border hover:border-gl-sage focus:border-gl-forest focus:ring-2 focus:ring-gl-forest/20 rounded-xl text-xs text-gl-charcoal focus:outline-none transition-all"
             >
               <option value="nearest">Nearest First</option>
               <option value="newest">Newest First</option>
@@ -438,13 +440,13 @@ export const MarketplacePage: React.FC = () => {
         </div>
 
         {/* Category Horizontal Scrolling Chips */}
-        <div className="pt-2 border-t border-outline-variant/40 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <div className="pt-2 border-t border-gl-border/70 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           <button
             onClick={() => handleCategoryChange('all')}
-            className={`px-3 py-1 rounded-full font-label-sm text-label-sm whitespace-nowrap transition-all ${
+            className={`px-3.5 py-1.5 rounded-full text-xs whitespace-nowrap transition-all font-semibold ${
               selectedCategory === 'all'
-                ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
-                : 'bg-surface-container text-on-surface hover:bg-surface-container-high border border-outline-variant/50'
+                ? 'bg-gl-forest text-white shadow-xs'
+                : 'bg-gl-cream hover:bg-gl-cream/80 text-gl-charcoal border border-gl-border'
             }`}
           >
             All Categories ({sourceListings.length})
@@ -464,10 +466,10 @@ export const MarketplacePage: React.FC = () => {
               <button
                 key={cat.id}
                 onClick={() => handleCategoryChange(cat.slug)}
-                className={`px-3 py-1 rounded-full font-label-sm text-label-sm whitespace-nowrap transition-all ${
+                className={`px-3.5 py-1.5 rounded-full text-xs whitespace-nowrap transition-all ${
                   isSelected
-                    ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
-                    : 'bg-surface-container text-on-surface hover:bg-surface-container-high border border-outline-variant/50'
+                    ? 'bg-gl-forest text-white font-semibold shadow-xs'
+                    : 'bg-gl-cream hover:bg-gl-cream/80 text-gl-charcoal border border-gl-border font-medium'
                 }`}
               >
                 {cat.name} ({count})
@@ -475,7 +477,7 @@ export const MarketplacePage: React.FC = () => {
             );
           })}
         </div>
-      </Card>
+      </div>
 
       {/* Main Content Area: Loading Skeletons, Empty State, Grid View, or Map View */}
       {isLoading && sourceListings.length === 0 ? (
@@ -503,11 +505,11 @@ export const MarketplacePage: React.FC = () => {
             initialFilter="listings"
             referenceCoords={refCoords}
           />
-          <div className="p-3 bg-surface-container-low rounded-lg border border-outline-variant/60 text-xs text-on-surface-variant flex items-center justify-between">
+          <div className="p-3.5 bg-gl-cream/70 rounded-xl border border-gl-border text-xs text-gl-charcoal-muted flex items-center justify-between">
             <span>Showing <strong>{filteredListings.length}</strong> listings on the map. Click any pin to view details.</span>
             <button
               onClick={() => setViewMode('grid')}
-              className="text-primary font-semibold hover:underline inline-flex items-center gap-1"
+              className="text-gl-forest font-semibold hover:underline inline-flex items-center gap-1"
             >
               <LayoutGrid className="w-3.5 h-3.5" />
               <span>Grid View</span>
@@ -516,7 +518,7 @@ export const MarketplacePage: React.FC = () => {
         </div>
       ) : (
         /* Grid View */
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
           {filteredListings.map((listing) => (
             <ListingCard key={listing.id} listing={listing} referenceCoords={refCoords} />
           ))}

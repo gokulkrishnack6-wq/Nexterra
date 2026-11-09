@@ -110,41 +110,41 @@ export const ReportIssuePage: React.FC = () => {
       <div className="flex items-center justify-between">
         <button
           onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-1.5 font-label-md text-xs text-on-surface-variant hover:text-primary transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-gl-charcoal-muted hover:text-gl-forest transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back</span>
         </button>
 
         <Link to="/reports">
-          <Button variant="secondary" size="sm">
+          <Button variant="secondary" size="sm" className="rounded-xl">
             View All Reports Tracker
           </Button>
         </Link>
       </div>
 
       <div className="space-y-1">
-        <h1 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight">
+        <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-gl-charcoal tracking-tight">
           Report an Issue
         </h1>
-        <p className="font-body-sm text-body-sm text-on-surface-variant">
+        <p className="text-sm text-gl-charcoal-muted">
           Report overflowing bins, illegal dumping, or burning to alert the local community.
         </p>
       </div>
 
       {createdTicket ? (
-        <Card variant="elevated" className="p-8 text-center space-y-4 max-w-lg mx-auto">
-          <div className="w-14 h-14 rounded-full bg-secondary-container text-primary flex items-center justify-center mx-auto">
-            <CheckCircle2 className="w-8 h-8" />
+        <Card variant="elevated" className="p-8 text-center space-y-4 max-w-lg mx-auto bg-white border border-gl-border rounded-2xl shadow-card">
+          <div className="w-14 h-14 rounded-full bg-gl-sage-light text-gl-forest border border-gl-sage flex items-center justify-center mx-auto">
+            <CheckCircle2 className="w-8 h-8 text-gl-fresh" />
           </div>
           <div className="space-y-1">
-            <span className="font-label-sm text-xs text-outline uppercase tracking-wider block font-semibold">
+            <span className="text-xs text-gl-charcoal-muted uppercase tracking-wider block font-bold">
               Incident Report Recorded
             </span>
-            <h2 className="font-heading font-bold text-3xl text-primary font-mono">
+            <h2 className="font-heading font-extrabold text-3xl text-gl-forest font-mono">
               #{createdTicket}
             </h2>
-            <p className="font-body-sm text-body-sm text-on-surface-variant pt-2">
+            <p className="text-sm text-gl-charcoal-muted pt-2">
               Your environmental alert has been added to the GreenLoop tracking registry. You can monitor verification status on the public civic watch feed.
             </p>
           </div>
@@ -154,7 +154,7 @@ export const ReportIssuePage: React.FC = () => {
               variant="primary"
               size="lg"
               fullWidth
-              className="sm:w-auto"
+              className="sm:w-auto rounded-xl shadow-sm"
               onClick={() => navigate('/reports')}
             >
               Track Ticket #{createdTicket}
@@ -163,7 +163,7 @@ export const ReportIssuePage: React.FC = () => {
               variant="secondary"
               size="lg"
               fullWidth
-              className="sm:w-auto"
+              className="sm:w-auto rounded-xl"
               onClick={() => {
                 setCreatedTicket(null);
                 setTitle('');
@@ -177,11 +177,11 @@ export const ReportIssuePage: React.FC = () => {
           </div>
         </Card>
       ) : (
-        <Card variant="elevated" className="p-6 sm:p-8 space-y-6">
+        <Card variant="elevated" className="p-6 sm:p-8 space-y-6 bg-white border border-gl-border rounded-2xl shadow-card">
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Issue Category Radio Tiles */}
             <div>
-              <label className="block font-label-md text-label-md text-on-surface mb-2 font-semibold">
+              <label className="block text-sm text-gl-charcoal mb-2 font-bold font-heading">
                 Type of Environmental Issue *
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
@@ -194,10 +194,10 @@ export const ReportIssuePage: React.FC = () => {
                   <label
                     key={item.id}
                     onClick={() => setIssueType(item.id as any)}
-                    className={`p-3 rounded-xl border cursor-pointer transition-all flex items-start gap-3 ${
+                    className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-start gap-3 ${
                       issueType === item.id
-                        ? 'bg-secondary-container/40 border-primary ring-1 ring-primary text-primary'
-                        : 'bg-surface-container-low border-outline-variant hover:bg-surface-container'
+                        ? 'bg-gl-sage-light/60 border-gl-forest ring-1 ring-gl-forest text-gl-forest'
+                        : 'bg-gl-cream/40 border-gl-border hover:bg-gl-cream'
                     }`}
                   >
                     <input
@@ -205,11 +205,11 @@ export const ReportIssuePage: React.FC = () => {
                       name="issueType"
                       checked={issueType === item.id}
                       onChange={() => setIssueType(item.id as any)}
-                      className="mt-1 accent-primary"
+                      className="mt-1 accent-[#123D29]"
                     />
                     <div>
-                      <span className="font-heading font-semibold text-xs block text-on-surface">{item.title}</span>
-                      <span className="text-[11px] text-on-surface-variant block mt-0.5">{item.desc}</span>
+                      <span className="font-heading font-bold text-xs block text-gl-charcoal">{item.title}</span>
+                      <span className="text-[11px] text-gl-charcoal-muted block mt-0.5">{item.desc}</span>
                     </div>
                   </label>
                 ))}
@@ -236,16 +236,16 @@ export const ReportIssuePage: React.FC = () => {
             </div>
 
             {/* Location with GPS */}
-            <div className="pt-2 border-t border-outline-variant/40 space-y-3">
+            <div className="pt-2 border-t border-gl-border space-y-3">
               <div className="flex items-center justify-between">
-                <span className="font-heading font-semibold text-title-md text-primary block">
+                <span className="font-heading font-bold text-sm text-gl-charcoal block">
                   Location Details
                 </span>
                 <button
                   type="button"
                   onClick={detectLocation}
                   disabled={geoLoading}
-                  className="text-xs text-primary inline-flex items-center gap-1 hover:underline font-medium"
+                  className="text-xs text-gl-forest inline-flex items-center gap-1 hover:underline font-semibold"
                 >
                   <Navigation className="w-3.5 h-3.5" />
                   <span>{geoLoading ? 'Detecting...' : 'Use My GPS Location'}</span>
@@ -254,13 +254,13 @@ export const ReportIssuePage: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block font-label-md text-label-md text-on-surface mb-1 font-semibold">
+                  <label className="block text-xs font-semibold text-gl-charcoal mb-1">
                     District *
                   </label>
                   <select
                     value={district}
                     onChange={(e) => setDistrict(e.target.value)}
-                    className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-3 transition-all"
+                    className="w-full bg-white text-gl-charcoal text-sm rounded-xl border border-gl-border hover:border-gl-forest/50 focus:outline-none focus:border-gl-forest focus:ring-2 focus:ring-gl-forest/20 py-2.5 px-3 transition-all"
                     required
                   >
                     <option value="">Select Kerala District</option>
@@ -300,12 +300,12 @@ export const ReportIssuePage: React.FC = () => {
 
             {/* Real Photo Upload / Camera */}
             <div className="space-y-2">
-              <label className="block font-label-md text-label-md text-on-surface font-semibold">
+              <label className="block text-xs font-semibold text-gl-charcoal">
                 Photo Evidence (Camera or File)
               </label>
 
               {photoPreview ? (
-                <div className="relative inline-block border border-outline-variant rounded-xl overflow-hidden">
+                <div className="relative inline-block border border-gl-border rounded-xl overflow-hidden shadow-2xs">
                   <img
                     src={photoPreview}
                     alt="Report evidence preview"
@@ -317,16 +317,16 @@ export const ReportIssuePage: React.FC = () => {
                       setPhotoPreview(null);
                       setPhotoUrl('');
                     }}
-                    className="absolute top-2 right-2 p-1 rounded-full bg-surface-container-lowest/80 text-on-surface hover:text-error transition-colors"
+                    className="absolute top-2 right-2 p-1 rounded-full bg-white/80 text-gl-charcoal hover:text-error transition-colors shadow-2xs"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
               ) : (
-                <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-outline-variant rounded-xl cursor-pointer hover:bg-surface-container-low transition-colors max-w-sm">
-                  <Camera className="w-6 h-6 text-primary mb-2" />
-                  <span className="text-xs font-semibold text-primary">Snap Photo or Choose File</span>
-                  <span className="text-[10px] text-outline mt-0.5">Supports mobile camera & desktop upload</span>
+                <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gl-border rounded-xl cursor-pointer hover:bg-gl-cream/60 transition-colors max-w-sm">
+                  <Camera className="w-6 h-6 text-gl-forest mb-2" />
+                  <span className="text-xs font-semibold text-gl-forest">Snap Photo or Choose File</span>
+                  <span className="text-[10px] text-gl-charcoal-muted mt-0.5">Supports mobile camera & desktop upload</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -338,12 +338,12 @@ export const ReportIssuePage: React.FC = () => {
               )}
             </div>
 
-            <div className="pt-4 border-t border-outline-variant/40 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3 w-full">
+            <div className="pt-4 border-t border-gl-border flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3 w-full">
               <Button
                 type="button"
                 variant="outline"
                 fullWidth
-                className="sm:w-auto"
+                className="sm:w-auto rounded-xl"
                 onClick={() => navigate(-1)}
               >
                 Cancel
@@ -354,7 +354,7 @@ export const ReportIssuePage: React.FC = () => {
                 variant="primary"
                 size="lg"
                 fullWidth
-                className="sm:w-auto"
+                className="sm:w-auto rounded-xl shadow-sm"
                 loading={submitting}
                 icon={<Send className="w-4 h-4" />}
               >

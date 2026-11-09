@@ -14,12 +14,12 @@ export const Card: React.FC<CardProps> = ({
   ...props
 }) => {
   const variantStyles = {
-    elevated: 'bg-surface-container-lowest border border-outline-variant/70 shadow-sm',
-    flat: 'bg-surface-container border border-outline-variant/50',
-    low: 'bg-surface-container-low border border-outline-variant/40',
+    elevated: 'bg-white border border-gl-border shadow-card',
+    flat: 'bg-white border border-gl-border',
+    low: 'bg-gl-cream border border-gl-border',
   };
 
-  const hoverStyles = hoverEffect ? 'hover:shadow-md hover:border-outline transition-all duration-200' : '';
+  const hoverStyles = hoverEffect ? 'hover:shadow-card-hover hover:border-gl-sage transition-all duration-200' : '';
 
   return (
     <div

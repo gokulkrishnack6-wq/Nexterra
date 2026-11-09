@@ -300,19 +300,19 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode }) => {
       {/* Brand Header */}
       <div className="text-center space-y-2">
         <Link to="/" className="inline-block hover:opacity-90 transition-opacity">
-          <div className="w-11 h-11 rounded-xl bg-primary-container text-on-primary flex items-center justify-center mx-auto shadow-sm">
-            <img src="/logo.png" alt="GreenLoop" className="w-6 h-6 object-contain" />
+          <div className="w-12 h-12 rounded-2xl bg-gl-sage-light text-gl-forest border border-gl-sage flex items-center justify-center mx-auto shadow-2xs">
+            <img src="/logo.png" alt="GreenLoop" className="w-7 h-7 object-contain" />
           </div>
         </Link>
 
-        <h1 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight">
+        <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-gl-charcoal tracking-tight">
           {mode === 'signin' && 'Sign In to GreenLoop'}
           {mode === 'register' && 'Create Your GreenLoop Account'}
           {mode === 'forgot_password' && 'Reset Your Password'}
           {mode === 'check_email' && 'Check Your Email'}
         </h1>
 
-        <p className="font-body-sm text-body-sm text-on-surface-variant max-w-md mx-auto">
+        <p className="text-sm text-gl-charcoal-muted max-w-md mx-auto">
           {mode === 'signin' && "Sign in to manage your listings and exchanges."}
           {mode === 'register' && "Sign up to give waste a second life in your area."}
           {mode === 'forgot_password' && "Enter your email address and we'll send you a link to reset your password."}
@@ -320,7 +320,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode }) => {
         </p>
       </div>
 
-      <Card variant="elevated" className="space-y-5 p-6 sm:p-8">
+      <Card variant="elevated" className="space-y-5 p-6 sm:p-8 bg-white border border-gl-border rounded-2xl shadow-card">
         {/* Status Alerts */}
         {error && (
           <div className="p-3 bg-error-container text-on-error-container rounded-lg text-body-sm font-medium border border-error/20 flex items-start gap-2.5">
