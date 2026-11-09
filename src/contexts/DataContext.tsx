@@ -509,36 +509,39 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, [fetchData]);
 
-  // Realtime subscription for cross-device & cross-account live updates
+  // Realtime subscription for cross-device & cross-account live updates with debounce
   useEffect(() => {
     if (!isSupabaseConfigured) return;
+
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const debouncedFetch = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        fetchData();
+      }, 150);
+    };
 
     const channel = supabase
       .channel('public:live_sync_realtime')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'listings' },
-        () => {
-          fetchData();
-        }
+        debouncedFetch
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'exchange_requests' },
-        () => {
-          fetchData();
-        }
+        debouncedFetch
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'notifications' },
-        () => {
-          fetchData();
-        }
+        debouncedFetch
       )
       .subscribe();
 
     return () => {
+      if (timer) clearTimeout(timer);
       supabase.removeChannel(channel);
     };
   }, [fetchData]);
@@ -832,20 +835,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error(insertError.message || 'Failed to submit exchange request to database.');
       }
 
-      // 2. Insert notification for the waste provider (owner of target listing)
-      try {
-        await supabase.from('notifications').insert([{
-          user_id: targetListing.user_id,
-          title: 'New Exchange Request',
-          message: `${currentUser.full_name || 'A community member'} requested ${requestedQuantity} ${targetListing.unit} of "${targetListing.title}"`,
-          type: 'request',
-          link: '/exchanges',
-          is_read: false,
-        }]);
-      } catch (notifErr) {
-        console.warn('Could not insert provider notification in database:', notifErr);
-      }
-
+      // Transactional notifications are handled authoritatively by database triggers
       await fetchData();
     } else {
       const newRequest: ExchangeRequest = {
@@ -864,6 +854,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         listing: targetListing,
       };
       setExchangeRequests((prev) => [newRequest, ...prev]);
+
+      // Offline/demo mode fallback notification
+      setNotifications((prev) => [
+        {
+          id: `notif-${Date.now()}`,
+          user_id: targetListing.user_id,
+          title: 'New Exchange Request',
+          message: `${currentUser.full_name || 'A community member'} requested ${requestedQuantity} ${targetListing.unit} of "${targetListing.title}"`,
+          type: 'request',
+          link: '/exchanges',
+          is_read: false,
+          created_at: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
     }
 
     return requestId;
@@ -903,23 +908,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .eq('id', targetReq.listing_id);
       }
 
-      // Notify requester with handover pass code
-      try {
-        await supabase.from('notifications').insert([{
+      // Transactional acceptance notifications are handled authoritatively by database triggers
+      await fetchData();
+    } else {
+      setExchangeRequests((prev) =>
+        prev.map((r) => r.id === requestId ? { ...r, status: 'accepted', pickup_date: pickupDate } : r)
+      );
+
+      // Offline/demo mode notification
+      setNotifications((prev) => [
+        {
+          id: `notif-${Date.now()}`,
           user_id: targetReq.requester_id,
           title: 'Request Accepted',
           message: `Your request for "${targetReq.listing?.title || 'waste material'}" was accepted! Pickup verification code: ${targetReq.completion_code}`,
           type: 'request',
           link: '/exchanges',
           is_read: false,
-        }]);
-      } catch (_) {}
-
-      await fetchData();
-    } else {
-      setExchangeRequests((prev) =>
-        prev.map((r) => r.id === requestId ? { ...r, status: 'accepted', pickup_date: pickupDate } : r)
-      );
+          created_at: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
     }
   };
 
@@ -946,23 +955,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error(error.message);
       }
 
-      // Notify requester
-      try {
-        await supabase.from('notifications').insert([{
+      // Transactional decline notifications are handled authoritatively by database triggers
+      await fetchData();
+    } else {
+      setExchangeRequests((prev) =>
+        prev.map((r) => (r.id === requestId ? { ...r, status: 'rejected', updated_at: new Date().toISOString() } : r))
+      );
+
+      // Offline/demo mode notification
+      setNotifications((prev) => [
+        {
+          id: `notif-${Date.now()}`,
           user_id: targetReq.requester_id,
           title: 'Request Declined',
           message: `Your request for "${targetReq.listing?.title || 'waste material'}" was declined by the provider.`,
           type: 'request',
           link: '/exchanges',
           is_read: false,
-        }]);
-      } catch (_) {}
-
-      await fetchData();
-    } else {
-      setExchangeRequests((prev) =>
-        prev.map((r) => (r.id === requestId ? { ...r, status: 'rejected', updated_at: new Date().toISOString() } : r))
-      );
+          created_at: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
     }
   };
 
