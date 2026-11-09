@@ -1,15 +1,33 @@
 -- ==============================================================================
 -- Migration: 20261109050000_whatsapp_contact_sharing_hardening.sql
 -- Description: WhatsApp Contact Sharing Hardening & Self-Healing Resolution:
---              1. Hardens get_exchange_whatsapp_contact to resolve provider_id from
+--              1. Ensures phone and whatsapp_number columns exist on public.profiles.
+--              2. Hardens get_exchange_whatsapp_contact to resolve provider_id from
 --                 public.listings when NULL on exchange_requests and self-heal the row.
---              2. Resolves contact details from auth.users metadata if profiles row
+--              3. Resolves contact details from auth.users metadata if profiles row
 --                 is temporarily unsynced or missing whatsapp_number.
---              3. Defaults sharing consent to TRUE when user has provided a WhatsApp
+--              4. Defaults sharing consent to TRUE when user has provided a WhatsApp
 --                 number during registration, unless explicitly opted out.
---              4. Prevents false "missing_number" errors across accepted exchanges.
---              5. Backfills existing profiles and exchange_requests.
+--              5. Prevents false "missing_number" errors across accepted exchanges.
+--              6. Backfills existing profiles and exchange_requests.
 -- ==============================================================================
+
+-- 0. Ensure Required Columns Exist on public.profiles
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS whatsapp_number TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS phone_number TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS share_whatsapp_with_exchange BOOLEAN DEFAULT true;
+
+-- Backfill phone to whatsapp_number and vice-versa
+UPDATE public.profiles
+SET whatsapp_number = phone
+WHERE (whatsapp_number IS NULL OR TRIM(whatsapp_number) = '')
+  AND (phone IS NOT NULL AND TRIM(phone) <> '');
+
+UPDATE public.profiles
+SET phone = whatsapp_number
+WHERE (phone IS NULL OR TRIM(phone) = '')
+  AND (whatsapp_number IS NOT NULL AND TRIM(whatsapp_number) <> '');
 
 -- 1. Self-Healing, Resilient WhatsApp Contact Retrieval RPC
 CREATE OR REPLACE FUNCTION public.get_exchange_whatsapp_contact(
@@ -115,7 +133,8 @@ BEGIN
       v_raw_wa := v_meta_wa;
       -- Auto-heal public.profiles record
       UPDATE public.profiles
-      SET whatsapp_number = v_meta_wa,
+      SET phone = v_meta_wa,
+          whatsapp_number = v_meta_wa,
           share_whatsapp_with_exchange = COALESCE(public.profiles.share_whatsapp_with_exchange, v_target_consent, true),
           updated_at = NOW()
       WHERE id = p_participant_id;
@@ -276,3 +295,4 @@ SET provider_id = l.user_id
 FROM public.listings l
 WHERE er.listing_id = l.id
   AND er.provider_id IS NULL;
+

@@ -35,12 +35,15 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
 }) => {
   const { getWhatsAppContact } = useData();
   const [loading, setLoading] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
   const [contactData, setContactData] = useState<{
     whatsapp: string | null;
     has_whatsapp_consent: boolean;
     contact_state?: 'missing_number' | 'invalid_number' | 'sharing_disabled' | 'sharing_enabled' | 'error';
     notice?: string;
   } | null>(null);
+
+  const handleRetry = () => setRetryKey((k) => k + 1);
 
   useEffect(() => {
     let isMounted = true;
@@ -73,7 +76,7 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [requestId, otherParticipantId, isAccepted, getWhatsAppContact]);
+  }, [requestId, otherParticipantId, isAccepted, getWhatsAppContact, retryKey]);
 
   if (!isAccepted) return null;
 
@@ -103,6 +106,14 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
       <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-xs text-outline border border-outline-variant/40">
         <AlertCircle className="w-3.5 h-3.5 text-outline shrink-0" />
         <span>{contactData.notice || 'Partner has not added a WhatsApp number yet'}</span>
+        <button
+          type="button"
+          onClick={handleRetry}
+          className="text-gl-forest font-semibold hover:underline text-[11px] ml-1"
+          title="Refresh partner contact details"
+        >
+          Check again
+        </button>
       </div>
     );
   }
@@ -133,6 +144,13 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
       <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-xs text-outline border border-outline-variant/40">
         <AlertCircle className="w-3.5 h-3.5 text-outline shrink-0" />
         <span>{contactData.notice || 'Unable to connect to WhatsApp'}</span>
+        <button
+          type="button"
+          onClick={handleRetry}
+          className="text-gl-forest font-semibold hover:underline text-[11px] ml-1"
+        >
+          Retry
+        </button>
       </div>
     );
   }
@@ -163,7 +181,7 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
         title="Open WhatsApp chat with exchange partner"
       >
         <MessageCircle className="w-4 h-4 fill-white shrink-0" />
-        <span>Chat on WhatsApp</span>
+        <span>Message on WhatsApp</span>
       </a>
     );
   }
@@ -391,7 +409,7 @@ export const ExchangeRequestsPage: React.FC = () => {
             const isLoadingAction = Boolean(actionLoading[req.id]);
 
             // Robust derivation of provider ID and other participant's ID
-            const providerId = req.provider_id || req.listing?.user_id || listing?.user_id || '';
+            const providerId = req.provider_id || req.listing?.user_id || listing?.user_id || listings.find((l) => l.id === req.listing_id)?.user_id || '';
             const isCurrentUserProvider = Boolean(currentUser?.id && providerId && currentUser.id === providerId);
             const isCurrentUserRequester = Boolean(currentUser?.id && req.requester_id && currentUser.id === req.requester_id);
 
