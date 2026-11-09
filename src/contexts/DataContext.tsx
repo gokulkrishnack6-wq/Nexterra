@@ -406,7 +406,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else if (dbRequests) {
         const currUser = currentUserRef.current;
         const mappedRequests: ExchangeRequest[] = dbRequests.map((item: any) => {
-          const providerId = item.provider_id || item.listing?.user_id;
+          const providerId = item.provider_id || item.listing?.user_id || rawListings?.find((l: any) => l.id === item.listing_id)?.user_id;
           return {
             ...item,
             provider_id: providerId,
@@ -620,9 +620,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return generateDynamicDemoListings(coords, locality, district, city, categories);
   }, [coords, locality, district, city, categories]);
 
-  // Combined marketplace inventory (genuine user listings displayed prominently first + non-conflicting demo sample listings)
+  // Combined marketplace inventory: active and reserved listings displayed, completed/cancelled removed
   const allMarketplaceListings = useMemo(() => {
-    const real = populatedListings.map((l) => ({ ...l, is_demo: false }));
+    const real = populatedListings
+      .filter((l) => l.status !== 'completed' && l.status !== 'cancelled')
+      .map((l) => ({ ...l, is_demo: false }));
     const nonConflictingDemo = demoListings.filter(
       (demo) => !real.some((r) => r.id === demo.id)
     );
@@ -854,6 +856,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('You cannot submit an exchange request for your own listing.');
     }
 
+    if (targetListing.status === 'reserved') {
+      throw new Error('This material batch is currently reserved for an in-progress exchange.');
+    }
+
+    if (targetListing.status === 'completed') {
+      throw new Error('This material batch has already been completed in an exchange.');
+    }
+
+    const hasActiveAccepted = exchangeRequests.some(
+      (r) => r.listing_id === listingId && r.status === 'accepted'
+    );
+    if (hasActiveAccepted) {
+      throw new Error('This material batch already has an active accepted exchange.');
+    }
+
     if (requestedQuantity <= 0 || requestedQuantity > targetListing.quantity) {
       throw new Error(`Please enter a quantity between 1 and ${targetListing.quantity} ${targetListing.unit}.`);
     }
@@ -972,18 +989,46 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const targetReq = exchangeRequests.find((r) => r.id === requestId);
     if (!targetReq) throw new Error('Exchange request not found');
 
-    const providerId = targetReq.provider_id || targetReq.listing?.user_id;
+    const providerId = targetReq.provider_id || targetReq.listing?.user_id || (targetReq.listing_id ? listings.find((l) => l.id === targetReq.listing_id)?.user_id : undefined);
     if (currentUser && providerId && providerId !== currentUser.id) {
       throw new Error('Permission denied: Only the waste provider can accept this request.');
+    }
+
+    const listingId = targetReq.listing_id;
+
+    // Concurrency Protection: Only one active accepted exchange per listing
+    if (listingId) {
+      const existingAccepted = exchangeRequests.find(
+        (r) => r.listing_id === listingId && r.status === 'accepted' && r.id !== requestId
+      );
+      if (existingAccepted) {
+        throw new Error('This material batch already has an active accepted exchange.');
+      }
     }
 
     const pickupDate = new Date(Date.now() + 86400000 * 2).toISOString();
 
     if (isSupabaseConfigured) {
+      // 1. Try atomic server RPC first (handles concurrency locks and triggers)
+      try {
+        const { data: rpcData, error: rpcError } = await supabase.rpc('accept_exchange_request', {
+          p_request_id: requestId,
+        });
+
+        if (!rpcError && rpcData?.success) {
+          await fetchData();
+          return;
+        }
+      } catch (rpcErr) {
+        console.warn('accept_exchange_request RPC notice, running direct update:', rpcErr);
+      }
+
+      // 2. Direct database update fallback
       const { error } = await supabase
         .from('exchange_requests')
         .update({
           status: 'accepted',
+          provider_id: providerId,
           pickup_date: pickupDate,
           updated_at: new Date().toISOString(),
         })
@@ -994,20 +1039,26 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error(error.message);
       }
 
-      // Mark listing status as pending
-      if (targetReq.listing_id) {
+      // Mark listing status as reserved (remains visible on marketplace, marked reserved)
+      if (listingId) {
         await supabase
           .from('listings')
-          .update({ status: 'pending', updated_at: new Date().toISOString() })
-          .eq('id', targetReq.listing_id);
+          .update({ status: 'reserved', updated_at: new Date().toISOString() })
+          .eq('id', listingId);
       }
 
       // Transactional acceptance notifications are handled authoritatively by database triggers
       await fetchData();
     } else {
       setExchangeRequests((prev) =>
-        prev.map((r) => r.id === requestId ? { ...r, status: 'accepted', pickup_date: pickupDate } : r)
+        prev.map((r) => r.id === requestId ? { ...r, status: 'accepted', provider_id: providerId, pickup_date: pickupDate } : r)
       );
+
+      if (listingId) {
+        setListings((prev) =>
+          prev.map((l) => l.id === listingId ? { ...l, status: 'reserved' } : l)
+        );
+      }
 
       // Offline/demo mode notification
       setNotifications((prev) => [
@@ -1049,12 +1100,26 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error(error.message);
       }
 
+      // If the rejected request was accepted, restore listing to active
+      if (targetReq.status === 'accepted' && targetReq.listing_id) {
+        await supabase
+          .from('listings')
+          .update({ status: 'active', updated_at: new Date().toISOString() })
+          .eq('id', targetReq.listing_id);
+      }
+
       // Transactional decline notifications are handled authoritatively by database triggers
       await fetchData();
     } else {
       setExchangeRequests((prev) =>
         prev.map((r) => (r.id === requestId ? { ...r, status: 'rejected', updated_at: new Date().toISOString() } : r))
       );
+
+      if (targetReq.status === 'accepted' && targetReq.listing_id) {
+        setListings((prev) =>
+          prev.map((l) => (l.id === targetReq.listing_id ? { ...l, status: 'active' } : l))
+        );
+      }
 
       // Offline/demo mode notification
       setNotifications((prev) => [
@@ -1077,8 +1142,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const targetReq = exchangeRequests.find((r) => r.id === requestId);
     if (!targetReq) throw new Error('Exchange request not found');
 
-    if (currentUser && targetReq.requester_id !== currentUser.id) {
-      throw new Error('Permission denied: Only the requester can cancel this request.');
+    const providerId = targetReq.provider_id || targetReq.listing?.user_id;
+    if (currentUser && targetReq.requester_id !== currentUser.id && providerId !== currentUser.id) {
+      throw new Error('Permission denied: Only participants can cancel this request.');
     }
 
     if (isSupabaseConfigured) {
@@ -1091,11 +1157,26 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', requestId);
 
       if (error) throw new Error(error.message);
+
+      // If the cancelled request was accepted, restore listing to active
+      if (targetReq.status === 'accepted' && targetReq.listing_id) {
+        await supabase
+          .from('listings')
+          .update({ status: 'active', updated_at: new Date().toISOString() })
+          .eq('id', targetReq.listing_id);
+      }
+
       await fetchData();
     } else {
       setExchangeRequests((prev) =>
         prev.map((r) => (r.id === requestId ? { ...r, status: 'cancelled', updated_at: new Date().toISOString() } : r))
       );
+
+      if (targetReq.status === 'accepted' && targetReq.listing_id) {
+        setListings((prev) =>
+          prev.map((l) => (l.id === targetReq.listing_id ? { ...l, status: 'active' } : l))
+        );
+      }
     }
   };
 
@@ -1135,6 +1216,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
 
         if (rpcError) {
+          // If RPC rejected due to validation / business rule, return failure immediately without fallback writes
+          if (
+            rpcError.message?.includes('Invalid pickup verification code') ||
+            rpcError.message?.includes('must be in accepted status') ||
+            rpcError.message?.includes('Permission denied') ||
+            rpcError.message?.includes('Authentication required')
+          ) {
+            return { success: false, message: rpcError.message };
+          }
+
           // If the RPC is not yet present on production database, gracefully execute coordinated updates
           console.warn('RPC confirm_exchange_handover unavailable, falling back to coordinated table writes:', rpcError);
           

@@ -12,7 +12,8 @@ import {
   Package,
   MessageSquare,
   MessageCircle,
-  Repeat
+  Repeat,
+  Clock
 } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -235,6 +236,18 @@ export const ListingDetailPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Col (7 cols): Images & Description */}
         <div className="lg:col-span-7 space-y-6">
+          {listing.status === 'reserved' && (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 text-xs text-amber-950 shadow-xs">
+              <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-heading font-bold text-sm text-amber-900">Exchange in Progress</h4>
+                <p className="mt-0.5 text-amber-800 leading-relaxed">
+                  This material batch has an accepted exchange request and is currently reserved for pickup. It remains visible in the marketplace until handover verification is completed.
+                </p>
+              </div>
+            </div>
+          )}
+
           {listing.is_demo && (
             <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3.5 flex items-center gap-2.5 text-xs text-amber-900">
               <span className="font-bold uppercase tracking-wider text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">Sample</span>
@@ -530,28 +543,72 @@ export const ListingDetailPage: React.FC = () => {
                   </div>
                 </div>
               ) : existingRequest ? (
-                <div className="p-4 bg-surface-container rounded-xl border border-outline-variant/60 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-heading font-semibold text-xs text-primary flex items-center gap-1.5">
-                      <Repeat className="w-4 h-4 text-secondary" /> Active Request
-                    </span>
-                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize bg-secondary-container text-primary">
-                      {existingRequest.status}
-                    </span>
-                  </div>
-                  <p className="text-xs text-on-surface-variant leading-relaxed">
-                    You have requested <strong>{existingRequest.requested_quantity} {listing.unit}</strong>. When the owner accepts, you can coordinate pickup on WhatsApp.
-                  </p>
-                  <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                existingRequest.status === 'accepted' ? (
+                  <div className="p-4 bg-gl-sage-light/70 rounded-xl border border-gl-sage text-gl-dark space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-heading font-semibold text-xs text-gl-forest flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-gl-fresh" /> Request Accepted!
+                      </span>
+                      <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase bg-[#25D366] text-white">
+                        Accepted
+                      </span>
+                    </div>
+                    <p className="text-xs text-gl-charcoal leading-relaxed">
+                      Your request has been accepted. Coordinate pickup on WhatsApp and provide your verification code at handover.
+                    </p>
                     <Button
                       type="button"
                       size="sm"
                       variant="primary"
                       onClick={() => navigate('/exchanges')}
+                      className="w-full"
                     >
-                      View Request
+                      Open Exchange &amp; WhatsApp
                     </Button>
                   </div>
+                ) : (
+                  <div className="p-4 bg-surface-container rounded-xl border border-outline-variant/60 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-heading font-semibold text-xs text-primary flex items-center gap-1.5">
+                        <Repeat className="w-4 h-4 text-secondary" /> Active Request
+                      </span>
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize bg-secondary-container text-primary">
+                        {existingRequest.status}
+                      </span>
+                    </div>
+                    <p className="text-xs text-on-surface-variant leading-relaxed">
+                      You have requested <strong>{existingRequest.requested_quantity} {listing.unit}</strong>. When the owner accepts, you can coordinate pickup on WhatsApp.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="primary"
+                        onClick={() => navigate('/exchanges')}
+                      >
+                        View Request
+                      </Button>
+                    </div>
+                  </div>
+                )
+              ) : listing.status === 'reserved' ? (
+                <div className="p-4 bg-amber-50/80 rounded-xl border border-amber-200 text-amber-950 space-y-2.5">
+                  <div className="flex items-center gap-2 font-bold text-xs text-amber-900">
+                    <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>Material Batch Reserved</span>
+                  </div>
+                  <p className="text-xs text-amber-800 leading-relaxed">
+                    This material batch is currently reserved for an in-progress exchange. If the exchange is not completed, it will become available for requests again.
+                  </p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => navigate('/marketplace')}
+                    className="w-full text-xs"
+                  >
+                    Browse Other Available Materials
+                  </Button>
                 </div>
               ) : (
                 <form onSubmit={handleRequestSubmit} className="space-y-3">

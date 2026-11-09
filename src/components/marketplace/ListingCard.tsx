@@ -77,9 +77,14 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, referenceCoor
           loading="lazy"
         />
 
-        {/* Pricing & Sample tag */}
+        {/* Pricing & Status tags */}
         <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
           {getPricingBadge()}
+          {listing.status === 'reserved' && (
+            <span className="text-[10px] uppercase font-bold text-amber-900 bg-amber-50/95 border border-amber-300 px-2 py-0.5 rounded-full shadow-xs backdrop-blur-sm">
+              Exchange in progress
+            </span>
+          )}
           {listing.is_demo && (
             <span className="text-[10px] uppercase font-bold text-amber-900 bg-amber-50/95 border border-amber-200 px-2 py-0.5 rounded-full shadow-xs backdrop-blur-sm">
               Sample Stream
@@ -122,8 +127,17 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, referenceCoor
           </h3>
 
           <div className="flex items-center gap-1.5 mt-1.5 text-[11px]">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-gl-fresh shrink-0" />
-            <span className="font-medium text-gl-fresh">Available</span>
+            {listing.status === 'reserved' ? (
+              <>
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                <span className="font-semibold text-amber-800">Exchange in progress</span>
+              </>
+            ) : (
+              <>
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-gl-fresh shrink-0" />
+                <span className="font-medium text-gl-fresh">Available</span>
+              </>
+            )}
             {listing.condition && (
               <>
                 <span className="text-gl-border">•</span>

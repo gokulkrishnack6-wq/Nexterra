@@ -59,6 +59,12 @@ describe('GreenLoop WhatsApp Exchange & Contact Privacy — PGlite Tests', () =>
     await db.exec(fs.readFileSync(mig6, 'utf8'));
   }
 
+  async function applyLifecycleHardeningMigration() {
+    await applySimplifiedMigration();
+    const mig7 = path.resolve(__dirname, '../supabase/migrations/20261110020000_listing_lifecycle_and_exchange_hardening.sql');
+    await db.exec(fs.readFileSync(mig7, 'utf8'));
+  }
+
   beforeEach(async () => {
     db = new PGlite();
 
@@ -1157,7 +1163,8 @@ describe('GreenLoop WhatsApp Exchange & Contact Privacy — PGlite Tests', () =>
         ('${SIMP_INTRUDER}', 'Intruder Person', 'intruder@greenloop.org', '+91 99999 99999', '+91 99999 99999')
       ON CONFLICT (id) DO UPDATE SET
         phone = EXCLUDED.phone,
-        whatsapp_number = EXCLUDED.whatsapp_number;
+        whatsapp_number = EXCLUDED.whatsapp_number,
+        eco_points_balance = EXCLUDED.eco_points_balance;
     `);
 
     // Step 2: Neither account has to enable a separate setting
@@ -1268,5 +1275,150 @@ describe('GreenLoop WhatsApp Exchange & Contact Privacy — PGlite Tests', () =>
     expect((rejectedQuery.rows[0].res as any).whatsapp).toBeNull();
     expect((rejectedQuery.rows[0].res as any).has_whatsapp_consent).toBe(false);
     expect((rejectedQuery.rows[0].res as any).status).toBe('rejected');
+  });
+
+  it('Verifies Complete Marketplace Listing Lifecycle, WhatsApp Consistency, and Concurrency Protection (Parts 1 & 2)', async () => {
+    await asSuperuser();
+    await applyLifecycleHardeningMigration();
+
+    const LC_OWNER = '12121212-1111-4000-8000-000000000001';
+    const LC_REQ1 = '23232323-2222-4000-8000-000000000002';
+    const LC_REQ2 = '34343434-3333-4000-8000-000000000003';
+    const LC_LISTING = '45454545-4444-4000-8000-000000000001';
+    const LC_EXCHANGE1 = '56565656-5555-4000-8000-000000000001';
+    const LC_EXCHANGE2 = '67676767-6666-4000-8000-000000000002';
+
+    // 1. Seed users with saved numbers in auth and profiles
+    await db.query(`
+      INSERT INTO auth.users (id, email, raw_user_meta_data)
+      VALUES 
+        ('${LC_OWNER}', 'owner@greenloop.org', '{"full_name":"Suresh Gopi","whatsapp_number":"+91 94471 11111"}'::jsonb),
+        ('${LC_REQ1}', 'req1@greenloop.org', '{"full_name":"Manju Warrier","whatsapp_number":"+91 94472 22222"}'::jsonb),
+        ('${LC_REQ2}', 'req2@greenloop.org', '{"full_name":"Mohan Lal","whatsapp_number":"+91 94473 33333"}'::jsonb);
+    `);
+
+    await db.query(`
+      INSERT INTO public.profiles (id, full_name, email, phone, whatsapp_number, eco_points_balance)
+      VALUES 
+        ('${LC_OWNER}', 'Suresh Gopi', 'owner@greenloop.org', '+91 94471 11111', '+91 94471 11111', 100),
+        ('${LC_REQ1}', 'Manju Warrier', 'req1@greenloop.org', '+91 94472 22222', '+91 94472 22222', 50),
+        ('${LC_REQ2}', 'Mohan Lal', 'req2@greenloop.org', '+91 94473 33333', '+91 94473 33333', 50)
+      ON CONFLICT (id) DO UPDATE SET
+        phone = EXCLUDED.phone,
+        whatsapp_number = EXCLUDED.whatsapp_number,
+        eco_points_balance = EXCLUDED.eco_points_balance;
+    `);
+
+    // 2. Stage 1: AVAILABLE -> User 1 creates waste listing (status = 'active')
+    await asUser(LC_OWNER, 'authenticated');
+    await db.query(`
+      INSERT INTO public.listings (id, user_id, category_id, title, quantity, status)
+      VALUES ('${LC_LISTING}', '${LC_OWNER}', '${CATEGORY_ID_1}', 'Dried Coconut Shells', 100, 'active');
+    `);
+
+    // Public marketplace query: Listing is visible to everyone
+    await asUser(LC_REQ1, 'authenticated');
+    const pubListings = await db.query(`SELECT id, title, status FROM public.listings WHERE status IN ('active', 'reserved');`);
+    expect(pubListings.rows.some((l) => l.id === LC_LISTING && l.status === 'active')).toBe(true);
+
+    // 3. Stage 2: REQUESTED -> Requester 1 & Requester 2 submit pending requests
+    await asUser(LC_REQ1, 'authenticated');
+    await db.query(`
+      INSERT INTO public.exchange_requests (id, listing_id, requester_id, provider_id, requested_quantity, completion_code)
+      VALUES ('${LC_EXCHANGE1}', '${LC_LISTING}', '${LC_REQ1}', '${LC_OWNER}', 40, 'GL-5432');
+    `);
+
+    await asUser(LC_REQ2, 'authenticated');
+    await db.query(`
+      INSERT INTO public.exchange_requests (id, listing_id, requester_id, provider_id, requested_quantity, completion_code)
+      VALUES ('${LC_EXCHANGE2}', '${LC_LISTING}', '${LC_REQ2}', '${LC_OWNER}', 30, 'GL-9876');
+    `);
+
+    // Listing remains active and visible while requests are pending
+    const listDuringPending = await db.query(`SELECT status FROM public.listings WHERE id = '${LC_LISTING}';`);
+    expect(listDuringPending.rows[0].status).toBe('active');
+
+    // 4. Stage 3: ACCEPTED -> Owner accepts Requester 1's request via accept_exchange_request
+    await asUser(LC_OWNER, 'authenticated');
+    const acceptRes = await db.query(`
+      SELECT public.accept_exchange_request('${LC_EXCHANGE1}') as res;
+    `);
+    expect((acceptRes.rows[0].res as any).success).toBe(true);
+    expect((acceptRes.rows[0].res as any).listing_status).toBe('reserved');
+
+    // VERIFY: Listing is NOW marked 'reserved' in database
+    const listAfterAccept = await db.query(`SELECT status FROM public.listings WHERE id = '${LC_LISTING}';`);
+    expect(listAfterAccept.rows[0].status).toBe('reserved');
+
+    // CRITICAL: Listing is STILL VISIBLE on marketplace to ALL users (including Requester 2)!
+    await asUser(LC_REQ2, 'authenticated');
+    const marketAfterAccept = await db.query(`
+      SELECT id, title, status FROM public.listings 
+      WHERE status IN ('active', 'reserved', 'pending', 'in_progress');
+    `);
+    const foundOnMarket = marketAfterAccept.rows.find((l) => l.id === LC_LISTING);
+    expect(foundOnMarket).toBeDefined();
+    expect(foundOnMarket?.status).toBe('reserved'); // Visible, marked reserved!
+
+    // 5. CONCURRENCY PROTECTION: Owner cannot concurrently accept Requester 2's request!
+    await asUser(LC_OWNER, 'authenticated');
+    await expect(
+      db.query(`SELECT public.accept_exchange_request('${LC_EXCHANGE2}');`)
+    ).rejects.toThrow(/already has an active accepted exchange/i);
+
+    // 6. WHATSAPP BUTTON CONSISTENCY:
+    // User 1 (Provider) retrieves User 2 (Requester 1) number
+    const provContact = await db.query(`
+      SELECT public.get_exchange_whatsapp_contact('${LC_EXCHANGE1}', '${LC_REQ1}') as res;
+    `);
+    expect((provContact.rows[0].res as any).contact_state).toBe('sharing_enabled');
+    expect((provContact.rows[0].res as any).whatsapp).toBe('919447222222'); // Requester's number
+
+    // User 2 (Requester 1) retrieves User 1 (Provider) number
+    await asUser(LC_REQ1, 'authenticated');
+    const reqContact = await db.query(`
+      SELECT public.get_exchange_whatsapp_contact('${LC_EXCHANGE1}', '${LC_OWNER}') as res;
+    `);
+    expect((reqContact.rows[0].res as any).contact_state).toBe('sharing_enabled');
+    expect((reqContact.rows[0].res as any).whatsapp).toBe('919447111111'); // Provider's number
+
+    // 7. Stage 4: HANDOVER VERIFICATION with WRONG CODE
+    await asUser(LC_OWNER, 'authenticated');
+    // Wrong code attempt: must be strictly rejected
+    await expect(
+      db.query(`SELECT public.confirm_exchange_handover('${LC_EXCHANGE1}', 'GL-WRONG');`)
+    ).rejects.toThrow(/Invalid pickup verification code/i);
+
+    // Verify state is completely preserved after failure (no partial mutations)
+    const reqAfterFail = await db.query(`SELECT status FROM public.exchange_requests WHERE id = '${LC_EXCHANGE1}';`);
+    const listAfterFail = await db.query(`SELECT status FROM public.listings WHERE id = '${LC_LISTING}';`);
+    expect(reqAfterFail.rows[0].status).toBe('accepted');
+    expect(listAfterFail.rows[0].status).toBe('reserved'); // Still reserved! Still in marketplace!
+
+    // 8. Stage 5: HANDOVER VERIFICATION with CORRECT CODE ('GL-5432')
+    const handoverSuccess = await db.query(`
+      SELECT public.confirm_exchange_handover('${LC_EXCHANGE1}', 'GL-5432') as res;
+    `);
+    expect((handoverSuccess.rows[0].res as any).success).toBe(true);
+    expect((handoverSuccess.rows[0].res as any).status).toBe('completed');
+    expect((handoverSuccess.rows[0].res as any).listing_status).toBe('completed');
+
+    // VERIFY: Listing is NOW marked 'completed'
+    const listAfterComplete = await db.query(`SELECT status FROM public.listings WHERE id = '${LC_LISTING}';`);
+    expect(listAfterComplete.rows[0].status).toBe('completed');
+
+    // VERIFY: Completed listing is NOW REMOVED from active marketplace queries!
+    await asUser(LC_REQ2, 'authenticated');
+    const marketAfterComplete = await db.query(`
+      SELECT id, title, status FROM public.listings 
+      WHERE status IN ('active', 'reserved');
+    `);
+    expect(marketAfterComplete.rows.some((l) => l.id === LC_LISTING)).toBe(false);
+
+    // EcoPoints balance updated
+    const ownerPoints = await db.query(`SELECT eco_points_balance FROM public.profiles WHERE id = '${LC_OWNER}';`);
+    expect(ownerPoints.rows[0].eco_points_balance).toBe(150); // 100 + 50 points
+    const reqPoints = await db.query(`SELECT eco_points_balance FROM public.profiles WHERE id = '${LC_REQ1}';`);
+    expect(reqPoints.rows[0].eco_points_balance).toBe(80); // 50 + 30 points
   });
 });

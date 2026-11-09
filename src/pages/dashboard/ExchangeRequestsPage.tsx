@@ -20,14 +20,23 @@ import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/Skeleton';
 import { ProfileSettingsModal } from '../../components/profile/ProfileSettingsModal';
 import { createWhatsAppLink, buildExchangeWhatsAppMessage } from '../../utils/whatsapp';
+import { getExchangePartnerId } from '../../lib/exchangeUtils';
 
 interface WhatsAppActionButtonProps {
   requestId: string;
-  otherParticipantId: string;
+  otherParticipantId: string | null;
   listingTitle: string;
   isAccepted: boolean;
   onOpenSettings?: () => void;
 }
+
+// In-memory contact cache keyed by `${requestId}:${partnerId}` to prevent button disappearing or flickering during re-renders
+const whatsappContactCache = new Map<string, {
+  whatsapp: string | null;
+  has_whatsapp_consent: boolean;
+  contact_state?: 'missing_number' | 'invalid_number' | 'sharing_disabled' | 'sharing_enabled' | 'error';
+  notice?: string;
+}>();
 
 const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
   requestId,
@@ -38,26 +47,34 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
 }) => {
   const { getWhatsAppContact } = useData();
   const { currentUser } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const cacheKey = `${requestId}:${otherParticipantId}`;
+  const cachedData = otherParticipantId ? whatsappContactCache.get(cacheKey) : undefined;
+
+  const [loading, setLoading] = useState(!cachedData && Boolean(isAccepted && otherParticipantId));
   const [retryKey, setRetryKey] = useState(0);
   const [contactData, setContactData] = useState<{
     whatsapp: string | null;
     has_whatsapp_consent: boolean;
     contact_state?: 'missing_number' | 'invalid_number' | 'sharing_disabled' | 'sharing_enabled' | 'error';
     notice?: string;
-  } | null>(null);
+  } | null>(cachedData || null);
 
   const handleRetry = () => setRetryKey((k) => k + 1);
 
   useEffect(() => {
     let isMounted = true;
     if (!isAccepted || !otherParticipantId) {
-      setContactData(null);
       return;
     }
 
     if (currentUser?.id && otherParticipantId === currentUser.id) {
-      setContactData(null);
+      return;
+    }
+
+    const currentCached = whatsappContactCache.get(cacheKey);
+    if (currentCached && currentCached.whatsapp && retryKey === 0) {
+      setContactData(currentCached);
+      setLoading(false);
       return;
     }
 
@@ -65,6 +82,7 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
     getWhatsAppContact(requestId, otherParticipantId)
       .then((data) => {
         if (isMounted) {
+          whatsappContactCache.set(cacheKey, data);
           setContactData(data);
           setLoading(false);
         }
@@ -72,12 +90,15 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
       .catch((err) => {
         if (isMounted) {
           console.warn('Failed to load WhatsApp contact:', err);
-          setContactData({
+          const fallbackError = {
             whatsapp: null,
             has_whatsapp_consent: false,
-            contact_state: 'error',
+            contact_state: 'error' as const,
             notice: 'Unable to connect to WhatsApp contact service',
-          });
+          };
+          if (!whatsappContactCache.has(cacheKey)) {
+            setContactData(fallbackError);
+          }
           setLoading(false);
         }
       });
@@ -85,10 +106,17 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [requestId, otherParticipantId, isAccepted, getWhatsAppContact, retryKey]);
+  }, [requestId, otherParticipantId, isAccepted, getWhatsAppContact, retryKey, cacheKey, currentUser?.id]);
 
   if (!isAccepted) return null;
-  if (currentUser?.id && otherParticipantId === currentUser.id) return null;
+  if (currentUser?.id && otherParticipantId === currentUser.id) {
+    return (
+      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-xs text-outline border border-outline-variant/40">
+        <AlertCircle className="w-3.5 h-3.5 text-outline shrink-0" />
+        <span>Self-messaging unavailable</span>
+      </div>
+    );
+  }
 
   // Show small loading indicator only while retrieving contact information
   if (loading && !contactData) {
@@ -397,15 +425,8 @@ export const ExchangeRequestsPage: React.FC = () => {
             const feedback = statusFeedback[req.id];
             const isLoadingAction = Boolean(actionLoading[req.id]);
 
-            // Robust derivation of provider ID and other participant's ID
-            const providerId = req.provider_id || req.listing?.user_id || listing?.user_id || listings.find((l) => l.id === req.listing_id)?.user_id || '';
-            const isCurrentUserProvider = Boolean(currentUser?.id && providerId && currentUser.id === providerId);
-            const isCurrentUserRequester = Boolean(currentUser?.id && req.requester_id && currentUser.id === req.requester_id);
-
-            // If current user is provider, target is requester. If current user is requester, target is provider.
-            const otherParticipantId = isCurrentUserProvider
-              ? req.requester_id
-              : (isCurrentUserRequester ? providerId : (activeTab === 'incoming' ? req.requester_id : providerId));
+            // Canonical participant resolution: always resolves the other participant reliably
+            const otherParticipantId = getExchangePartnerId(req, currentUserId, listings);
 
             return (
               <Card

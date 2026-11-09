@@ -12,6 +12,7 @@ export type UserRole =
 
 export type ListingStatus = 
   | 'active'
+  | 'reserved'
   | 'pending'
   | 'completed'
   | 'cancelled'
