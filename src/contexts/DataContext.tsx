@@ -62,6 +62,13 @@ interface DataContextType {
   sendMessage: (conversationId: string, text: string) => Promise<ChatMessage>;
   retryMessage: (conversationId: string, tempId: string) => Promise<void>;
   getParticipantContact: (conversationId: string, participantId: string) => Promise<ParticipantContact>;
+  getWhatsAppContact: (exchangeRequestId: string, participantId: string) => Promise<{
+    participant_id: string;
+    whatsapp: string | null;
+    has_whatsapp_consent: boolean;
+    status?: string;
+    notice?: string;
+  }>;
   toggleFavourite: (listingId: string) => void;
   joinChallenge: (challengeId: string) => void;
   markNotificationAsRead: (notificationId: string) => Promise<void>;
@@ -584,16 +591,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         { event: '*', schema: 'public', table: 'notifications' },
         debouncedFetch
       )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'conversations' },
-        debouncedFetch
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'messages' },
-        debouncedFetch
-      )
       .subscribe();
 
     return () => {
@@ -1110,10 +1107,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const listing = listings.find((l) => l.id === req.listing_id);
     if (!listing) return { success: false, message: 'Associated listing not found.' };
 
-    // Validate completion code
+    // Validate completion code (strict match, no bypass codes)
     if (
-      completionCodeInput.trim().toUpperCase() !== req.completion_code.trim().toUpperCase() &&
-      completionCodeInput.trim().toUpperCase() !== 'GL-CONFIRM'
+      completionCodeInput.trim().toUpperCase() !== req.completion_code.trim().toUpperCase()
     ) {
       return { success: false, message: 'Invalid pickup verification code. Please check with the requester.' };
     }
@@ -1513,6 +1509,55 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     []
   );
 
+  const getWhatsAppContact = useCallback(
+    async (exchangeRequestId: string, participantId: string): Promise<{
+      participant_id: string;
+      whatsapp: string | null;
+      has_whatsapp_consent: boolean;
+      status?: string;
+      notice?: string;
+    }> => {
+      if (isSupabaseConfigured) {
+        try {
+          const { data, error } = await supabase.rpc('get_exchange_whatsapp_contact', {
+            p_exchange_request_id: exchangeRequestId,
+            p_participant_id: participantId,
+          });
+
+          if (!error && data) {
+            return data as any;
+          }
+        } catch (err) {
+          console.warn('RPC get_exchange_whatsapp_contact unavailable, checking fallback:', err);
+        }
+      }
+
+      // Offline / fallback response
+      const req = exchangeRequests.find((r) => r.id === exchangeRequestId);
+      if (req && req.status === 'accepted') {
+        const targetUser = req.requester_id === participantId ? req.requester : (req.provider || req.listing?.user);
+        if (targetUser?.share_whatsapp_with_exchange && targetUser.whatsapp_number) {
+          const digits = targetUser.whatsapp_number.replace(/\D/g, '');
+          const cleanWa = digits.length === 10 ? `91${digits}` : digits;
+          return {
+            participant_id: participantId,
+            whatsapp: cleanWa,
+            has_whatsapp_consent: true,
+            status: req.status,
+          };
+        }
+      }
+
+      return {
+        participant_id: participantId,
+        whatsapp: null,
+        has_whatsapp_consent: false,
+        status: req?.status || 'pending',
+      };
+    },
+    [exchangeRequests]
+  );
+
   // Guarantee every exchange request is paired with an accessible conversation
   const allConversations = useMemo(() => {
     const list = [...conversations];
@@ -1646,6 +1691,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       sendMessage,
       retryMessage,
       getParticipantContact,
+      getWhatsAppContact,
       toggleFavourite,
       joinChallenge,
       markNotificationAsRead,
@@ -1686,6 +1732,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       sendMessage,
       retryMessage,
       getParticipantContact,
+      getWhatsAppContact,
       toggleFavourite,
       joinChallenge,
       markNotificationAsRead,

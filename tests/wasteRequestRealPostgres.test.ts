@@ -43,11 +43,13 @@ describe('Real PostgreSQL Migration & Security Integration Tests', () => {
     const mig1 = path.resolve(__dirname, '../supabase/migrations/20261109010000_private_chat_and_contact_sharing.sql');
     const mig2 = path.resolve(__dirname, '../supabase/migrations/20261109020000_chat_security_and_idempotency_hardening.sql');
     const mig3 = path.resolve(__dirname, '../supabase/migrations/20261109030000_production_chat_and_notification_hardening.sql');
+    const mig4 = path.resolve(__dirname, '../supabase/migrations/20261109040000_whatsapp_exchange_communication.sql');
 
     await db.exec(fs.readFileSync(mig0, 'utf8'));
     await db.exec(fs.readFileSync(mig1, 'utf8'));
     await db.exec(fs.readFileSync(mig2, 'utf8'));
     await db.exec(fs.readFileSync(mig3, 'utf8'));
+    await db.exec(fs.readFileSync(mig4, 'utf8'));
   }
 
   beforeEach(async () => {
@@ -394,12 +396,36 @@ describe('Real PostgreSQL Migration & Security Integration Tests', () => {
     await asUser(ACCOUNT_A_PROVIDER, 'authenticated');
     await db.query(`UPDATE public.exchange_requests SET status = 'accepted' WHERE id = $1;`, [reqId]);
 
-    // Test invalid completion code
+    // 1. Hardcoded bypass code GL-CONFIRM must be REJECTED
+    await expect(
+      db.query(`SELECT public.confirm_exchange_handover($1, 'GL-CONFIRM');`, [reqId])
+    ).rejects.toThrow(/Invalid pickup verification code/);
+
+    // 2. Incorrect code must be REJECTED
     await expect(
       db.query(`SELECT public.confirm_exchange_handover($1, 'GL-WRONG');`, [reqId])
     ).rejects.toThrow(/Invalid pickup verification code/);
 
-    // Call with valid completion code (GL-1001)
+    // 3. Requester (Account B) cannot complete exchanges
+    await asUser(ACCOUNT_B_REQUESTER, 'authenticated');
+    await expect(
+      db.query(`SELECT public.confirm_exchange_handover($1, 'GL-1001');`, [reqId])
+    ).rejects.toThrow(/Permission denied: Only the waste provider can confirm handover/);
+
+    // 4. Unrelated authenticated user (Account C) cannot complete exchanges
+    await asUser(ACCOUNT_C_INTRUDER, 'authenticated');
+    await expect(
+      db.query(`SELECT public.confirm_exchange_handover($1, 'GL-1001');`, [reqId])
+    ).rejects.toThrow(/Permission denied: Only the waste provider can confirm handover/);
+
+    // 5. Anonymous caller cannot execute confirm_exchange_handover
+    await asUser(null, 'anon');
+    await expect(
+      db.query(`SELECT public.confirm_exchange_handover($1, 'GL-1001');`, [reqId])
+    ).rejects.toThrow(/permission denied/i);
+
+    // 6. Authorized Provider (Account A) calls with valid completion code (GL-1001) -> SUCCEEDS
+    await asUser(ACCOUNT_A_PROVIDER, 'authenticated');
     const result = await db.query(`SELECT public.confirm_exchange_handover($1, 'GL-1001') as res;`, [reqId]);
     const resData = result.rows[0].res;
     expect(resData.success).toBe(true);

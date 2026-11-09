@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { 
   CheckCircle2, 
   Check, 
-  Plus,
-  Repeat,
-  MessageSquare
+  Plus, 
+  Repeat, 
+  MessageCircle, 
+  Clock, 
+  ShieldAlert, 
+  AlertCircle 
 } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -14,43 +17,126 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/Skeleton';
-import { ChatPanel } from '../../components/chat/ChatPanel';
+import { ProfileSettingsModal } from '../../components/profile/ProfileSettingsModal';
+
+interface WhatsAppActionButtonProps {
+  requestId: string;
+  otherParticipantId: string;
+  listingTitle: string;
+  isAccepted: boolean;
+}
+
+const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
+  requestId,
+  otherParticipantId,
+  listingTitle,
+  isAccepted,
+}) => {
+  const { getWhatsAppContact } = useData();
+  const [loading, setLoading] = useState(false);
+  const [contactData, setContactData] = useState<{
+    whatsapp: string | null;
+    has_whatsapp_consent: boolean;
+    notice?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (!isAccepted || !otherParticipantId) {
+      setContactData(null);
+      return;
+    }
+
+    setLoading(true);
+    getWhatsAppContact(requestId, otherParticipantId)
+      .then((data) => {
+        if (isMounted) {
+          setContactData(data);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          console.warn('Failed to load WhatsApp contact:', err);
+          setContactData({ whatsapp: null, has_whatsapp_consent: false });
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [requestId, otherParticipantId, isAccepted, getWhatsAppContact]);
+
+  if (!isAccepted) return null;
+
+  if (loading) {
+    return (
+      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-outline animate-pulse">
+        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+        <span>Checking WhatsApp availability...</span>
+      </div>
+    );
+  }
+
+  if (!contactData || !contactData.has_whatsapp_consent) {
+    return (
+      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-xs text-on-surface-variant/80 border border-outline-variant/40">
+        <ShieldAlert className="w-3.5 h-3.5 text-outline shrink-0" />
+        <span>WhatsApp contact not shared</span>
+      </div>
+    );
+  }
+
+  if (!contactData.whatsapp) {
+    return (
+      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-xs text-outline border border-outline-variant/40">
+        <AlertCircle className="w-3.5 h-3.5 text-outline shrink-0" />
+        <span>WhatsApp number not configured</span>
+      </div>
+    );
+  }
+
+  // Normalize phone number (digits only, no +, spaces, or dashes)
+  let cleanNumber = contactData.whatsapp.replace(/\D/g, '');
+  if (cleanNumber.length === 10) {
+    cleanNumber = `91${cleanNumber}`;
+  }
+
+  // Contextual pre-filled message (never expose the handover completion code!)
+  const prefilledText = `Hi, I'm contacting you via GreenLoop regarding our accepted exchange for "${listingTitle}".`;
+  const waUrl = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(prefilledText)}`;
+
+  return (
+    <a
+      href={waUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold text-xs sm:text-sm shadow-sm hover:shadow transition-all active:scale-95"
+      title="Open WhatsApp chat with exchange partner"
+    >
+      <MessageCircle className="w-4 h-4 fill-white shrink-0" />
+      <span>Chat on WhatsApp</span>
+    </a>
+  );
+};
 
 export const ExchangeRequestsPage: React.FC = () => {
   const { 
     exchangeRequests, 
     listings, 
-    conversations,
     acceptExchangeRequest, 
     rejectExchangeRequest, 
     cancelExchangeRequest, 
     confirmHandover 
   } = useData();
   const { currentUser } = useAuth();
-  const [searchParams] = useSearchParams();
 
   const [activeTab, setActiveTab] = useState<'incoming' | 'outgoing'>('incoming');
   const [codeInput, setCodeInput] = useState<{ [reqId: string]: string }>({});
   const [statusFeedback, setStatusFeedback] = useState<{ [reqId: string]: { success: boolean; msg: string } }>({});
   const [actionLoading, setActionLoading] = useState<{ [reqId: string]: boolean }>({});
-  const [activeChatConversationId, setActiveChatConversationId] = useState<string | null>(null);
-
-  // Auto-open chat if navigated with ?req= or ?conversation=
-  useEffect(() => {
-    const targetReqId = searchParams.get('req');
-    const targetConvId = searchParams.get('conversation');
-
-    if (targetConvId) {
-      setActiveChatConversationId(targetConvId);
-    } else if (targetReqId) {
-      const matchingConv = conversations.find((c) => c.exchange_request_id === targetReqId);
-      if (matchingConv) {
-        setActiveChatConversationId(matchingConv.id);
-      } else {
-        setActiveChatConversationId(`conv-${targetReqId}`);
-      }
-    }
-  }, [searchParams, conversations]);
+  const [showProfileSettings, setShowProfileSettings] = useState(false);
 
   const currentUserId = currentUser?.id || '';
 
@@ -67,7 +153,7 @@ export const ExchangeRequestsPage: React.FC = () => {
       await acceptExchangeRequest(requestId);
       setStatusFeedback((prev) => ({
         ...prev,
-        [requestId]: { success: true, msg: 'Exchange proposal accepted! Handover verification is ready.' },
+        [requestId]: { success: true, msg: 'Exchange proposal accepted! WhatsApp contact is unlocked for coordination.' },
       }));
     } catch (err: any) {
       setStatusFeedback((prev) => ({
@@ -169,14 +255,14 @@ export const ExchangeRequestsPage: React.FC = () => {
             <Badge variant="brand">Handover Pipeline</Badge>
             <span className="text-outline text-xs">•</span>
             <span className="font-label-sm text-label-sm text-secondary">
-              Dual-Verification Protocol
+              Direct WhatsApp Coordination
             </span>
           </div>
           <h1 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight">
             Exchange Management
           </h1>
           <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
-            Coordinate collection handovers and verify material transactions with secure pickup codes.
+            Coordinate collection handovers via WhatsApp and verify material transactions with secure pickup codes.
           </p>
         </div>
 
@@ -186,6 +272,31 @@ export const ExchangeRequestsPage: React.FC = () => {
           </Button>
         </Link>
       </div>
+
+      {/* Graceful WhatsApp Prompt for Existing Users without WhatsApp Number */}
+      {currentUser && (!currentUser.whatsapp_number || !currentUser.whatsapp_number.trim()) && (
+        <div className="p-4 rounded-2xl bg-secondary-container/50 border border-primary/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-start gap-2.5">
+            <MessageCircle className="w-5 h-5 text-[#25D366] shrink-0 mt-0.5 sm:mt-0" />
+            <div>
+              <h4 className="font-heading font-semibold text-xs sm:text-sm text-primary">
+                Add your WhatsApp number for 1-click exchange pickups
+              </h4>
+              <p className="text-[11px] sm:text-xs text-on-surface-variant mt-0.5">
+                Connecting your WhatsApp allows accepted exchange partners to coordinate collection details with you directly. Your number is never shown publicly.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="primary"
+            onClick={() => setShowProfileSettings(true)}
+            className="shrink-0 text-xs"
+          >
+            Configure WhatsApp
+          </Button>
+        </div>
+      )}
 
       {/* Segmented Tabs */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 border-b border-outline-variant/60 pb-2">
@@ -232,6 +343,11 @@ export const ExchangeRequestsPage: React.FC = () => {
             const listing = req.listing || listings.find((l) => l.id === req.listing_id);
             const feedback = statusFeedback[req.id];
             const isLoadingAction = Boolean(actionLoading[req.id]);
+
+            // Derive the other participant's ID
+            const otherParticipantId = activeTab === 'incoming'
+              ? req.requester_id
+              : (req.provider_id || listing?.user_id || '');
 
             return (
               <Card
@@ -287,60 +403,62 @@ export const ExchangeRequestsPage: React.FC = () => {
 
                 {/* Actions & Verification */}
                 <div className="flex flex-col items-start md:items-end gap-2.5 shrink-0 border-t md:border-t-0 pt-3 md:pt-0">
-                  {/* Chat Action Available for All States */}
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        const matchingConv = conversations.find((c) => c.exchange_request_id === req.id);
-                        setActiveChatConversationId(matchingConv ? matchingConv.id : `conv-${req.id}`);
-                      }}
-                      icon={<MessageSquare className="w-3.5 h-3.5 text-primary" />}
-                    >
-                      {activeTab === 'incoming' ? 'Message Requester' : 'Message Provider'}
-                    </Button>
-                  </div>
-
                   {/* Status: Pending */}
-                  {req.status === 'pending' && activeTab === 'incoming' && (
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        onClick={() => handleAccept(req.id)}
-                        disabled={isLoadingAction}
-                        icon={<Check className="w-3.5 h-3.5" />}
-                      >
-                        {isLoadingAction ? 'Processing...' : 'Accept Proposal'}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="danger"
-                        onClick={() => handleReject(req.id)}
-                        disabled={isLoadingAction}
-                      >
-                        {isLoadingAction ? 'Processing...' : 'Decline'}
-                      </Button>
+                  {req.status === 'pending' && (
+                    <div className="flex flex-col items-start md:items-end gap-2">
+                      <div className="flex items-center gap-1.5 text-xs text-outline italic">
+                        <Clock className="w-3.5 h-3.5 text-outline" />
+                        <span>Waiting for provider acceptance</span>
+                      </div>
+
+                      {activeTab === 'incoming' && (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="primary"
+                            onClick={() => handleAccept(req.id)}
+                            disabled={isLoadingAction}
+                            icon={<Check className="w-3.5 h-3.5" />}
+                          >
+                            {isLoadingAction ? 'Processing...' : 'Accept Proposal'}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            onClick={() => handleReject(req.id)}
+                            disabled={isLoadingAction}
+                          >
+                            {isLoadingAction ? 'Processing...' : 'Decline'}
+                          </Button>
+                        </div>
+                      )}
+
+                      {activeTab === 'outgoing' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleCancel(req.id)}
+                          disabled={isLoadingAction}
+                        >
+                          {isLoadingAction ? 'Cancelling...' : 'Cancel Request'}
+                        </Button>
+                      )}
                     </div>
                   )}
 
-                  {req.status === 'pending' && activeTab === 'outgoing' && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleCancel(req.id)}
-                      disabled={isLoadingAction}
-                    >
-                      {isLoadingAction ? 'Cancelling...' : 'Cancel Request'}
-                    </Button>
-                  )}
-
-                  {/* Status: Accepted (Ready for Handover) */}
+                  {/* Status: Accepted (Ready for Handover & WhatsApp Enabled) */}
                   {req.status === 'accepted' && (
-                    <div className="space-y-2 w-full md:w-auto">
+                    <div className="space-y-3 w-full md:w-auto flex flex-col items-start md:items-end">
+                      {/* WhatsApp Button (Available ONLY on accepted status) */}
+                      <WhatsAppActionButton
+                        requestId={req.id}
+                        otherParticipantId={otherParticipantId}
+                        listingTitle={listing?.title || 'Material Batch'}
+                        isAccepted={true}
+                      />
+
                       {activeTab === 'outgoing' ? (
-                        <div className="p-3 bg-secondary-container rounded-lg text-center space-y-1 border border-primary/20">
+                        <div className="p-3 bg-secondary-container rounded-lg text-center space-y-1 border border-primary/20 w-full sm:w-auto">
                           <span className="font-label-sm text-[10px] text-primary uppercase tracking-wider block font-semibold">
                             Your Handover Pass Code
                           </span>
@@ -348,11 +466,11 @@ export const ExchangeRequestsPage: React.FC = () => {
                             {req.completion_code}
                           </span>
                           <span className="text-[11px] text-on-surface-variant block">
-                            Give this code to the material generator at pickup to verify transfer.
+                            Present this code to the provider at pickup to verify transfer.
                           </span>
                         </div>
                       ) : (
-                        <div className="space-y-2">
+                        <div className="space-y-2 w-full sm:w-auto">
                           <span className="font-label-sm text-[11px] text-outline block">
                             Enter Requester's Pass Code at Handover:
                           </span>
@@ -369,6 +487,7 @@ export const ExchangeRequestsPage: React.FC = () => {
                               size="sm"
                               variant="primary"
                               onClick={() => handleConfirmHandover(req.id)}
+                              disabled={isLoadingAction}
                             >
                               Verify & Confirm
                             </Button>
@@ -378,7 +497,7 @@ export const ExchangeRequestsPage: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Status: Completed */}
+                  {/* Status: Completed (Preserve History, No Contact Disclosure) */}
                   {req.status === 'completed' && (
                     <div className="flex items-center gap-1.5 text-primary font-semibold text-xs bg-secondary-container px-3 py-1 rounded-full">
                       <CheckCircle2 className="w-4 h-4" /> EcoPoints Credited
@@ -391,14 +510,13 @@ export const ExchangeRequestsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Slide-out Private Chat Drawer */}
-      {activeChatConversationId && (
-        <ChatPanel
-          conversationId={activeChatConversationId}
-          isOpen={Boolean(activeChatConversationId)}
-          onClose={() => setActiveChatConversationId(null)}
-        />
-      )}
+      {/* Profile Settings Modal */}
+      <ProfileSettingsModal
+        isOpen={showProfileSettings}
+        onClose={() => setShowProfileSettings(false)}
+      />
     </div>
   );
 };
+
+export default ExchangeRequestsPage;

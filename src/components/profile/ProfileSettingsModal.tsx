@@ -182,10 +182,10 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({ isOp
               />
               <div className="text-xs">
                 <span className="font-semibold text-on-surface block">
-                  Share WhatsApp contact with exchange participants
+                  Allow my WhatsApp number to be shared with accepted exchange partners.
                 </span>
                 <span className="text-on-surface-variant block mt-0.5">
-                  Enables a 1-click WhatsApp messaging button for collection coordination.
+                  Enables a 1-click WhatsApp messaging button for collection coordination after request acceptance. Revoking this immediately prevents future contact retrieval.
                 </span>
               </div>
             </label>

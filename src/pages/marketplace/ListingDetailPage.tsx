@@ -10,7 +10,8 @@ import {
   Sparkles,
   ShieldCheck,
   Package,
-  MessageSquare
+  MessageSquare,
+  Repeat
 } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -188,7 +189,7 @@ export const ListingDetailPage: React.FC = () => {
         message || `Requesting ${requestedQuantity} ${listing.unit} of ${listing.title} for reuse.`
       );
       setCreatedRequestId(newRequestId);
-      setSuccessMessage('Exchange request sent and saved to database. Private chat is open with the generator.');
+      setSuccessMessage('Exchange request submitted. Once accepted by the provider, direct WhatsApp contact will unlock to coordinate collection.');
     } catch (err: any) {
       alert(err.message || 'Failed to submit exchange proposal');
     } finally {
@@ -422,10 +423,9 @@ export const ListingDetailPage: React.FC = () => {
                           type="button"
                           size="sm"
                           variant="secondary"
-                          icon={<MessageSquare className="w-3.5 h-3.5" />}
-                          onClick={() => navigate(`/exchanges?req=${req.id}&chat=open`)}
+                          onClick={() => navigate('/exchanges')}
                         >
-                          Chat
+                          Review in Pipeline
                         </Button>
                       </div>
                     ))}
@@ -488,21 +488,10 @@ export const ListingDetailPage: React.FC = () => {
                     {successMessage}
                   </p>
                   <div className="flex flex-col sm:flex-row gap-2 pt-1">
-                    {createdRequestId && (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="primary"
-                        icon={<MessageSquare className="w-3.5 h-3.5" />}
-                        onClick={() => navigate(`/exchanges?req=${createdRequestId}&chat=open`)}
-                      >
-                        Message Generator
-                      </Button>
-                    )}
                     <Button
                       type="button"
                       size="sm"
-                      variant="secondary"
+                      variant="primary"
                       onClick={() => navigate('/exchanges')}
                     >
                       View in Exchanges
@@ -513,32 +502,23 @@ export const ListingDetailPage: React.FC = () => {
                 <div className="p-4 bg-surface-container rounded-xl border border-outline-variant/60 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="font-heading font-semibold text-xs text-primary flex items-center gap-1.5">
-                      <MessageSquare className="w-4 h-4 text-secondary" /> Active Exchange Request
+                      <Repeat className="w-4 h-4 text-secondary" /> Active Exchange Request
                     </span>
                     <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize bg-secondary-container text-primary">
                       {existingRequest.status}
                     </span>
                   </div>
                   <p className="text-xs text-on-surface-variant leading-relaxed">
-                    You have an active proposal for <strong>{existingRequest.requested_quantity} {listing.unit}</strong>. Two-way private messaging is active to coordinate collection details.
+                    You have an active proposal for <strong>{existingRequest.requested_quantity} {listing.unit}</strong>. Once accepted by the provider, direct WhatsApp communication will be unlocked to coordinate collection.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-2 pt-1">
                     <Button
                       type="button"
                       size="sm"
                       variant="primary"
-                      icon={<MessageSquare className="w-3.5 h-3.5" />}
-                      onClick={() => navigate(`/exchanges?req=${existingRequest.id}&chat=open`)}
-                    >
-                      Open Private Chat
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
                       onClick={() => navigate('/exchanges')}
                     >
-                      View Exchange
+                      Manage Exchange
                     </Button>
                   </div>
                 </div>

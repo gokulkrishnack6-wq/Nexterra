@@ -22,8 +22,24 @@ interface AuthContextType {
   isAuthenticated: boolean;
   updateProfile: (updatedData: Partial<UserProfile>) => Promise<{ success: boolean; error?: string }>;
   uploadAvatar: (file: File) => Promise<{ success: boolean; url?: string; error?: string }>;
-  registerUser: (name: string, email: string, password: string, role: UserRole, district: string) => Promise<RegisterResult>;
-  signUp: (email: string, password: string, name: string, role?: UserRole, district?: string) => Promise<RegisterResult>;
+  registerUser: (
+    name: string,
+    email: string,
+    password: string,
+    role: UserRole,
+    district: string,
+    whatsappNumber?: string,
+    shareWhatsappWithExchange?: boolean
+  ) => Promise<RegisterResult>;
+  signUp: (
+    email: string,
+    password: string,
+    name: string,
+    role?: UserRole,
+    district?: string,
+    whatsappNumber?: string,
+    shareWhatsappWithExchange?: boolean
+  ) => Promise<RegisterResult>;
   loginUser: (email: string, password: string) => Promise<LoginResult>;
   signIn: (email: string, password: string) => Promise<LoginResult>;
   resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
@@ -105,6 +121,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         full_name: metadata.full_name || user.email?.split('@')[0] || 'Member',
         email: user.email || '',
         phone: user.phone || metadata.phone || '',
+        whatsapp_number: metadata.whatsapp_number || '',
+        share_whatsapp_with_exchange: metadata.share_whatsapp_with_exchange ?? false,
         role: (metadata.role as UserRole) || 'individual',
         district: metadata.district || '',
         state: metadata.state || 'Kerala',
@@ -216,7 +234,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     email: string,
     password: string,
     role: UserRole,
-    district: string
+    district: string,
+    whatsappNumber?: string,
+    shareWhatsappWithExchange?: boolean
   ): Promise<RegisterResult> => {
     if (!isSupabaseConfigured || !supabase) {
       return { success: false, error: 'Supabase is not configured. Please check your credentials.' };
@@ -235,6 +255,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             role,
             district,
             state: 'Kerala',
+            whatsapp_number: whatsappNumber ? whatsappNumber.trim() : undefined,
+            share_whatsapp_with_exchange: Boolean(shareWhatsappWithExchange),
           },
           emailRedirectTo: redirectUrl,
         },
@@ -268,6 +290,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role,
           district: district || '',
           state: 'Kerala',
+          whatsapp_number: whatsappNumber ? whatsappNumber.trim() : undefined,
+          share_whatsapp_with_exchange: Boolean(shareWhatsappWithExchange),
           latitude: undefined,
           longitude: undefined,
           eco_points_balance: 50,
@@ -519,8 +543,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     password: string, 
     name: string, 
     role: UserRole = 'individual', 
-    district: string = ''
-  ) => registerUser(name, email, password, role, district);
+    district: string = '',
+    whatsappNumber?: string,
+    shareWhatsappWithExchange?: boolean
+  ) => registerUser(name, email, password, role, district, whatsappNumber, shareWhatsappWithExchange);
 
   const signOut = logout;
 

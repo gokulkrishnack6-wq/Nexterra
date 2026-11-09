@@ -306,12 +306,12 @@ BEGIN
     );
   ELSIF TG_OP = 'UPDATE' AND OLD.status IS DISTINCT FROM NEW.status THEN
     IF NEW.status = 'accepted' THEN
-      -- Event: Request Accepted -> notify requester with pickup verification code
+      -- Event: Request Accepted -> notify requester without completion code disclosure
       INSERT INTO public.notifications (user_id, title, message, type, link, is_read, created_at)
       VALUES (
         NEW.requester_id,
         'Request Accepted',
-        'Your request for "' || COALESCE(v_listing_title, 'material') || '" was accepted! Pickup verification code: ' || NEW.completion_code,
+        'Your request for "' || COALESCE(v_listing_title, 'material') || '" was accepted by the provider! Coordinate pickup details in chat and present your pass code at pickup.',
         'request',
         '/exchanges',
         false,
@@ -398,6 +398,11 @@ DECLARE
   v_points_gen INT := 50;
   v_points_rec INT := 30;
 BEGIN
+  -- 0. Authentication check: Require authenticated caller
+  IF v_caller IS NULL THEN
+    RAISE EXCEPTION 'Authentication required: Caller must be authenticated to confirm handover.';
+  END IF;
+
   -- 1. Fetch exchange request with row lock
   SELECT * INTO v_req
   FROM public.exchange_requests
@@ -412,13 +417,15 @@ BEGIN
     RAISE EXCEPTION 'Exchange request must be in accepted status to confirm handover. Current status: %', v_req.status;
   END IF;
 
-  -- 2. Verify caller is the waste provider
-  IF v_caller IS NOT NULL AND v_caller IS DISTINCT FROM v_req.provider_id THEN
+  -- 2. Authorization check: Verify caller is the actual waste provider
+  IF v_caller IS DISTINCT FROM v_req.provider_id THEN
     RAISE EXCEPTION 'Permission denied: Only the waste provider can confirm handover.';
   END IF;
 
-  -- 3. Verify pickup completion code
-  IF UPPER(TRIM(p_completion_code)) <> UPPER(TRIM(v_req.completion_code)) AND UPPER(TRIM(p_completion_code)) <> 'GL-CONFIRM' THEN
+  -- 3. Verify pickup completion code (strict check, no bypass codes allowed)
+  IF p_completion_code IS NULL 
+     OR v_req.completion_code IS NULL 
+     OR UPPER(TRIM(p_completion_code)) <> UPPER(TRIM(v_req.completion_code)) THEN
     RAISE EXCEPTION 'Invalid pickup verification code.';
   END IF;
 
@@ -497,7 +504,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- 11. Database Privileges & Grants Lockdown (Requirement 10)
--- Table-level and column-level privileges ensure defense-in-depth
+-- Table-level, column-level, and function-level privileges ensure defense-in-depth
 
 -- Notifications: clients cannot insert or delete; only read and update is_read
 REVOKE ALL ON public.notifications FROM PUBLIC, anon;
@@ -509,5 +516,18 @@ REVOKE ALL ON public.exchange_requests FROM PUBLIC, anon;
 GRANT SELECT, INSERT, UPDATE ON public.exchange_requests TO authenticated;
 REVOKE DELETE ON public.exchange_requests FROM authenticated;
 
--- Handover RPC Function Grant
+-- Function Execution Lockdown: Explicitly revoke from PUBLIC and anon on all SECURITY DEFINER functions
+REVOKE ALL ON FUNCTION public.confirm_exchange_handover(UUID, TEXT) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.set_exchange_request_provider() FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.validate_exchange_request_update() FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.sync_listing_status_on_exchange_accept() FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.protect_notification_immutability() FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.notify_exchange_request_event() FROM PUBLIC, anon;
+
+-- Grant execution strictly to authenticated users
 GRANT EXECUTE ON FUNCTION public.confirm_exchange_handover(UUID, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.set_exchange_request_provider() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.validate_exchange_request_update() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.sync_listing_status_on_exchange_accept() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.protect_notification_immutability() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.notify_exchange_request_event() TO authenticated;

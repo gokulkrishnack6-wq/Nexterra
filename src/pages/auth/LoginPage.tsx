@@ -23,7 +23,9 @@ import {
   KeyRound,
   RefreshCw,
   Send,
-  Inbox
+  Inbox,
+  MessageSquare,
+  ShieldCheck
 } from 'lucide-react';
 
 export interface LoginPageProps {
@@ -62,6 +64,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode }) => {
   const [name, setName] = useState('');
   const [role, setRole] = useState<UserRole>('individual');
   const [district, setDistrict] = useState('Ernakulam');
+  const [countryCode, setCountryCode] = useState('+91');
+  const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [shareWhatsappConsent, setShareWhatsappConsent] = useState(true);
 
   // UI States
   const [showPassword, setShowPassword] = useState(false);
@@ -200,6 +205,22 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode }) => {
       return;
     }
 
+    // WhatsApp Number Validation
+    const cleanDigits = whatsappNumber.replace(/\D/g, '');
+    const cleanCode = countryCode.trim().startsWith('+') ? countryCode.trim() : `+${countryCode.trim()}`;
+    const totalDigits = cleanCode.replace(/\D/g, '') + cleanDigits;
+    const fullWaNumber = `${cleanCode} ${cleanDigits}`.trim();
+
+    if (!cleanDigits) {
+      setError('WhatsApp number is required to coordinate exchange collections.');
+      return;
+    }
+
+    if (cleanDigits.length < 7 || totalDigits.length < 10 || totalDigits.length > 15) {
+      setError('Please enter a valid international mobile number (10–15 digits total).');
+      return;
+    }
+
     if (password.length < 6) {
       setError('Password must be at least 6 characters.');
       return;
@@ -213,7 +234,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode }) => {
     setLoading(true);
 
     try {
-      const res = await signUp(email.trim(), password, name.trim(), role, district);
+      const res = await signUp(
+        email.trim(),
+        password,
+        name.trim(),
+        role,
+        district,
+        fullWaNumber,
+        shareWhatsappConsent
+      );
       if (!res.success) {
         setError(res.error || 'Registration failed.');
       } else if (res.requiresEmailConfirmation) {
@@ -534,6 +563,63 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode }) => {
                 leftIcon={<Mail className="w-4 h-4" />}
                 autoComplete="email"
               />
+            </div>
+
+            {/* WhatsApp Number with Country Code */}
+            <div className="space-y-1.5">
+              <label className="block font-label-md text-label-md text-on-surface font-semibold">
+                WhatsApp Number (for Collection Coordination) *
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={countryCode}
+                  onChange={(e) => setCountryCode(e.target.value)}
+                  placeholder="+91"
+                  className="w-20 px-3 py-2.5 bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 font-mono text-center text-sm transition-all"
+                  aria-label="Country Code"
+                />
+                <div className="relative flex-1">
+                  <MessageSquare className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-outline" />
+                  <input
+                    type="tel"
+                    required
+                    value={whatsappNumber}
+                    onChange={(e) => setWhatsappNumber(e.target.value)}
+                    placeholder="98765 43210"
+                    className="w-full pl-10 pr-3.5 py-2.5 bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 font-mono text-sm transition-all"
+                    autoComplete="tel-national"
+                  />
+                </div>
+              </div>
+              <p className="text-[11px] text-outline">
+                Default: India (+91). Enter your mobile number for direct WhatsApp handover coordination.
+              </p>
+            </div>
+
+            {/* Privacy Notice & Consent Toggle */}
+            <div className="p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/60 space-y-2.5">
+              <div className="flex items-start gap-2.5 text-xs text-on-surface-variant">
+                <ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-semibold text-primary block">Zero Public Exposure Guarantee</span>
+                  <span className="block mt-0.5 leading-relaxed">
+                    Your WhatsApp number is strictly confidential and never displayed on public listings or profile searches. It is shared only with verified exchange partners once an exchange is accepted.
+                  </span>
+                </div>
+              </div>
+
+              <label className="flex items-start gap-2.5 cursor-pointer pt-2 border-t border-outline-variant/40">
+                <input
+                  type="checkbox"
+                  checked={shareWhatsappConsent}
+                  onChange={(e) => setShareWhatsappConsent(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 rounded text-primary focus:ring-primary border-outline-variant"
+                />
+                <span className="text-xs text-on-surface">
+                  Allow my WhatsApp number to be shared with accepted exchange partners.
+                </span>
+              </label>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
