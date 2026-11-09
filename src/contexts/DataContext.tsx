@@ -12,7 +12,10 @@ import {
   SustainabilityMetrics,
   PublicWasteBin,
   EnvironmentalReport,
-  ScanPrefillData
+  ScanPrefillData,
+  Conversation,
+  ChatMessage,
+  ParticipantContact
 } from '../types';
 import { INITIAL_CATEGORIES } from '../lib/mockData';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
@@ -33,6 +36,7 @@ interface DataContextType {
   recyclingCentres: RecyclingCentre[];
   notifications: NotificationItem[];
   favourites: string[];
+  conversations: Conversation[];
   metrics: SustainabilityMetrics;
   wasteBins: PublicWasteBin[];
   reports: EnvironmentalReport[];
@@ -53,6 +57,11 @@ interface DataContextType {
   rejectExchangeRequest: (requestId: string) => Promise<void>;
   cancelExchangeRequest: (requestId: string) => Promise<void>;
   confirmHandover: (requestId: string, completionCodeInput: string) => Promise<{ success: boolean; message: string }>;
+  fetchConversations: () => Promise<void>;
+  fetchMessages: (conversationId: string) => Promise<ChatMessage[]>;
+  sendMessage: (conversationId: string, text: string) => Promise<ChatMessage>;
+  retryMessage: (conversationId: string, tempId: string) => Promise<void>;
+  getParticipantContact: (conversationId: string, participantId: string) => Promise<ParticipantContact>;
   toggleFavourite: (listingId: string) => void;
   joinChallenge: (challengeId: string) => void;
   markNotificationAsRead: (notificationId: string) => Promise<void>;
@@ -233,6 +242,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     return [];
   });
+
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [inMemoryMessages, setInMemoryMessages] = useState<Record<string, ChatMessage[]>>(() => {
+    const saved = localStorage.getItem('greenloop_chat_messages');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { /* fallback */ }
+    }
+    return {};
+  });
+
+  useEffect(() => {
+    localStorage.setItem('greenloop_chat_messages', JSON.stringify(inMemoryMessages));
+  }, [inMemoryMessages]);
 
   useEffect(() => {
     localStorage.setItem('greenloop_user_transactions', JSON.stringify(transactions));
@@ -474,8 +496,32 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!notifErr && dbNotifs) {
           setNotifications(dbNotifs as NotificationItem[]);
         }
+
+        // 9. Fetch authenticated user's conversations
+        try {
+          const { data: dbConversations, error: convErr } = await supabase
+            .from('conversations')
+            .select('*, listing:listings(*), exchange_request:exchange_requests(*)')
+            .order('last_message_at', { ascending: false });
+
+          if (!convErr && dbConversations) {
+            const mappedConvs: Conversation[] = dbConversations.map((item: any) => ({
+              ...item,
+              requester: pubProfilesMap.get(item.requester_id) || (currUser && item.requester_id === currUser.id ? currUser : undefined),
+              provider: pubProfilesMap.get(item.provider_id) || (currUser && item.provider_id === currUser.id ? currUser : undefined),
+              listing: item.listing ? {
+                ...item.listing,
+                category: item.listing.category || activeCategories.find((c) => c.id === item.listing.category_id || c.slug === item.listing.category_id),
+              } : undefined,
+            }));
+            setConversations(mappedConvs);
+          }
+        } catch (convErr) {
+          console.warn('Conversations fetch notice:', convErr);
+        }
       } else {
         setNotifications([]);
+        setConversations([]);
       }
     } catch (err: any) {
       console.error('Supabase live fetch exception:', err);
@@ -536,6 +582,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'notifications' },
+        debouncedFetch
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'conversations' },
+        debouncedFetch
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'messages' },
         debouncedFetch
       )
       .subscribe();
@@ -869,6 +925,44 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         },
         ...prev,
       ]);
+    }
+
+    // Immediately register conversation for seamless zero-latency access
+    const convId = `conv-${requestId}`;
+    const newConv: Conversation = {
+      id: convId,
+      exchange_request_id: requestId,
+      listing_id: listingId,
+      requester_id: currentUser.id,
+      provider_id: targetListing.user_id,
+      status: 'active',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      last_message_at: new Date().toISOString(),
+      listing: targetListing,
+      requester: currentUser,
+      provider: targetListing.user,
+    };
+    setConversations((prev) => {
+      if (prev.some((c) => c.exchange_request_id === requestId)) return prev;
+      return [newConv, ...prev];
+    });
+
+    if (message && message.trim()) {
+      const initialMsg: ChatMessage = {
+        id: `msg-${Date.now()}`,
+        conversation_id: convId,
+        sender_id: currentUser.id,
+        message_text: message.trim(),
+        message_type: 'text',
+        created_at: new Date().toISOString(),
+        status: 'sent',
+        sender: currentUser,
+      };
+      setInMemoryMessages((prev) => ({
+        ...prev,
+        [convId]: [initialMsg],
+      }));
     }
 
     return requestId;
@@ -1270,6 +1364,180 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Chat & Communication Methods
+  const fetchConversations = useCallback(async (): Promise<void> => {
+    await fetchData();
+  }, [fetchData]);
+
+  const fetchMessages = useCallback(async (conversationId: string): Promise<ChatMessage[]> => {
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('conversation_id', conversationId)
+          .order('created_at', { ascending: true });
+
+        if (!error && data) {
+          const msgs: ChatMessage[] = data.map((m: any) => ({
+            ...m,
+            status: 'sent',
+          }));
+          setInMemoryMessages((prev) => ({ ...prev, [conversationId]: msgs }));
+          return msgs;
+        }
+      } catch (err) {
+        console.warn('Supabase messages fetch failed, returning in-memory:', err);
+      }
+    }
+    return inMemoryMessages[conversationId] || [];
+  }, [inMemoryMessages]);
+
+  const sendMessage = useCallback(
+    async (conversationId: string, text: string): Promise<ChatMessage> => {
+      if (!currentUserRef.current) throw new Error('Authentication required');
+      if (!text.trim()) throw new Error('Message cannot be empty');
+
+      const tempId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : `00000000-0000-4000-8000-${Date.now().toString(16).padStart(12, '0')}`;
+
+      const newMsg: ChatMessage = {
+        id: tempId,
+        conversation_id: conversationId,
+        sender_id: currentUserRef.current.id,
+        message_text: text.trim(),
+        message_type: 'text',
+        created_at: new Date().toISOString(),
+        status: 'sending',
+        sender: currentUserRef.current,
+      };
+
+      // Optimistically append
+      setInMemoryMessages((prev) => ({
+        ...prev,
+        [conversationId]: [...(prev[conversationId] || []), newMsg],
+      }));
+
+      if (isSupabaseConfigured) {
+        const { data, error } = await supabase
+          .from('messages')
+          .insert([
+            {
+              id: tempId,
+              conversation_id: conversationId,
+              sender_id: currentUserRef.current.id,
+              message_text: text.trim(),
+              message_type: 'text',
+            },
+          ])
+          .select()
+          .single();
+
+        if (error) {
+          setInMemoryMessages((prev) => ({
+            ...prev,
+            [conversationId]: (prev[conversationId] || []).map((m) =>
+              m.id === tempId ? { ...m, status: 'failed' } : m
+            ),
+          }));
+          throw new Error(error.message || 'Failed to send message');
+        }
+
+        const confirmedMsg: ChatMessage = {
+          ...data,
+          status: 'sent',
+          sender: currentUserRef.current,
+        };
+
+        setInMemoryMessages((prev) => ({
+          ...prev,
+          [conversationId]: (prev[conversationId] || []).map((m) =>
+            m.id === tempId ? confirmedMsg : m
+          ),
+        }));
+
+        await fetchData();
+        return confirmedMsg;
+      }
+
+      // Offline fallback
+      newMsg.status = 'sent';
+      setInMemoryMessages((prev) => ({
+        ...prev,
+        [conversationId]: (prev[conversationId] || []).map((m) =>
+          m.id === tempId ? newMsg : m
+        ),
+      }));
+      return newMsg;
+    },
+    [fetchData]
+  );
+
+  const retryMessage = useCallback(
+    async (conversationId: string, tempId: string): Promise<void> => {
+      const msgs = inMemoryMessages[conversationId] || [];
+      const target = msgs.find((m) => m.id === tempId);
+      if (!target) return;
+
+      await sendMessage(conversationId, target.message_text);
+    },
+    [inMemoryMessages, sendMessage]
+  );
+
+  const getParticipantContact = useCallback(
+    async (conversationId: string, participantId: string): Promise<ParticipantContact> => {
+      if (isSupabaseConfigured) {
+        try {
+          const { data, error } = await supabase.rpc('get_exchange_participant_contact', {
+            p_conversation_id: conversationId,
+            p_participant_id: participantId,
+          });
+
+          if (!error && data) {
+            return data as ParticipantContact;
+          }
+        } catch (err) {
+          console.warn('RPC get_exchange_participant_contact unavailable:', err);
+        }
+      }
+
+      return {
+        participant_id: participantId,
+        phone: null,
+        whatsapp: null,
+        has_phone_consent: false,
+        has_whatsapp_consent: false,
+      };
+    },
+    []
+  );
+
+  // Guarantee every exchange request is paired with an accessible conversation
+  const allConversations = useMemo(() => {
+    const list = [...conversations];
+    exchangeRequests.forEach((req) => {
+      if (!list.some((c) => c.exchange_request_id === req.id)) {
+        list.push({
+          id: `conv-${req.id}`,
+          exchange_request_id: req.id,
+          listing_id: req.listing_id,
+          requester_id: req.requester_id,
+          provider_id: req.provider_id || req.listing?.user_id || '',
+          status: ['rejected', 'cancelled', 'completed'].includes(req.status) ? 'read_only' : 'active',
+          created_at: req.created_at,
+          updated_at: req.updated_at || req.created_at,
+          last_message_at: req.updated_at || req.created_at,
+          listing: req.listing,
+          requester: req.requester,
+          provider: req.provider,
+          exchange_request: req,
+        });
+      }
+    });
+    return list;
+  }, [conversations, exchangeRequests]);
+
   // Action: Submit Environmental Report (Honest, clean, no fake municipal squad claims)
   const submitReport = (reportData: Omit<EnvironmentalReport, 'id' | 'ticket_number' | 'created_at' | 'updated_at' | 'status'>) => {
     const randomTicket = `GL-REP-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -1356,6 +1624,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       recyclingCentres,
       notifications,
       favourites,
+      conversations: allConversations,
       metrics,
       wasteBins,
       reports,
@@ -1372,6 +1641,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       rejectExchangeRequest,
       cancelExchangeRequest,
       confirmHandover,
+      fetchConversations,
+      fetchMessages,
+      sendMessage,
+      retryMessage,
+      getParticipantContact,
       toggleFavourite,
       joinChallenge,
       markNotificationAsRead,
@@ -1391,6 +1665,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       recyclingCentres,
       notifications,
       favourites,
+      allConversations,
       metrics,
       wasteBins,
       reports,
@@ -1406,6 +1681,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       rejectExchangeRequest,
       cancelExchangeRequest,
       confirmHandover,
+      fetchConversations,
+      fetchMessages,
+      sendMessage,
+      retryMessage,
+      getParticipantContact,
       toggleFavourite,
       joinChallenge,
       markNotificationAsRead,

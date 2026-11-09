@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { 
   CheckCircle2, 
   Check, 
   Plus,
-  Repeat
+  Repeat,
+  MessageSquare
 } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -13,22 +14,43 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/Skeleton';
+import { ChatPanel } from '../../components/chat/ChatPanel';
 
 export const ExchangeRequestsPage: React.FC = () => {
   const { 
     exchangeRequests, 
     listings, 
+    conversations,
     acceptExchangeRequest, 
     rejectExchangeRequest, 
     cancelExchangeRequest, 
     confirmHandover 
   } = useData();
   const { currentUser } = useAuth();
+  const [searchParams] = useSearchParams();
 
   const [activeTab, setActiveTab] = useState<'incoming' | 'outgoing'>('incoming');
   const [codeInput, setCodeInput] = useState<{ [reqId: string]: string }>({});
   const [statusFeedback, setStatusFeedback] = useState<{ [reqId: string]: { success: boolean; msg: string } }>({});
   const [actionLoading, setActionLoading] = useState<{ [reqId: string]: boolean }>({});
+  const [activeChatConversationId, setActiveChatConversationId] = useState<string | null>(null);
+
+  // Auto-open chat if navigated with ?req= or ?conversation=
+  useEffect(() => {
+    const targetReqId = searchParams.get('req');
+    const targetConvId = searchParams.get('conversation');
+
+    if (targetConvId) {
+      setActiveChatConversationId(targetConvId);
+    } else if (targetReqId) {
+      const matchingConv = conversations.find((c) => c.exchange_request_id === targetReqId);
+      if (matchingConv) {
+        setActiveChatConversationId(matchingConv.id);
+      } else {
+        setActiveChatConversationId(`conv-${targetReqId}`);
+      }
+    }
+  }, [searchParams, conversations]);
 
   const currentUserId = currentUser?.id || '';
 
@@ -265,6 +287,21 @@ export const ExchangeRequestsPage: React.FC = () => {
 
                 {/* Actions & Verification */}
                 <div className="flex flex-col items-start md:items-end gap-2.5 shrink-0 border-t md:border-t-0 pt-3 md:pt-0">
+                  {/* Chat Action Available for All States */}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const matchingConv = conversations.find((c) => c.exchange_request_id === req.id);
+                        setActiveChatConversationId(matchingConv ? matchingConv.id : `conv-${req.id}`);
+                      }}
+                      icon={<MessageSquare className="w-3.5 h-3.5 text-primary" />}
+                    >
+                      {activeTab === 'incoming' ? 'Message Requester' : 'Message Provider'}
+                    </Button>
+                  </div>
+
                   {/* Status: Pending */}
                   {req.status === 'pending' && activeTab === 'incoming' && (
                     <div className="flex items-center gap-2">
@@ -353,6 +390,15 @@ export const ExchangeRequestsPage: React.FC = () => {
           })
         )}
       </div>
+
+      {/* Slide-out Private Chat Drawer */}
+      {activeChatConversationId && (
+        <ChatPanel
+          conversationId={activeChatConversationId}
+          isOpen={Boolean(activeChatConversationId)}
+          onClose={() => setActiveChatConversationId(null)}
+        />
+      )}
     </div>
   );
 };

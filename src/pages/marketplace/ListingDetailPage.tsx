@@ -9,7 +9,8 @@ import {
   Heart,
   Sparkles,
   ShieldCheck,
-  Package
+  Package,
+  MessageSquare
 } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -25,7 +26,17 @@ import { isAiGeneratedImage } from '../../services/imageGeneration';
 export const ListingDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { listings, allMarketplaceListings, createExchangeRequest, favourites, toggleFavourite, categories, deleteListing, updateListing, isLoading } = useData();
+  const { 
+    listings, 
+    allMarketplaceListings, 
+    exchangeRequests,
+    createExchangeRequest, 
+    favourites, 
+    toggleFavourite, 
+    categories, 
+    deleteListing, 
+    isLoading 
+  } = useData();
   const { currentUser } = useAuth();
   const { coords } = useGeolocation();
 
@@ -34,6 +45,7 @@ export const ListingDetailPage: React.FC = () => {
 
   const [directListing, setDirectListing] = useState<WasteListing | null>(null);
   const [directLoading, setDirectLoading] = useState(false);
+  const [createdRequestId, setCreatedRequestId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!inMemoryListing && id) {
@@ -129,6 +141,14 @@ export const ListingDetailPage: React.FC = () => {
   const isOwner = currentUser && listing.user_id === currentUser.id;
   const isFav = favourites.includes(listing.id);
 
+  const existingRequest = currentUser && listing
+    ? exchangeRequests.find((r) => r.listing_id === listing.id && r.requester_id === currentUser.id && r.status !== 'cancelled')
+    : null;
+
+  const incomingRequests = isOwner && listing
+    ? exchangeRequests.filter((r) => r.listing_id === listing.id)
+    : [];
+
   const distanceKm = coords && listing.latitude && listing.longitude
     ? calculateDistanceKm(coords.latitude, coords.longitude, listing.latitude, listing.longitude)
     : null;
@@ -161,16 +181,14 @@ export const ListingDetailPage: React.FC = () => {
         return;
       }
 
-      await createExchangeRequest(
+      const newRequestId = await createExchangeRequest(
         listing.id,
         requestedQuantity,
         proposedAction,
         message || `Requesting ${requestedQuantity} ${listing.unit} of ${listing.title} for reuse.`
       );
-      setSuccessMessage('Exchange request sent and saved to database. The material generator will review your proposal.');
-      setTimeout(() => {
-        navigate('/exchanges');
-      }, 1500);
+      setCreatedRequestId(newRequestId);
+      setSuccessMessage('Exchange request sent and saved to database. Private chat is open with the generator.');
     } catch (err: any) {
       alert(err.message || 'Failed to submit exchange proposal');
     } finally {
@@ -365,7 +383,7 @@ export const ListingDetailPage: React.FC = () => {
 
           {/* Request Form or Owner Controls */}
           {isOwner ? (
-            <Card variant="flat" className="space-y-3 p-4 border border-outline-variant/60">
+            <Card variant="flat" className="space-y-4 p-4 border border-outline-variant/60">
               <div className="flex items-center justify-between">
                 <span className="font-label-sm text-label-sm text-outline uppercase tracking-wider font-semibold">
                   Your Published Listing
@@ -375,15 +393,53 @@ export const ListingDetailPage: React.FC = () => {
                 </span>
               </div>
               <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
-                You created this material listing. Incoming exchange proposals from nearby collectors will appear in your exchanges pipeline.
+                You created this material listing. Incoming exchange proposals from nearby collectors will appear here and in your exchanges pipeline.
               </p>
+
+              {/* Incoming proposals quick access */}
+              {incomingRequests.length > 0 && (
+                <div className="p-3 bg-surface-container rounded-lg space-y-2 border border-outline-variant/50">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-primary">
+                      {incomingRequests.length} Incoming Proposal{incomingRequests.length > 1 ? 's' : ''}
+                    </span>
+                    <span className="text-[10px] text-on-surface-variant font-medium">
+                      Direct Chat Active
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {incomingRequests.slice(0, 3).map((req) => (
+                      <div key={req.id} className="flex items-center justify-between gap-2 text-xs bg-surface-container-lowest p-2 rounded-lg border border-outline-variant/40">
+                        <div className="min-w-0 pr-2">
+                          <p className="font-semibold text-on-surface truncate">
+                            {req.requester?.full_name || 'Collector'}
+                          </p>
+                          <p className="text-[10px] text-on-surface-variant">
+                            {req.requested_quantity} {listing.unit} • <span className="capitalize font-medium">{req.status}</span>
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          icon={<MessageSquare className="w-3.5 h-3.5" />}
+                          onClick={() => navigate(`/exchanges?req=${req.id}&chat=open`)}
+                        >
+                          Chat
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="flex flex-col gap-2 pt-1">
                 <Button
                   variant="secondary"
                   fullWidth
                   onClick={() => navigate('/exchanges')}
                 >
-                  View My Exchanges
+                  View All Exchanges
                 </Button>
                 <button
                   type="button"
@@ -423,11 +479,68 @@ export const ListingDetailPage: React.FC = () => {
               )}
 
               {successMessage ? (
-                <div className="p-4 bg-secondary-container text-primary rounded-lg text-body-sm font-medium border border-primary/20 space-y-1">
-                  <div className="flex items-center gap-1.5 font-bold">
-                    <CheckCircle2 className="w-4 h-4" /> Request Submitted
+                <div className="p-4 bg-secondary-container text-primary rounded-xl text-body-sm font-medium border border-primary/20 space-y-3">
+                  <div className="flex items-center gap-2 font-bold text-sm">
+                    <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                    <span>Proposal Sent Successfully</span>
                   </div>
-                  <p>{successMessage}</p>
+                  <p className="text-xs text-on-surface-variant leading-relaxed">
+                    {successMessage}
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                    {createdRequestId && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="primary"
+                        icon={<MessageSquare className="w-3.5 h-3.5" />}
+                        onClick={() => navigate(`/exchanges?req=${createdRequestId}&chat=open`)}
+                      >
+                        Message Generator
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => navigate('/exchanges')}
+                    >
+                      View in Exchanges
+                    </Button>
+                  </div>
+                </div>
+              ) : existingRequest ? (
+                <div className="p-4 bg-surface-container rounded-xl border border-outline-variant/60 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-heading font-semibold text-xs text-primary flex items-center gap-1.5">
+                      <MessageSquare className="w-4 h-4 text-secondary" /> Active Exchange Request
+                    </span>
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize bg-secondary-container text-primary">
+                      {existingRequest.status}
+                    </span>
+                  </div>
+                  <p className="text-xs text-on-surface-variant leading-relaxed">
+                    You have an active proposal for <strong>{existingRequest.requested_quantity} {listing.unit}</strong>. Two-way private messaging is active to coordinate collection details.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="primary"
+                      icon={<MessageSquare className="w-3.5 h-3.5" />}
+                      onClick={() => navigate(`/exchanges?req=${existingRequest.id}&chat=open`)}
+                    >
+                      Open Private Chat
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => navigate('/exchanges')}
+                    >
+                      View Exchange
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <form onSubmit={handleRequestSubmit} className="space-y-3">

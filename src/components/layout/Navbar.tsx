@@ -4,15 +4,18 @@ import {
   Plus, 
   Bell, 
   Menu, 
-  X,
-  LogIn,
-  LogOut,
-  User
+  X, 
+  LogIn, 
+  LogOut, 
+  User,
+  Settings,
+  ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
 import { useOutsideClick } from '../../hooks/useOutsideClick';
 import { Button } from '../ui/Button';
+import { ProfileSettingsModal } from '../profile/ProfileSettingsModal';
 
 export const Navbar: React.FC = () => {
   const { currentUser, signOut } = useAuth();
@@ -22,6 +25,7 @@ export const Navbar: React.FC = () => {
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
+  const [profileSettingsOpen, setProfileSettingsOpen] = useState(false);
 
   const closeNotifs = useCallback(() => setNotifDropdownOpen(false), []);
   const closeMobile = useCallback(() => setMobileMenuOpen(false), []);
@@ -186,8 +190,8 @@ export const Navbar: React.FC = () => {
 
             {/* User Profile / Auth Button */}
             {currentUser ? (
-              <div className="flex items-center gap-2 pl-2 border-l border-outline-variant/60">
-                <Link to="/dashboard" className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 pl-2 border-l border-outline-variant/60">
+                <Link to="/dashboard" className="flex items-center gap-2 pr-1">
                   {currentUser.avatar_url ? (
                     <img
                       src={currentUser.avatar_url}
@@ -203,9 +207,18 @@ export const Navbar: React.FC = () => {
                     {currentUser.full_name.split(' ')[0]}
                   </span>
                 </Link>
+
+                <button
+                  onClick={() => setProfileSettingsOpen(true)}
+                  className="p-1.5 text-on-surface-variant hover:text-primary hover:bg-surface-container rounded-lg transition-colors"
+                  title="Contact & Chat Privacy Settings"
+                >
+                  <Settings className="w-4 h-4" />
+                </button>
+
                 <button
                   onClick={() => signOut()}
-                  className="p-1 text-outline hover:text-error transition-colors"
+                  className="p-1.5 text-outline hover:text-error hover:bg-surface-container rounded-lg transition-colors"
                   title="Sign Out"
                 >
                   <LogOut className="w-3.5 h-3.5" />
@@ -248,6 +261,18 @@ export const Navbar: React.FC = () => {
                 {link.name}
               </Link>
             ))}
+            {currentUser && (
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setProfileSettingsOpen(true);
+                }}
+                className="w-full text-left px-3 py-2 text-xs font-medium text-on-surface hover:bg-surface-container rounded-lg flex items-center gap-2"
+              >
+                <Settings className="w-4 h-4 text-secondary" />
+                <span>Contact & Chat Privacy</span>
+              </button>
+            )}
             <div className="pt-2 border-t border-outline-variant/40 flex items-center justify-between px-3">
               <Link
                 to="/marketplace/new"
@@ -280,6 +305,14 @@ export const Navbar: React.FC = () => {
         )}
 
       </div>
+
+      {/* Global Profile & Contact Sharing Modal */}
+      {currentUser && (
+        <ProfileSettingsModal
+          isOpen={profileSettingsOpen}
+          onClose={() => setProfileSettingsOpen(false)}
+        />
+      )}
     </header>
   );
 };

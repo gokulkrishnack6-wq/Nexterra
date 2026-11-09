@@ -51,6 +51,9 @@ export interface UserProfile {
   full_name: string;
   email: string;
   phone?: string;
+  whatsapp_number?: string;
+  share_phone_with_exchange?: boolean;
+  share_whatsapp_with_exchange?: boolean;
   role: UserRole;
   organization_name?: string;
   address?: string;
@@ -335,4 +338,45 @@ export interface SustainabilityMetrics {
     co2e_saved_kg: number;
   }[];
 }
+
+export interface Conversation {
+  id: string;
+  exchange_request_id: string;
+  listing_id: string;
+  requester_id: string;
+  provider_id: string;
+  status: 'active' | 'read_only' | 'archived';
+  created_at: string;
+  updated_at: string;
+  last_message_at: string;
+  listing?: WasteListing;
+  requester?: UserProfile;
+  provider?: UserProfile;
+  exchange_request?: ExchangeRequest;
+  last_message?: ChatMessage;
+  unread_count?: number;
+}
+
+export interface ChatMessage {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  message_text: string;
+  message_type: 'text' | 'image' | 'system';
+  created_at: string;
+  updated_at?: string;
+  is_edited?: boolean;
+  deleted_at?: string | null;
+  status?: 'sending' | 'sent' | 'failed';
+  sender?: UserProfile;
+}
+
+export interface ParticipantContact {
+  participant_id: string;
+  phone: string | null;
+  whatsapp: string | null;
+  has_phone_consent: boolean;
+  has_whatsapp_consent: boolean;
+}
+
 
