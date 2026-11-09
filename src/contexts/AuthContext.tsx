@@ -104,14 +104,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const metaPhone = metadata.phone ? String(metadata.phone).trim() : null;
         const resolvedWa = dbPhone || dbWa || metaWa || metaPhone || undefined;
 
-        // Consent resolution: check database column first, fall back to metadata, default true if number exists
+        // Consent resolution: check database column first, fall back to metadata, default false (strict opt-in privacy)
         const dbShareWa = profileData.share_whatsapp_with_exchange;
         const metaShareWa = metadata.share_whatsapp_with_exchange;
         const resolvedShareWa = typeof dbShareWa === 'boolean'
           ? dbShareWa
           : typeof metaShareWa === 'boolean'
             ? metaShareWa
-            : Boolean(resolvedWa);
+            : false;
 
         const updatedProfile: UserProfile = {
           ...(profileData as UserProfile),

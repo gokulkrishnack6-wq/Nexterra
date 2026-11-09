@@ -1637,7 +1637,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return {
           participant_id: participantId,
           whatsapp: null,
-          has_whatsapp_consent: Boolean(targetConsent ?? true),
+          has_whatsapp_consent: false,
           contact_state: 'missing_number',
           status: req?.status || 'accepted',
           notice: 'Partner has not added a WhatsApp number yet.',
@@ -1652,21 +1652,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return {
           participant_id: participantId,
           whatsapp: null,
-          has_whatsapp_consent: Boolean(targetConsent ?? true),
+          has_whatsapp_consent: false,
           contact_state: 'invalid_number',
           status: req?.status || 'accepted',
           notice: 'Partner WhatsApp contact number format is invalid.',
         };
       }
 
-      if (targetConsent === false) {
+      // Strict opt-in privacy gate: sharing is ONLY enabled when consent is explicitly TRUE
+      if (targetConsent !== true) {
         return {
           participant_id: participantId,
           whatsapp: null,
           has_whatsapp_consent: false,
           contact_state: 'sharing_disabled',
           status: req?.status || 'accepted',
-          notice: 'Partner has opted not to share their WhatsApp contact.',
+          notice: 'Partner has not shared WhatsApp contact.',
         };
       }
 

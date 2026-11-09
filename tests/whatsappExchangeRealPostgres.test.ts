@@ -643,14 +643,39 @@ describe('GreenLoop WhatsApp Exchange & Contact Privacy — PGlite Tests', () =>
     `);
     await db.query(`ALTER TABLE public.exchange_requests ENABLE TRIGGER trg_set_exchange_request_provider;`);
 
-    // 1. Account A (Provider) queries Account B (Requester) contact
+    // 1. Account A queries Account B while B has unknown/unset consent (NULL)
+    // Under strict opt-in privacy, sharing must be DISABLED by default
     await asUser(USER_DEV_A, 'authenticated');
-    const resAtoB = await db.query(
+    const resAtoBDisabled = await db.query(
       `SELECT public.get_exchange_whatsapp_contact($1, $2) as res;`,
       [REQ_DEV, USER_DEV_B]
     );
 
-    expect(resAtoB.rows[0].res).toEqual({
+    expect(resAtoBDisabled.rows[0].res).toEqual({
+      participant_id: USER_DEV_B,
+      whatsapp: null,
+      has_whatsapp_consent: false,
+      contact_state: 'sharing_disabled',
+      notice: 'WhatsApp contact not shared by partner',
+      status: 'accepted',
+    });
+
+    // Verify self-healing: exchange_requests.provider_id was automatically populated!
+    const healedReq = await db.query(`SELECT provider_id FROM public.exchange_requests WHERE id = $1;`, [REQ_DEV]);
+    expect(healedReq.rows[0].provider_id).toBe(USER_DEV_A);
+
+    // Now User B explicitly opts in
+    await asSuperuser();
+    await db.query(`UPDATE public.profiles SET share_whatsapp_with_exchange = true WHERE id = '${USER_DEV_B}';`);
+
+    // Now User A queries User B: sharing is ENABLED
+    await asUser(USER_DEV_A, 'authenticated');
+    const resAtoBEnabled = await db.query(
+      `SELECT public.get_exchange_whatsapp_contact($1, $2) as res;`,
+      [REQ_DEV, USER_DEV_B]
+    );
+
+    expect(resAtoBEnabled.rows[0].res).toEqual({
       participant_id: USER_DEV_B,
       whatsapp: '919876543210',
       has_whatsapp_consent: true,
@@ -659,18 +684,27 @@ describe('GreenLoop WhatsApp Exchange & Contact Privacy — PGlite Tests', () =>
       status: 'accepted',
     });
 
-    // Verify self-healing: exchange_requests.provider_id was automatically populated!
-    const healedReq = await db.query(`SELECT provider_id FROM public.exchange_requests WHERE id = $1;`, [REQ_DEV]);
-    expect(healedReq.rows[0].provider_id).toBe(USER_DEV_A);
-
-    // 2. Account B (Requester) queries Account A (Provider) contact
+    // 2. Account B queries Account A (User A has NOT opted in yet -> sharing disabled)
     await asUser(USER_DEV_B, 'authenticated');
-    const resBtoA = await db.query(
+    const resBtoADisabled = await db.query(
+      `SELECT public.get_exchange_whatsapp_contact($1, $2) as res;`,
+      [REQ_DEV, USER_DEV_A]
+    );
+    expect(resBtoADisabled.rows[0].res.contact_state).toBe('sharing_disabled');
+    expect(resBtoADisabled.rows[0].res.whatsapp).toBeNull();
+
+    // Now User A explicitly opts in
+    await asSuperuser();
+    await db.query(`UPDATE public.profiles SET share_whatsapp_with_exchange = true WHERE id = '${USER_DEV_A}';`);
+
+    // Now User B queries User A: sharing is ENABLED
+    await asUser(USER_DEV_B, 'authenticated');
+    const resBtoAEnabled = await db.query(
       `SELECT public.get_exchange_whatsapp_contact($1, $2) as res;`,
       [REQ_DEV, USER_DEV_A]
     );
 
-    expect(resBtoA.rows[0].res).toEqual({
+    expect(resBtoAEnabled.rows[0].res).toEqual({
       participant_id: USER_DEV_A,
       whatsapp: '919497854095', // Automatically normalized 10 digits with India prefix 91!
       has_whatsapp_consent: true,
@@ -879,5 +913,33 @@ describe('GreenLoop WhatsApp Exchange & Contact Privacy — PGlite Tests', () =>
     expect(signupProfile.rows[0].phone).toBe('+91 94978 12345');
     expect(signupProfile.rows[0].whatsapp_number).toBe('+91 94978 12345');
     expect(signupProfile.rows[0].share_whatsapp_with_exchange).toBe(false); // Explicit opt-out at signup preserved!
+
+    // Verify signup with number entry WITHOUT consent -> defaults to FALSE (opt-in privacy by default)
+    const NEW_SIGNUP_NO_CONSENT = '55555555-8888-4000-8000-000000000008';
+    await db.query(`
+      INSERT INTO auth.users (id, email, raw_user_meta_data)
+      VALUES (
+        '${NEW_SIGNUP_NO_CONSENT}',
+        'noconsent@greenloop.org',
+        '{"full_name":"Rahul Varma","district":"Ernakulam","whatsapp_number":"+91 94978 99999"}'::jsonb
+      );
+    `);
+    const noConsentProfile = await db.query(`SELECT * FROM public.profiles WHERE id = '${NEW_SIGNUP_NO_CONSENT}';`);
+    expect(noConsentProfile.rows[0].whatsapp_number).toBe('+91 94978 99999');
+    expect(noConsentProfile.rows[0].share_whatsapp_with_exchange).toBe(false); // Number entry without consent does NOT enable sharing!
+
+    // Verify signup with explicit opt-in -> TRUE
+    const NEW_SIGNUP_OPT_IN = '55555555-7777-4000-8000-000000000007';
+    await db.query(`
+      INSERT INTO auth.users (id, email, raw_user_meta_data)
+      VALUES (
+        '${NEW_SIGNUP_OPT_IN}',
+        'optin@greenloop.org',
+        '{"full_name":"Meera Nair","district":"Thrissur","whatsapp_number":"+91 94978 88888","share_whatsapp_with_exchange":true}'::jsonb
+      );
+    `);
+    const optInProfile = await db.query(`SELECT * FROM public.profiles WHERE id = '${NEW_SIGNUP_OPT_IN}';`);
+    expect(optInProfile.rows[0].whatsapp_number).toBe('+91 94978 88888');
+    expect(optInProfile.rows[0].share_whatsapp_with_exchange).toBe(true);
   });
 });
