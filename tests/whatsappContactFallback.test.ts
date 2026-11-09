@@ -1,12 +1,11 @@
 import { describe, it, expect } from 'vitest';
 
-describe('GreenLoop WhatsApp Contact Fallback & Strict Opt-In Privacy Tests', () => {
+describe('GreenLoop WhatsApp Contact Fallback & Simplified Access Tests', () => {
   interface MockProfile {
     id: string;
     full_name: string;
     phone?: string | null;
     whatsapp_number?: string | null;
-    share_whatsapp_with_exchange?: boolean | null;
   }
 
   interface MockExchangeRequest {
@@ -18,7 +17,7 @@ describe('GreenLoop WhatsApp Contact Fallback & Strict Opt-In Privacy Tests', ()
     listing?: { title: string; user_id: string };
   }
 
-  // Pure function simulating getWhatsAppContact resolution logic with strict opt-in
+  // Pure function simulating getWhatsAppContact simplified resolution logic
   function resolveContact(
     exchangeRequestId: string,
     participantId: string,
@@ -83,7 +82,6 @@ describe('GreenLoop WhatsApp Contact Fallback & Strict Opt-In Privacy Tests', ()
     // Direct Query Fallback to profiles table
     const partnerProfile = profilesDb[participantId];
     let rawWa: string | null = partnerProfile?.phone || partnerProfile?.whatsapp_number || null;
-    let targetConsent = partnerProfile?.share_whatsapp_with_exchange;
 
     if (!rawWa) {
       return {
@@ -110,19 +108,7 @@ describe('GreenLoop WhatsApp Contact Fallback & Strict Opt-In Privacy Tests', ()
       };
     }
 
-    // Strict Opt-In: ONLY enable sharing if targetConsent is explicitly TRUE
-    // Unknown (null/undefined) or explicit FALSE strictly disables sharing
-    if (targetConsent !== true) {
-      return {
-        participant_id: participantId,
-        whatsapp: null,
-        has_whatsapp_consent: false,
-        contact_state: 'sharing_disabled',
-        status: req.status,
-        notice: 'Partner has not shared WhatsApp contact.',
-      };
-    }
-
+    // Simplified model: saved number is directly sufficient for accepted exchanges
     const cleanWa = cleanDigits.length === 10 ? `91${cleanDigits}` : cleanDigits;
     return {
       participant_id: participantId,
@@ -145,14 +131,12 @@ describe('GreenLoop WhatsApp Contact Fallback & Strict Opt-In Privacy Tests', ()
       full_name: 'Haritha Waste Generator',
       phone: '+91 94978 54095',
       whatsapp_number: null,
-      share_whatsapp_with_exchange: true, // Explicit opt-in
     },
     [USER_2_REQUESTER]: {
       id: USER_2_REQUESTER,
       full_name: 'Kerala Recycler Org',
       phone: '9876543210',
       whatsapp_number: null,
-      share_whatsapp_with_exchange: true, // Explicit opt-in
     },
   };
 
@@ -165,7 +149,7 @@ describe('GreenLoop WhatsApp Contact Fallback & Strict Opt-In Privacy Tests', ()
     listing: { title: 'Clean PET Bottles', user_id: USER_1_PROVIDER },
   };
 
-  it('allows User 1 (Provider) to retrieve User 2 (Requester) WhatsApp contact when opted in', () => {
+  it('allows User 1 (Provider) to retrieve User 2 (Requester) WhatsApp contact with saved number', () => {
     const result = resolveContact(
       EXCHANGE_ID,
       USER_2_REQUESTER,
@@ -180,7 +164,7 @@ describe('GreenLoop WhatsApp Contact Fallback & Strict Opt-In Privacy Tests', ()
     expect(result.participant_id).toBe(USER_2_REQUESTER);
   });
 
-  it('allows User 2 (Requester) to retrieve User 1 (Provider) WhatsApp contact when opted in', () => {
+  it('allows User 2 (Requester) to retrieve User 1 (Provider) WhatsApp contact with saved number', () => {
     const result = resolveContact(
       EXCHANGE_ID,
       USER_1_PROVIDER,
@@ -195,59 +179,13 @@ describe('GreenLoop WhatsApp Contact Fallback & Strict Opt-In Privacy Tests', ()
     expect(result.participant_id).toBe(USER_1_PROVIDER);
   });
 
-  it('treats unknown consent (null/undefined) as disabled by default (cannot share)', () => {
-    const unknownConsentProfiles = {
-      ...mockProfiles,
-      [USER_2_REQUESTER]: {
-        ...mockProfiles[USER_2_REQUESTER],
-        share_whatsapp_with_exchange: null, // Unknown / unset consent
-      },
-    };
-
-    const result = resolveContact(
-      EXCHANGE_ID,
-      USER_2_REQUESTER,
-      USER_1_PROVIDER,
-      [mockExchange],
-      unknownConsentProfiles
-    );
-
-    expect(result.contact_state).toBe('sharing_disabled');
-    expect(result.whatsapp).toBeNull();
-    expect(result.has_whatsapp_consent).toBe(false);
-    expect(result.notice).toContain('Partner has not shared WhatsApp contact');
-  });
-
-  it('strictly blocks sharing when partner explicitly opted out (false)', () => {
-    const optOutProfiles = {
-      ...mockProfiles,
-      [USER_2_REQUESTER]: {
-        ...mockProfiles[USER_2_REQUESTER],
-        share_whatsapp_with_exchange: false, // Explicit opt-out
-      },
-    };
-
-    const result = resolveContact(
-      EXCHANGE_ID,
-      USER_2_REQUESTER,
-      USER_1_PROVIDER,
-      [mockExchange],
-      optOutProfiles
-    );
-
-    expect(result.contact_state).toBe('sharing_disabled');
-    expect(result.whatsapp).toBeNull();
-    expect(result.has_whatsapp_consent).toBe(false);
-  });
-
-  it('accurately distinguishes missing number from disabled sharing', () => {
+  it('accurately identifies missing WhatsApp number without requiring separate consent toggle', () => {
     const emptyProfiles = {
       ...mockProfiles,
       [USER_2_REQUESTER]: {
         ...mockProfiles[USER_2_REQUESTER],
         phone: null,
         whatsapp_number: null,
-        share_whatsapp_with_exchange: true,
       },
     };
 
@@ -262,6 +200,28 @@ describe('GreenLoop WhatsApp Contact Fallback & Strict Opt-In Privacy Tests', ()
     expect(result.contact_state).toBe('missing_number');
     expect(result.whatsapp).toBeNull();
     expect(result.notice).toBe('Partner has not added a WhatsApp number yet.');
+  });
+
+  it('accurately identifies invalid WhatsApp number length (<10 or >15 digits)', () => {
+    const invalidProfiles = {
+      ...mockProfiles,
+      [USER_2_REQUESTER]: {
+        ...mockProfiles[USER_2_REQUESTER],
+        phone: '12345',
+        whatsapp_number: '12345',
+      },
+    };
+
+    const result = resolveContact(
+      EXCHANGE_ID,
+      USER_2_REQUESTER,
+      USER_1_PROVIDER,
+      [mockExchange],
+      invalidProfiles
+    );
+
+    expect(result.contact_state).toBe('invalid_number');
+    expect(result.whatsapp).toBeNull();
   });
 
   it('strictly blocks self-retrieval (User 1 requesting User 1)', () => {
@@ -310,5 +270,24 @@ describe('GreenLoop WhatsApp Contact Fallback & Strict Opt-In Privacy Tests', ()
     expect(result.contact_state).toBe('missing_number');
     expect(result.whatsapp).toBeNull();
     expect(result.notice).toContain('only accessible while the exchange request is in accepted status');
+  });
+
+  it('strictly blocks contact retrieval for rejected exchanges', () => {
+    const rejectedExchange: MockExchangeRequest = {
+      ...mockExchange,
+      id: 'ex-rejected-0002',
+      status: 'rejected',
+    };
+
+    const result = resolveContact(
+      'ex-rejected-0002',
+      USER_2_REQUESTER,
+      USER_1_PROVIDER,
+      [rejectedExchange],
+      mockProfiles
+    );
+
+    expect(result.contact_state).toBe('missing_number');
+    expect(result.whatsapp).toBeNull();
   });
 });

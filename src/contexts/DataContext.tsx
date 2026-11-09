@@ -1597,7 +1597,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // 2. Direct Query / Resilient Fallback:
       // When the RPC is not installed or returns an error, fetch directly from profiles table
       let rawWa: string | null = null;
-      let targetConsent: boolean | null = null;
 
       if (isSupabaseConfigured) {
         try {
@@ -1612,9 +1611,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const pPhone = partnerProfile.phone ? String(partnerProfile.phone).trim() : null;
             const pWa = partnerProfile.whatsapp_number ? String(partnerProfile.whatsapp_number).trim() : null;
             rawWa = pPhone || pWa || null;
-            if (typeof partnerProfile.share_whatsapp_with_exchange === 'boolean') {
-              targetConsent = partnerProfile.share_whatsapp_with_exchange;
-            }
           }
         } catch (fetchErr) {
           console.warn('Direct partner profile query notice:', fetchErr);
@@ -1629,9 +1625,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (targetUser) {
           rawWa = targetUser.phone || targetUser.whatsapp_number || null;
-          if (typeof targetUser.share_whatsapp_with_exchange === 'boolean') {
-            targetConsent = targetUser.share_whatsapp_with_exchange;
-          }
         }
       }
 
@@ -1661,18 +1654,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
       }
 
-      // Strict opt-in privacy gate: sharing is ONLY enabled when consent is explicitly TRUE
-      if (targetConsent !== true) {
-        return {
-          participant_id: participantId,
-          whatsapp: null,
-          has_whatsapp_consent: false,
-          contact_state: 'sharing_disabled',
-          status: req?.status || 'accepted',
-          notice: 'Partner has not shared WhatsApp contact.',
-        };
-      }
-
+      // A saved WhatsApp number is directly sufficient for accepted exchanges
       const cleanWa = cleanDigits.length === 10 ? `91${cleanDigits}` : cleanDigits;
       return {
         participant_id: participantId,

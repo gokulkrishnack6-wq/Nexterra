@@ -66,7 +66,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode }) => {
   const [district, setDistrict] = useState('Ernakulam');
   const [countryCode, setCountryCode] = useState('+91');
   const [whatsappNumber, setWhatsappNumber] = useState('');
-  const [shareWhatsappConsent, setShareWhatsappConsent] = useState(true);
 
   // UI States
   const [showPassword, setShowPassword] = useState(false);
@@ -241,7 +240,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode }) => {
         role,
         district,
         fullWaNumber,
-        shareWhatsappConsent
+        true
       );
       if (!res.success) {
         setError(res.error || 'Registration failed.');
@@ -597,29 +596,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode }) => {
               </p>
             </div>
 
-            {/* Privacy Notice & Consent Toggle */}
-            <div className="p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/60 space-y-2.5">
-              <div className="flex items-start gap-2.5 text-xs text-on-surface-variant">
-                <ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-semibold text-primary block">Zero Public Exposure Guarantee</span>
-                  <span className="block mt-0.5 leading-relaxed">
-                    Your WhatsApp number is strictly confidential and never displayed on public listings or profile searches. It is shared only with verified exchange partners once an exchange is accepted.
-                  </span>
-                </div>
-              </div>
-
-              <label className="flex items-start gap-2.5 cursor-pointer pt-2 border-t border-outline-variant/40">
-                <input
-                  type="checkbox"
-                  checked={shareWhatsappConsent}
-                  onChange={(e) => setShareWhatsappConsent(e.target.checked)}
-                  className="mt-0.5 w-4 h-4 rounded text-primary focus:ring-primary border-outline-variant"
-                />
-                <span className="text-xs text-on-surface">
-                  Allow my WhatsApp number to be shared with accepted exchange partners.
+            {/* Privacy Notice */}
+            <div className="p-3.5 rounded-xl bg-surface-container-low border border-outline-variant/60 flex items-start gap-2.5 text-xs text-on-surface-variant">
+              <ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+              <div>
+                <span className="font-semibold text-primary block">Zero Public Exposure Guarantee</span>
+                <span className="block mt-0.5 leading-relaxed">
+                  Your WhatsApp number is strictly confidential and never displayed on public listings or profile searches. It is shared only with verified exchange partners once an exchange is accepted.
                 </span>
-              </label>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

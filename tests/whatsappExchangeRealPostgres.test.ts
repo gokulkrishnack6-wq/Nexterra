@@ -53,6 +53,12 @@ describe('GreenLoop WhatsApp Exchange & Contact Privacy — PGlite Tests', () =>
     await db.exec(fs.readFileSync(mig5, 'utf8'));
   }
 
+  async function applySimplifiedMigration() {
+    await applyAllMigrations();
+    const mig6 = path.resolve(__dirname, '../supabase/migrations/20261110010000_simplify_whatsapp_contact_sharing.sql');
+    await db.exec(fs.readFileSync(mig6, 'utf8'));
+  }
+
   beforeEach(async () => {
     db = new PGlite();
 
@@ -1120,5 +1126,147 @@ describe('GreenLoop WhatsApp Exchange & Contact Privacy — PGlite Tests', () =>
     `, [TWO_ACC_REQ, U1_PROVIDER]);
     expect((u2ViewsU1ReEnabled.rows[0].res as any).contact_state).toBe('sharing_enabled');
     expect((u2ViewsU1ReEnabled.rows[0].res as any).whatsapp).toBe('919497811111');
+  });
+
+  it('Verifies Simplified WhatsApp Contact Sharing: A saved WhatsApp number is sufficient after accepted exchange without separate consent (Requirements 1–8)', async () => {
+    await asSuperuser();
+    await applySimplifiedMigration();
+
+    const SIMP_PROVIDER = 'aaaaaaaa-1111-4000-8000-000000000001';
+    const SIMP_REQUESTER = 'bbbbbbbb-2222-4000-8000-000000000002';
+    const SIMP_INTRUDER = 'cccccccc-3333-4000-8000-000000000003';
+    const SIMP_LISTING = 'dddddddd-4444-4000-8000-000000000001';
+    const SIMP_EXCHANGE = 'eeeeeeee-5555-4000-8000-000000000001';
+
+    // Step 1: Both accounts exist with saved WhatsApp numbers
+    // Note: Neither account configures or enables a separate contact-sharing permission!
+    await db.query(`
+      INSERT INTO auth.users (id, email, raw_user_meta_data)
+      VALUES 
+        ('${SIMP_PROVIDER}', 'provider.clean@greenloop.org', '{"full_name":"Rahul Varma","whatsapp_number":"+91 98470 12345"}'::jsonb),
+        ('${SIMP_REQUESTER}', 'requester.clean@greenloop.org', '{"full_name":"Fathima Beevi","whatsapp_number":"+91 97450 67890"}'::jsonb),
+        ('${SIMP_INTRUDER}', 'intruder@greenloop.org', '{"full_name":"Intruder Person","whatsapp_number":"+91 99999 99999"}'::jsonb);
+    `);
+
+    // Verify handle_new_user populates profiles with the saved numbers
+    await db.query(`
+      INSERT INTO public.profiles (id, full_name, email, phone, whatsapp_number)
+      VALUES 
+        ('${SIMP_PROVIDER}', 'Rahul Varma', 'provider.clean@greenloop.org', '+91 98470 12345', '+91 98470 12345'),
+        ('${SIMP_REQUESTER}', 'Fathima Beevi', 'requester.clean@greenloop.org', '+91 97450 67890', '+91 97450 67890'),
+        ('${SIMP_INTRUDER}', 'Intruder Person', 'intruder@greenloop.org', '+91 99999 99999', '+91 99999 99999')
+      ON CONFLICT (id) DO UPDATE SET
+        phone = EXCLUDED.phone,
+        whatsapp_number = EXCLUDED.whatsapp_number;
+    `);
+
+    // Step 2: Neither account has to enable a separate setting
+    // The profile has saved whatsapp_number; no separate toggle or permission required!
+    const p1 = await db.query(`SELECT whatsapp_number FROM public.profiles WHERE id = '${SIMP_PROVIDER}';`);
+    const p2 = await db.query(`SELECT whatsapp_number FROM public.profiles WHERE id = '${SIMP_REQUESTER}';`);
+    expect(p1.rows[0].whatsapp_number).toBe('+91 98470 12345');
+    expect(p2.rows[0].whatsapp_number).toBe('+91 97450 67890');
+
+    // Step 3: User 1 creates listing; User 2 requests the listing
+    await db.query(`
+      INSERT INTO public.listings (id, user_id, category_id, title, quantity)
+      VALUES ('${SIMP_LISTING}', '${SIMP_PROVIDER}', '${CATEGORY_ID_1}', 'Baled Cardboard Sheets', 10);
+    `);
+
+    await asUser(SIMP_REQUESTER, 'authenticated');
+    await db.query(`
+      INSERT INTO public.exchange_requests (id, listing_id, requester_id, provider_id, requested_quantity, status, completion_code)
+      VALUES ('${SIMP_EXCHANGE}', '${SIMP_LISTING}', '${SIMP_REQUESTER}', '${SIMP_PROVIDER}', 2, 'pending', 'GL-7777');
+    `);
+
+    // While pending: neither participant receives contact details (strict status gate)
+    const pendingQuery = await db.query(`
+      SELECT public.get_exchange_whatsapp_contact($1, $2) as res;
+    `, [SIMP_EXCHANGE, SIMP_PROVIDER]);
+    expect((pendingQuery.rows[0].res as any).whatsapp).toBeNull();
+    expect((pendingQuery.rows[0].res as any).has_whatsapp_consent).toBe(false);
+
+    // Step 4: User 1 accepts the exchange
+    await asUser(SIMP_PROVIDER, 'authenticated');
+    await db.query(`UPDATE public.exchange_requests SET status = 'accepted' WHERE id = '${SIMP_EXCHANGE}';`);
+
+    // Step 5: Both users see the WhatsApp button (contact_state: sharing_enabled)
+    // Step 6: Both buttons open the OTHER participant's chat
+    // Direction 1: User 1 (Provider) retrieves User 2's number
+    const providerViewsRequester = await db.query(`
+      SELECT public.get_exchange_whatsapp_contact(
+        p_exchange_request_id => $1::uuid,
+        p_participant_id => $2::uuid
+      ) as res;
+    `, [SIMP_EXCHANGE, SIMP_REQUESTER]);
+    const resU1 = providerViewsRequester.rows[0].res as any;
+    expect(resU1.contact_state).toBe('sharing_enabled');
+    expect(resU1.has_whatsapp_consent).toBe(true);
+    expect(resU1.whatsapp).toBe('919745067890'); // User 2's clean normalized digits with country code!
+
+    // Direction 2: User 2 (Requester) retrieves User 1's number
+    await asUser(SIMP_REQUESTER, 'authenticated');
+    const requesterViewsProvider = await db.query(`
+      SELECT public.get_exchange_whatsapp_contact(
+        p_exchange_request_id => $1::uuid,
+        p_participant_id => $2::uuid
+      ) as res;
+    `, [SIMP_EXCHANGE, SIMP_PROVIDER]);
+    const resU2 = requesterViewsProvider.rows[0].res as any;
+    expect(resU2.contact_state).toBe('sharing_enabled');
+    expect(resU2.has_whatsapp_consent).toBe(true);
+    expect(resU2.whatsapp).toBe('919847012345'); // User 1's clean normalized digits with country code!
+
+    // Neither user receives their own number
+    await expect(
+      db.query(`SELECT public.get_exchange_whatsapp_contact($1, $2);`, [SIMP_EXCHANGE, SIMP_REQUESTER])
+    ).rejects.toThrow(/Cannot request own contact details/i);
+
+    // Step 7: Refresh both accounts and repeat
+    const reloadedP1 = await db.query(`SELECT whatsapp_number FROM public.profiles WHERE id = '${SIMP_PROVIDER}';`);
+    const reloadedP2 = await db.query(`SELECT whatsapp_number FROM public.profiles WHERE id = '${SIMP_REQUESTER}';`);
+    expect(reloadedP1.rows[0].whatsapp_number).toBe('+91 98470 12345');
+    expect(reloadedP2.rows[0].whatsapp_number).toBe('+91 97450 67890');
+
+    const repeatQuery = await db.query(`
+      SELECT public.get_exchange_whatsapp_contact($1, $2) as res;
+    `, [SIMP_EXCHANGE, SIMP_PROVIDER]);
+    expect((repeatQuery.rows[0].res as any).whatsapp).toBe('919847012345');
+    expect((repeatQuery.rows[0].res as any).contact_state).toBe('sharing_enabled');
+
+    // Step 8: Confirm unrelated users cannot retrieve contact details
+    await asUser(SIMP_INTRUDER, 'authenticated');
+    await expect(
+      db.query(`SELECT public.get_exchange_whatsapp_contact($1, $2);`, [SIMP_EXCHANGE, SIMP_PROVIDER])
+    ).rejects.toThrow(/Permission denied/i);
+
+    // And rejected / cancelled exchanges cannot retrieve contact details
+    await asSuperuser();
+    await db.query(`UPDATE public.exchange_requests SET status = 'cancelled' WHERE id = '${SIMP_EXCHANGE}';`);
+    await asUser(SIMP_REQUESTER, 'authenticated');
+    const cancelledQuery = await db.query(`
+      SELECT public.get_exchange_whatsapp_contact($1, $2) as res;
+    `, [SIMP_EXCHANGE, SIMP_PROVIDER]);
+    expect((cancelledQuery.rows[0].res as any).whatsapp).toBeNull();
+    expect((cancelledQuery.rows[0].res as any).has_whatsapp_consent).toBe(false);
+    expect((cancelledQuery.rows[0].res as any).status).toBe('cancelled');
+
+    // Create a rejected exchange by having provider decline a pending request
+    const REJ_EXCHANGE = 'ffffffef-6666-4000-8000-000000000001';
+    await asUser(SIMP_REQUESTER, 'authenticated');
+    await db.query(`
+      INSERT INTO public.exchange_requests (id, listing_id, requester_id, provider_id, requested_quantity, completion_code)
+      VALUES ('${REJ_EXCHANGE}', '${SIMP_LISTING}', '${SIMP_REQUESTER}', '${SIMP_PROVIDER}', 1, 'GL-6666');
+    `);
+    await asUser(SIMP_PROVIDER, 'authenticated');
+    await db.query(`UPDATE public.exchange_requests SET status = 'rejected' WHERE id = '${REJ_EXCHANGE}';`);
+
+    // Provider queries Requester on rejected request: strictly denied (status gate)
+    const rejectedQuery = await db.query(`
+      SELECT public.get_exchange_whatsapp_contact($1, $2) as res;
+    `, [REJ_EXCHANGE, SIMP_REQUESTER]);
+    expect((rejectedQuery.rows[0].res as any).whatsapp).toBeNull();
+    expect((rejectedQuery.rows[0].res as any).has_whatsapp_consent).toBe(false);
+    expect((rejectedQuery.rows[0].res as any).status).toBe('rejected');
   });
 });

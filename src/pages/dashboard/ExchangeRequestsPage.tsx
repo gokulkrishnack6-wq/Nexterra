@@ -136,34 +136,7 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
     );
   }
 
-  // Explicit state 3: sharing_disabled
-  if (contactData.contact_state === 'sharing_disabled') {
-    return (
-      <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200/80 text-xs text-amber-950 space-y-1.5 max-w-sm">
-        <div className="flex items-center gap-1.5 font-semibold text-amber-900">
-          <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
-          <span>Your partner needs to enable WhatsApp contact sharing.</span>
-        </div>
-        <p className="text-[11px] text-amber-800/90 leading-snug">
-          Their number is saved, but direct sharing is currently turned off in their privacy settings.
-        </p>
-        <div className="pt-0.5 flex items-center justify-between text-[11px]">
-          <span className="text-amber-700/80">Enable yours to share back</span>
-          {onOpenSettings && (
-            <button
-              type="button"
-              onClick={onOpenSettings}
-              className="text-gl-forest font-bold hover:underline ml-2"
-            >
-              Profile Settings
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Explicit state 4: error
+  // Explicit state 3: error
   if (contactData.contact_state === 'error') {
     return (
       <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-rose-50 text-xs text-rose-700 border border-rose-200">
@@ -180,8 +153,8 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
     );
   }
 
-  // Explicit state 5: sharing_enabled
-  if (contactData.contact_state === 'sharing_enabled' && contactData.whatsapp) {
+  // Explicit state 4: WhatsApp contact available (saved number is sufficient)
+  if (contactData.whatsapp) {
     let waUrl = '#';
     try {
       const prefilledText = buildExchangeWhatsAppMessage({ listingTitle });
@@ -379,30 +352,6 @@ export const ExchangeRequestsPage: React.FC = () => {
         </div>
       )}
 
-      {/* WhatsApp Sharing Disabled Reminder */}
-      {currentUser && (currentUser.whatsapp_number || currentUser.phone) && currentUser.share_whatsapp_with_exchange !== true && (
-        <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
-          <div className="flex items-start gap-2.5">
-            <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
-            <div>
-              <h4 className="font-heading font-semibold text-xs sm:text-sm text-amber-950">
-                WhatsApp contact sharing is currently turned off
-              </h4>
-              <p className="text-[11px] sm:text-xs text-amber-800/90 mt-0.5">
-                Your WhatsApp number is saved, but accepted exchange partners cannot message you until you enable contact sharing in Profile Settings.
-              </p>
-            </div>
-          </div>
-          <Button
-            size="sm"
-            variant="primary"
-            onClick={() => setShowProfileSettings(true)}
-            className="shrink-0 text-xs rounded-xl shadow-xs"
-          >
-            Enable Sharing in Settings
-          </Button>
-        </div>
-      )}
 
       {/* Segmented Tabs */}
       <div className="inline-flex p-1 bg-gl-cream/80 border border-gl-border rounded-xl">

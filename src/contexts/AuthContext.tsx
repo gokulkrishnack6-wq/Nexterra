@@ -104,14 +104,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const metaPhone = metadata.phone ? String(metadata.phone).trim() : null;
         const resolvedWa = dbPhone || dbWa || metaWa || metaPhone || undefined;
 
-        // Consent resolution: check database column first, fall back to metadata, default false (strict opt-in privacy)
+        // Consent resolution: check database column first, fall back to metadata, default true
         const dbShareWa = profileData.share_whatsapp_with_exchange;
         const metaShareWa = metadata.share_whatsapp_with_exchange;
         const resolvedShareWa = typeof dbShareWa === 'boolean'
           ? dbShareWa
           : typeof metaShareWa === 'boolean'
             ? metaShareWa
-            : false;
+            : true;
 
         const updatedProfile: UserProfile = {
           ...(profileData as UserProfile),
@@ -317,7 +317,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             phone: whatsappNumber ? whatsappNumber.trim() : undefined,
             phone_number: whatsappNumber ? whatsappNumber.trim() : undefined,
             whatsapp_number: whatsappNumber ? whatsappNumber.trim() : undefined,
-            share_whatsapp_with_exchange: Boolean(shareWhatsappWithExchange),
+            share_whatsapp_with_exchange: shareWhatsappWithExchange !== false,
           },
           emailRedirectTo: redirectUrl,
         },
@@ -354,7 +354,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           state: 'Kerala',
           phone: cleanWa,
           whatsapp_number: cleanWa,
-          share_whatsapp_with_exchange: Boolean(shareWhatsappWithExchange),
+          share_whatsapp_with_exchange: shareWhatsappWithExchange !== false,
           latitude: undefined,
           longitude: undefined,
           eco_points_balance: 50,
@@ -375,7 +375,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             phone: cleanWa || null,
             whatsapp_number: cleanWa || null,
             phone_number: cleanWa || null,
-            share_whatsapp_with_exchange: Boolean(shareWhatsappWithExchange),
+            share_whatsapp_with_exchange: shareWhatsappWithExchange !== false,
             is_verified: true,
             eco_points_balance: 50,
             created_at: newProfile.created_at,
@@ -554,7 +554,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const resolvedConsent = updatedData.share_whatsapp_with_exchange !== undefined
         ? Boolean(updatedData.share_whatsapp_with_exchange)
-        : Boolean(currentUser.share_whatsapp_with_exchange);
+        : (currentUser.share_whatsapp_with_exchange ?? true);
 
       const resolvedSharePhone = updatedData.share_phone_with_exchange !== undefined
         ? Boolean(updatedData.share_phone_with_exchange)

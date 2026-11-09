@@ -22,9 +22,6 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({ isOp
   const [phone, setPhone] = useState(currentUser?.phone || '');
   const [whatsappNumber, setWhatsappNumber] = useState(currentUser?.whatsapp_number || '');
   const [sharePhone, setSharePhone] = useState(currentUser?.share_phone_with_exchange ?? false);
-  const [shareWhatsapp, setShareWhatsapp] = useState(
-    currentUser?.share_whatsapp_with_exchange === true
-  );
   const [isSaving, setIsSaving] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -33,9 +30,6 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({ isOp
       setPhone(currentUser.phone || '');
       setWhatsappNumber(currentUser.whatsapp_number || currentUser.phone || '');
       setSharePhone(currentUser.share_phone_with_exchange ?? false);
-      setShareWhatsapp(
-        currentUser.share_whatsapp_with_exchange === true
-      );
       setStatusMsg(null);
     }
   }, [currentUser, isOpen]);
@@ -62,7 +56,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({ isOp
         phone: phone.trim() ? phone.trim() : undefined,
         whatsapp_number: whatsappNumber.trim() ? whatsappNumber.trim() : undefined,
         share_phone_with_exchange: sharePhone,
-        share_whatsapp_with_exchange: shareWhatsapp,
+        share_whatsapp_with_exchange: true,
       });
 
       if (res.success) {
@@ -164,10 +158,10 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({ isOp
             </p>
           </div>
 
-          {/* Privacy Toggles */}
+          {/* Phone Call Options */}
           <div className="p-4 rounded-xl bg-gl-cream/50 border border-gl-border space-y-3.5">
             <h3 className="font-heading font-bold text-xs uppercase tracking-wider text-gl-charcoal">
-              Exchange Partner Consent
+              Phone Call Coordination
             </h3>
 
             <label className="flex items-start gap-3 cursor-pointer">
@@ -179,27 +173,10 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({ isOp
               />
               <div className="text-xs">
                 <span className="font-semibold text-gl-charcoal block">
-                  Share phone number with exchange participants
+                  Allow confirmed exchange partners to call directly
                 </span>
                 <span className="text-gl-charcoal-muted block mt-0.5">
-                  Allows confirmed exchange partners to tap a direct "Call" button during collection.
-                </span>
-              </div>
-            </label>
-
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={shareWhatsapp}
-                onChange={(e) => setShareWhatsapp(e.target.checked)}
-                className="mt-0.5 w-4 h-4 rounded text-gl-forest focus:ring-gl-forest border-gl-border"
-              />
-              <div className="text-xs">
-                <span className="font-semibold text-gl-charcoal block">
-                  Allow my WhatsApp number to be shared with accepted exchange partners.
-                </span>
-                <span className="text-gl-charcoal-muted block mt-0.5">
-                  Enables a 1-click WhatsApp messaging button for collection coordination after request acceptance. Revoking this immediately prevents future contact retrieval.
+                  Displays a direct "Call" button for voice coordination during material handover.
                 </span>
               </div>
             </label>
@@ -209,7 +186,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({ isOp
           <div className="p-3.5 rounded-xl bg-gl-sage-light/50 border border-gl-sage text-xs text-gl-dark flex items-start gap-2.5">
             <ShieldCheck className="w-4 h-4 shrink-0 text-gl-fresh mt-0.5" />
             <p className="leading-relaxed">
-              <strong>Zero Public PII Guarantee:</strong> Your contact details are never listed publicly in marketplace cards, search results, or public profiles. They are accessible solely to authenticated participants of an exchange request you participate in, and only if you enable sharing.
+              <strong>Zero Public Exposure Guarantee:</strong> Your phone and WhatsApp numbers are never displayed on public listings, search results, or profile pages. When an exchange is accepted, your saved WhatsApp number is shared securely with your confirmed exchange partner to coordinate collection.
             </p>
           </div>
 
