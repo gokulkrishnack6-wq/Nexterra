@@ -12,8 +12,9 @@
 --                 - Metadata consent is inspected only when profile consent is genuinely NULL.
 --                 - Unknown / unset consent is strictly treated as FALSE (disabled).
 --                 - Entering a WhatsApp number NEVER automatically enables consent.
---              5. Ensures handle_new_user trigger is explicitly attached to auth.users
---                 and preserves explicit opt-in / opt-out from signup metadata.
+--              5. Updates handle_new_user() trigger function (automatically invoked by the
+--                 existing on_auth_user_created trigger) and preserves explicit opt-in / opt-out
+--                 from signup metadata without requiring trigger recreation.
 --              6. Accurately distinguishes 4 contact states: missing_number,
 --                 invalid_number, sharing_disabled, and sharing_enabled.
 --              7. No automatic consent backfill; existing consent values are preserved.
@@ -311,13 +312,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Ensure Trigger Exists on auth.users
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-
 -- 3. Automatic Backfill & Self-Healing:
+-- Note: The existing 'on_auth_user_created' trigger on auth.users already targets public.handle_new_user().
+-- In PostgreSQL, replacing a function in place with CREATE OR REPLACE FUNCTION automatically updates the trigger
+-- execution logic without requiring DROP TRIGGER / CREATE TRIGGER (avoiding auth schema privilege conflicts).
 -- Backfill provider_id on any exchange_requests that have NULL provider_id
 UPDATE public.exchange_requests er
 SET provider_id = l.user_id
