@@ -208,9 +208,9 @@ class IsolatedPostgresSession {
           id: notifId,
           user_id: oldRow.requester_id,
           title: 'Request Accepted',
-          message: `Your request for "${listing?.title || 'material'}" was accepted! Pickup verification code: ${oldRow.completion_code}`,
+          message: `Your request for "${listing?.title || 'material'}" was accepted by the provider. Coordinate pickup details in chat and present your pass code at pickup.`,
           type: 'request',
-          link: '/exchanges',
+          link: `/exchanges?req=${oldRow.id}&chat=open`,
           is_read: false,
           created_at: new Date().toISOString(),
         });
@@ -524,7 +524,7 @@ describe('Post-Implementation Security & Isolation Integration Test (Commit 50ea
       ).rejects.toThrow('Restricted: Requester ID is immutable.');
     });
 
-    it('allows Provider A to accept request and atomically notifies Requester B with the pass code', async () => {
+    it('allows Provider A to accept request and atomically notifies Requester B without exposing pass code in notification', async () => {
       const updated = await sessionA.updateExchangeRequest(activeRequestId, {
         status: 'accepted',
       });
@@ -532,11 +532,12 @@ describe('Post-Implementation Security & Isolation Integration Test (Commit 50ea
       expect(updated.data.status).toBe('accepted');
       expect(updated.data.pickup_date).toBeDefined();
 
-      // Requester B queries notifications and receives pass code
+      // Requester B queries notifications: received notification but pass code is shielded
       const { data: notifsB } = await sessionB.selectNotifications();
       expect(notifsB).toHaveLength(1);
       expect(notifsB[0].title).toBe('Request Accepted');
-      expect(notifsB[0].message).toContain(updated.data.completion_code);
+      expect(notifsB[0].message).not.toContain(updated.data.completion_code);
+      expect(notifsB[0].message).toContain('accepted by the provider');
 
       // Provider A queries notifications: still only has original request notification (no duplicate)
       const { data: notifsA } = await sessionA.selectNotifications();

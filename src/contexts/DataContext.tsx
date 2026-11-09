@@ -1015,7 +1015,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: `notif-${Date.now()}`,
           user_id: targetReq.requester_id,
           title: 'Request Accepted',
-          message: `Your request for "${targetReq.listing?.title || 'waste material'}" was accepted! Pickup verification code: ${targetReq.completion_code}`,
+          message: `Your request for "${targetReq.listing?.title || 'waste material'}" was accepted by the provider. Coordinate pickup details in chat and present your pass code at pickup.`,
           type: 'request',
           link: '/exchanges',
           is_read: false,

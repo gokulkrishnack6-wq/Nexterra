@@ -366,7 +366,7 @@ describe('GreenLoop Waste Request Delivery & Cross-Account Visibility (Steps 1â€
         id: crypto.randomUUID(),
         user_id: currentRequest.requester_id, // Account B
         title: 'Request Accepted',
-        message: `Your request for "${currentRequest.listing?.title}" was accepted! Pickup verification code: ${currentRequest.completion_code}`,
+        message: `Your request for "${currentRequest.listing?.title}" was accepted by the provider. Coordinate pickup details in chat and present your pass code at pickup.`,
         type: 'request',
         link: '/exchanges',
         is_read: false,
@@ -377,9 +377,10 @@ describe('GreenLoop Waste Request Delivery & Cross-Account Visibility (Steps 1â€
       expect(currentRequest.pickup_date).toBeDefined();
       expect(currentRequest.completion_code).toBe('GL-5432');
 
-      // Assert notification is addressed to Account B:
+      // Assert notification is addressed to Account B and completion code is not exposed:
       expect(acceptanceNotif.user_id).toBe(accountB.id);
-      expect(acceptanceNotif.message).toContain('GL-5432');
+      expect(acceptanceNotif.message).not.toContain('GL-5432');
+      expect(acceptanceNotif.message).toContain('accepted by the provider');
     });
 
     it('rejects attempt by non-provider (Account B or C) to accept the request', () => {

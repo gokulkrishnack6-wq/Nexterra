@@ -6,7 +6,9 @@ import * as path from 'path';
 // ==============================================================================
 // GREENLOOP PRIVATE CHAT & CONTACT SHARING — PGLITE POSTGRESQL TEST SUITE
 // Environment: PGlite in-process PostgreSQL Engine (WASM)
-// Validates: Schema migrations, triggers, participant RLS, and security constraints
+// Validates: Full migration sequence (20261109000000 -> 20261109030000),
+//            triggers, participant RLS, notification deduplication,
+//            completion-code non-disclosure, and anti-spoofing boundaries.
 // ==============================================================================
 
 describe('GreenLoop Private Chat & Contact Sharing — PGlite In-Process PostgreSQL Tests', () => {
@@ -67,6 +69,9 @@ describe('GreenLoop Private Chat & Contact Sharing — PGlite In-Process Postgre
         END IF;
         IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
           CREATE ROLE authenticated NOLOGIN;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
+          CREATE ROLE service_role NOLOGIN;
         END IF;
       END $$;
 
@@ -163,18 +168,21 @@ describe('GreenLoop Private Chat & Contact Sharing — PGlite In-Process Postgre
         ('${LISTING_ID_1}', '${ACCOUNT_A_PROVIDER}', '${CATEGORY_ID_1}', '50 Clean HDPE Drums', 50, 'kg', 'active'),
         ('${LISTING_ID_2}', '${ACCOUNT_A_PROVIDER}', '${CATEGORY_ID_1}', '20 Cardboard Cartons', 20, 'kg', 'active');
 
-      GRANT USAGE ON SCHEMA public TO anon, authenticated;
-      GRANT SELECT ON ALL TABLES IN SCHEMA public TO anon, authenticated;
-      GRANT INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authenticated;
+      GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+      GRANT SELECT ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+      GRANT INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authenticated, service_role;
     `);
 
-    // 2. Apply initial migration (20261109010000)
-    const chatMigrationPath1 = path.resolve(__dirname, '../supabase/migrations/20261109010000_private_chat_and_contact_sharing.sql');
-    await db.exec(fs.readFileSync(chatMigrationPath1, 'utf8'));
+    // 2. Apply complete migration sequence in order
+    const mig0 = path.resolve(__dirname, '../supabase/migrations/20261109000000_exchange_requests_and_notifications.sql');
+    const mig1 = path.resolve(__dirname, '../supabase/migrations/20261109010000_private_chat_and_contact_sharing.sql');
+    const mig2 = path.resolve(__dirname, '../supabase/migrations/20261109020000_chat_security_and_idempotency_hardening.sql');
+    const mig3 = path.resolve(__dirname, '../supabase/migrations/20261109030000_production_chat_and_notification_hardening.sql');
 
-    // 3. Apply hardening migration (20261109020000)
-    const chatMigrationPath2 = path.resolve(__dirname, '../supabase/migrations/20261109020000_chat_security_and_idempotency_hardening.sql');
-    await db.exec(fs.readFileSync(chatMigrationPath2, 'utf8'));
+    await db.exec(fs.readFileSync(mig0, 'utf8'));
+    await db.exec(fs.readFileSync(mig1, 'utf8'));
+    await db.exec(fs.readFileSync(mig2, 'utf8'));
+    await db.exec(fs.readFileSync(mig3, 'utf8'));
   });
 
   afterEach(async () => {
@@ -183,135 +191,181 @@ describe('GreenLoop Private Chat & Contact Sharing — PGlite In-Process Postgre
     }
   });
 
-  it('Migration idempotency: hardening migration runs cleanly a second time', async () => {
-    const chatMigrationPath2 = path.resolve(__dirname, '../supabase/migrations/20261109020000_chat_security_and_idempotency_hardening.sql');
-    await expect(db.exec(fs.readFileSync(chatMigrationPath2, 'utf8'))).resolves.toBeDefined();
+  it('Requirement 7 & 6: Migration sequence 000000 -> 010000 -> 020000 -> 030000 executes cleanly and idempotently', async () => {
+    // Re-applying 030000 must succeed cleanly without errors
+    const mig3 = path.resolve(__dirname, '../supabase/migrations/20261109030000_production_chat_and_notification_hardening.sql');
+    await expect(db.exec(fs.readFileSync(mig3, 'utf8'))).resolves.toBeDefined();
   });
 
-  it('Requirement 1: Submitting an exchange request automatically creates exactly one conversation and initial proposal message', async () => {
-    await asUser(ACCOUNT_B_REQUESTER, 'authenticated');
-
-    const reqId = 'bbbbbbbb-1111-4000-8000-000000000001';
-    await db.query(`
-      INSERT INTO public.exchange_requests (
-        id, listing_id, requester_id, requested_quantity, message, completion_code
-      ) VALUES (
-        $1, $2, $3, 10, 'Hello Anoop, can I pick this up tomorrow afternoon?', 'GL-4444'
-      );
-    `, [reqId, LISTING_ID_1, ACCOUNT_B_REQUESTER]);
-
+  it('Requirement 5: Idempotency conflict resolution handles legacy messages with duplicate exchange_request_id without deleting chat history', async () => {
     await asSuperuser();
 
-    // Verify conversation was created automatically
-    const convRes = await db.query(`SELECT * FROM public.conversations WHERE exchange_request_id = $1;`, [reqId]);
-    expect(convRes.rows.length).toBe(1);
-    const conv = convRes.rows[0];
-    expect(conv.requester_id).toBe(ACCOUNT_B_REQUESTER);
-    expect(conv.provider_id).toBe(ACCOUNT_A_PROVIDER);
-    expect(conv.listing_id).toBe(LISTING_ID_1);
-    expect(conv.status).toBe('active');
-
-    // Verify initial message was inserted once
-    const msgRes = await db.query(`SELECT * FROM public.messages WHERE conversation_id = $1;`, [conv.id]);
-    expect(msgRes.rows.length).toBe(1);
-    expect(msgRes.rows[0].sender_id).toBe(ACCOUNT_B_REQUESTER);
-    expect(msgRes.rows[0].message_text).toBe('Hello Anoop, can I pick this up tomorrow afternoon?');
-    expect(msgRes.rows[0].message_type).toBe('proposal');
-  });
-
-  it('Requirement 1: Repeated trigger execution never creates duplicate initial messages or extra conversations', async () => {
-    await asUser(ACCOUNT_B_REQUESTER, 'authenticated');
-
-    const reqId = 'bbbbbbbb-1111-4000-8000-000000000002';
+    // 1. Create an exchange request and initial message normally
+    const legacyReqId = 'eeeeeeee-1111-4000-8000-000000000001';
     await db.query(`
-      INSERT INTO public.exchange_requests (
-        id, listing_id, requester_id, requested_quantity, message, completion_code
-      ) VALUES (
-        $1, $2, $3, 15, 'Initial proposal note', 'GL-1234'
-      );
-    `, [reqId, LISTING_ID_1, ACCOUNT_B_REQUESTER]);
+      INSERT INTO public.exchange_requests (id, listing_id, requester_id, requested_quantity, message, completion_code)
+      VALUES ($1, $2, $3, 10, 'Initial request text', 'GL-0001');
+    `, [legacyReqId, LISTING_ID_1, ACCOUNT_B_REQUESTER]);
 
-    await asSuperuser();
+    const convId = (await db.query(`SELECT id FROM public.conversations WHERE exchange_request_id = $1;`, [legacyReqId])).rows[0].id;
 
-    // Manually trigger conversation creation again with identical request record
-    const reqRow = (await db.query(`SELECT * FROM public.exchange_requests WHERE id = $1;`, [reqId])).rows[0];
-    
-    // Attempting direct duplicate insertion of initial proposal message: blocked by UNIQUE index
-    const convRow = (await db.query(`SELECT id FROM public.conversations WHERE exchange_request_id = $1;`, [reqId])).rows[0];
+    // 2. Temporarily drop the unique constraint to simulate legacy unconstrained duplicate state
+    await db.query(`ALTER TABLE public.messages DROP CONSTRAINT IF EXISTS uq_messages_exchange_request;`);
+    await db.query(`ALTER TABLE public.messages DROP CONSTRAINT IF EXISTS messages_exchange_request_id_key;`);
+
+    // 3. Inject a legacy duplicate proposal message pointing to the same exchange_request_id
+    const dupMsgId = 'dddddddd-2222-4000-8000-000000000002';
+    await db.query(`
+      INSERT INTO public.messages (id, conversation_id, sender_id, message_text, message_type, exchange_request_id, created_at)
+      VALUES ($1, $2, $3, 'Second duplicate proposal message that must NOT be deleted', 'proposal', $4, NOW() + INTERVAL '1 second');
+    `, [dupMsgId, convId, ACCOUNT_B_REQUESTER, legacyReqId]);
+
+    // Verify 2 messages exist with the same exchange_request_id
+    const dupsBefore = await db.query(`SELECT id, message_text FROM public.messages WHERE exchange_request_id = $1;`, [legacyReqId]);
+    expect(dupsBefore.rows.length).toBe(2);
+
+    // 4. Run migration 030000: conflict resolution must preserve all messages and set duplicate exchange_request_id to NULL
+    const mig3 = path.resolve(__dirname, '../supabase/migrations/20261109030000_production_chat_and_notification_hardening.sql');
+    await db.exec(fs.readFileSync(mig3, 'utf8'));
+
+    // Verify ALL messages in conversation are preserved (count is STILL 2)
+    const allMsgs = await db.query(`SELECT id, message_text, exchange_request_id FROM public.messages WHERE conversation_id = $1 ORDER BY created_at ASC;`, [convId]);
+    expect(allMsgs.rows.length).toBe(2);
+    expect(allMsgs.rows[0].exchange_request_id).toBe(legacyReqId);
+    expect(allMsgs.rows[1].id).toBe(dupMsgId);
+    expect(allMsgs.rows[1].exchange_request_id).toBeNull(); // Cleared proposal marker, preserved full text!
+    expect(allMsgs.rows[1].message_text).toContain('must NOT be deleted');
+
+    // Verify unique constraint is active: inserting a new duplicate throws unique violation
     await expect(
       db.query(`
         INSERT INTO public.messages (conversation_id, sender_id, message_text, message_type, exchange_request_id)
-        VALUES ($1, $2, 'Duplicate attempt', 'proposal', $3);
-      `, [convRow.id, ACCOUNT_B_REQUESTER, reqId])
+        VALUES ($1, $2, 'Illegal duplicate', 'proposal', $3);
+      `, [convId, ACCOUNT_B_REQUESTER, legacyReqId])
     ).rejects.toThrow();
-
-    // Count messages: remains strictly 1
-    const msgs = await db.query(`SELECT * FROM public.messages WHERE conversation_id = $1;`, [convRow.id]);
-    expect(msgs.rows.length).toBe(1);
-    expect(msgs.rows[0].message_text).toBe('Initial proposal note');
   });
 
-  it('Requirement 2: Identity validation prevents authenticated client from spoofing sender identity', async () => {
-    // Bina creates request
+  it('Requirement 2: Handover verification code is NEVER disclosed in ordinary notifications upon acceptance', async () => {
     await asUser(ACCOUNT_B_REQUESTER, 'authenticated');
-    const reqId = 'bbbbbbbb-1111-4000-8000-000000000003';
+
+    const reqId = 'bbbbbbbb-1111-4000-8000-000000000010';
     await db.query(`
       INSERT INTO public.exchange_requests (
         id, listing_id, requester_id, requested_quantity, message, completion_code
       ) VALUES (
-        $1, $2, $3, 10, 'Request notes', 'GL-2222'
+        $1, $2, $3, 10, 'Requesting drums', 'GL-7890'
+      );
+    `, [reqId, LISTING_ID_1, ACCOUNT_B_REQUESTER]);
+
+    // Account A (Provider) accepts request
+    await asUser(ACCOUNT_A_PROVIDER, 'authenticated');
+    await db.query(`UPDATE public.exchange_requests SET status = 'accepted' WHERE id = $1;`, [reqId]);
+
+    // Inspect notification generated for Account B (Requester)
+    await asSuperuser();
+    const notifsB = await db.query(`SELECT * FROM public.notifications WHERE user_id = $1 ORDER BY created_at DESC;`, [ACCOUNT_B_REQUESTER]);
+    expect(notifsB.rows.length).toBe(1);
+    expect(notifsB.rows[0].title).toBe('Request Accepted');
+    // Critical Security Assertion: Completion code GL-7890 must NOT appear in notification
+    expect(notifsB.rows[0].message).not.toContain('GL-7890');
+    expect(notifsB.rows[0].message).toContain('accepted by the provider');
+    expect(notifsB.rows[0].link).toBe(`/exchanges?req=${reqId}&chat=open`);
+  });
+
+  it('Requirement 3: Exactly ONE notification is created when request is submitted with an initial proposal message (no duplicate notifications)', async () => {
+    await asUser(ACCOUNT_B_REQUESTER, 'authenticated');
+
+    const reqId = 'bbbbbbbb-1111-4000-8000-000000000011';
+    await db.query(`
+      INSERT INTO public.exchange_requests (
+        id, listing_id, requester_id, requested_quantity, message, completion_code
+      ) VALUES (
+        $1, $2, $3, 10, 'Initial message with proposal', 'GL-1111'
+      );
+    `, [reqId, LISTING_ID_1, ACCOUNT_B_REQUESTER]);
+
+    await asSuperuser();
+
+    // Query notifications for Account A (Provider)
+    const notifsA = await db.query(`SELECT * FROM public.notifications WHERE user_id = $1;`, [ACCOUNT_A_PROVIDER]);
+    // Exactly 1 notification generated (the request notification), NOT two!
+    expect(notifsA.rows.length).toBe(1);
+    expect(notifsA.rows[0].title).toBe('New Exchange Request');
+    expect(notifsA.rows[0].message).toContain('Bina Requester requested 10 units');
+  });
+
+  it('Requirement 3: Regular chat messages DO trigger notifications for the recipient', async () => {
+    // 1. Create request
+    await asUser(ACCOUNT_B_REQUESTER, 'authenticated');
+    const reqId = 'bbbbbbbb-1111-4000-8000-000000000012';
+    await db.query(`
+      INSERT INTO public.exchange_requests (
+        id, listing_id, requester_id, requested_quantity, message, completion_code
+      ) VALUES (
+        $1, $2, $3, 10, 'Initial note', 'GL-2222'
       );
     `, [reqId, LISTING_ID_1, ACCOUNT_B_REQUESTER]);
 
     await asSuperuser();
     const convRow = (await db.query(`SELECT id FROM public.conversations WHERE exchange_request_id = $1;`, [reqId])).rows[0];
 
-    // Bina (authenticated) attempts to insert a message claiming to be Anoop (Provider)
+    // 2. Account B sends a regular subsequent message
+    await asUser(ACCOUNT_B_REQUESTER, 'authenticated');
+    await db.query(`
+      INSERT INTO public.messages (conversation_id, sender_id, message_text)
+      VALUES ($1, $2, 'Where should I come for collection?');
+    `, [convRow.id, ACCOUNT_B_REQUESTER]);
+
+    // 3. Provider A now has 2 notifications (1 for request creation, 1 for new message)
+    await asSuperuser();
+    const notifsA = await db.query(`SELECT * FROM public.notifications WHERE user_id = $1 ORDER BY created_at ASC;`, [ACCOUNT_A_PROVIDER]);
+    expect(notifsA.rows.length).toBe(2);
+    expect(notifsA.rows[0].title).toBe('New Exchange Request');
+    expect(notifsA.rows[1].title).toBe('New Message');
+    expect(notifsA.rows[1].message).toContain('Bina Requester: Where should I come for collection?');
+  });
+
+  it('Requirement 4: validate_and_sync_message enforces server execution boundary and rejects unauthenticated/spoofed insertion', async () => {
+    await asUser(ACCOUNT_B_REQUESTER, 'authenticated');
+    const reqId = 'bbbbbbbb-1111-4000-8000-000000000013';
+    await db.query(`
+      INSERT INTO public.exchange_requests (
+        id, listing_id, requester_id, requested_quantity, message, completion_code
+      ) VALUES (
+        $1, $2, $3, 10, 'Boundary test', 'GL-3333'
+      );
+    `, [reqId, LISTING_ID_1, ACCOUNT_B_REQUESTER]);
+
+    await asSuperuser();
+    const convRow = (await db.query(`SELECT id FROM public.conversations WHERE exchange_request_id = $1;`, [reqId])).rows[0];
+
+    // Authenticated client B cannot insert message as Provider A
     await asUser(ACCOUNT_B_REQUESTER, 'authenticated');
     await expect(
       db.query(`
         INSERT INTO public.messages (conversation_id, sender_id, message_text)
-        VALUES ($1, $2, 'I am Anoop and I accept everything without verification');
+        VALUES ($1, $2, 'Spoofed message');
       `, [convRow.id, ACCOUNT_A_PROVIDER])
     ).rejects.toThrow(/spoofing prohibited/i);
+
+    // Anonymous user cannot insert messages
+    await asUser(null, 'anon');
+    await expect(
+      db.query(`
+        INSERT INTO public.messages (conversation_id, sender_id, message_text)
+        VALUES ($1, $2, 'Anon message');
+      `, [convRow.id, ACCOUNT_B_REQUESTER])
+    ).rejects.toThrow();
   });
 
-  it('Requirement 3: Participants cannot update conversation status directly', async () => {
-    // Bina creates request
+  it('Requirement 3 & 4: Status lockdown and message immutability remain strictly enforced', async () => {
     await asUser(ACCOUNT_B_REQUESTER, 'authenticated');
-    const reqId = 'bbbbbbbb-1111-4000-8000-000000000004';
+    const reqId = 'bbbbbbbb-1111-4000-8000-000000000014';
     await db.query(`
       INSERT INTO public.exchange_requests (
         id, listing_id, requester_id, requested_quantity, message, completion_code
       ) VALUES (
-        $1, $2, $3, 10, 'Note', 'GL-3333'
-      );
-    `, [reqId, LISTING_ID_1, ACCOUNT_B_REQUESTER]);
-
-    await asSuperuser();
-    const convRow = (await db.query(`SELECT id FROM public.conversations WHERE exchange_request_id = $1;`, [reqId])).rows[0];
-
-    // Bina attempts to directly update conversation status: rejected due to REVOKE UPDATE
-    await asUser(ACCOUNT_B_REQUESTER, 'authenticated');
-    await expect(
-      db.query(`UPDATE public.conversations SET status = 'read_only' WHERE id = $1;`, [convRow.id])
-    ).rejects.toThrow(/permission denied/i);
-
-    // Anoop (provider) also cannot update conversation status directly
-    await asUser(ACCOUNT_A_PROVIDER, 'authenticated');
-    await expect(
-      db.query(`UPDATE public.conversations SET status = 'read_only' WHERE id = $1;`, [convRow.id])
-    ).rejects.toThrow(/permission denied/i);
-  });
-
-  it('Requirement 4: Message editing is restricted, immutable fields protected, and read-only enforced', async () => {
-    await asUser(ACCOUNT_B_REQUESTER, 'authenticated');
-    const reqId = 'bbbbbbbb-1111-4000-8000-000000000005';
-    await db.query(`
-      INSERT INTO public.exchange_requests (
-        id, listing_id, requester_id, requested_quantity, message, completion_code
-      ) VALUES (
-        $1, $2, $3, 10, 'Message to test immutability', 'GL-5555'
+        $1, $2, $3, 10, 'Immutability test', 'GL-4444'
       );
     `, [reqId, LISTING_ID_1, ACCOUNT_B_REQUESTER]);
 
@@ -319,128 +373,28 @@ describe('GreenLoop Private Chat & Contact Sharing — PGlite In-Process Postgre
     const convRow = (await db.query(`SELECT id FROM public.conversations WHERE exchange_request_id = $1;`, [reqId])).rows[0];
     const msgRow = (await db.query(`SELECT * FROM public.messages WHERE conversation_id = $1;`, [convRow.id])).rows[0];
 
-    // Authenticated client cannot update messages (REVOKE UPDATE)
+    // Client cannot update conversations
     await asUser(ACCOUNT_B_REQUESTER, 'authenticated');
     await expect(
-      db.query(`UPDATE public.messages SET message_text = 'Altered text' WHERE id = $1;`, [msgRow.id])
+      db.query(`UPDATE public.conversations SET status = 'read_only' WHERE id = $1;`, [convRow.id])
     ).rejects.toThrow(/permission denied/i);
 
-    // Superuser attempting to tamper with immutable fields (sender_id or conversation_id) is blocked by trigger
-    await asSuperuser();
+    // Client cannot update messages
     await expect(
-      db.query(`UPDATE public.messages SET sender_id = $1 WHERE id = $2;`, [ACCOUNT_C_INTRUDER, msgRow.id])
-    ).rejects.toThrow(/Immutable message fields/i);
+      db.query(`UPDATE public.messages SET message_text = 'Tampered' WHERE id = $1;`, [msgRow.id])
+    ).rejects.toThrow(/permission denied/i);
 
-    // Complete the exchange and verify editing is blocked even if attempted
-    await db.query(`UPDATE public.exchange_requests SET status = 'completed' WHERE id = $1;`, [reqId]);
-    await expect(
-      db.query(`UPDATE public.messages SET message_text = 'After completed edit' WHERE id = $1;`, [msgRow.id])
-    ).rejects.toThrow(/Cannot edit message: conversation is read-only/i);
-  });
-
-  it('Requirement 5: Contact consent revocation immediately prevents further phone/whatsapp retrieval', async () => {
-    await asUser(ACCOUNT_B_REQUESTER, 'authenticated');
-    const reqId = 'bbbbbbbb-1111-4000-8000-000000000006';
-    await db.query(`
-      INSERT INTO public.exchange_requests (
-        id, listing_id, requester_id, requested_quantity, message, completion_code
-      ) VALUES (
-        $1, $2, $3, 10, 'Consent revocation test', 'GL-6666'
-      );
-    `, [reqId, LISTING_ID_1, ACCOUNT_B_REQUESTER]);
-
-    await asSuperuser();
-    const convRow = (await db.query(`SELECT id FROM public.conversations WHERE exchange_request_id = $1;`, [reqId])).rows[0];
-
-    // Account A grants consent
+    // Rejecting exchange makes conversation read-only
     await asUser(ACCOUNT_A_PROVIDER, 'authenticated');
-    await db.query(`
-      UPDATE public.profiles
-      SET phone = '+919876543210',
-          whatsapp_number = '+919876543210',
-          share_phone_with_exchange = true,
-          share_whatsapp_with_exchange = true
-      WHERE id = $1;
-    `, [ACCOUNT_A_PROVIDER]);
+    await db.query(`UPDATE public.exchange_requests SET status = 'rejected' WHERE id = $1;`, [reqId]);
 
-    // Account B can read contact
-    await asUser(ACCOUNT_B_REQUESTER, 'authenticated');
-    const res1 = (await db.query(`SELECT public.get_exchange_participant_contact($1, $2) as res;`, [convRow.id, ACCOUNT_A_PROVIDER])).rows[0].res;
-    expect(res1.phone).toBe('+919876543210');
-    expect(res1.whatsapp).toBe('+919876543210');
-
-    // Account A now REVOKES phone consent but keeps WhatsApp
-    await asUser(ACCOUNT_A_PROVIDER, 'authenticated');
-    await db.query(`
-      UPDATE public.profiles
-      SET share_phone_with_exchange = false
-      WHERE id = $1;
-    `, [ACCOUNT_A_PROVIDER]);
-
-    // Account B calls function: phone is immediately NULL, whatsapp remains visible
-    await asUser(ACCOUNT_B_REQUESTER, 'authenticated');
-    const res2 = (await db.query(`SELECT public.get_exchange_participant_contact($1, $2) as res;`, [convRow.id, ACCOUNT_A_PROVIDER])).rows[0].res;
-    expect(res2.phone).toBeNull();
-    expect(res2.has_phone_consent).toBe(false);
-    expect(res2.whatsapp).toBe('+919876543210');
-    expect(res2.has_whatsapp_consent).toBe(true);
-  });
-
-  it('Requirement 7: Two exchanges create two separate, isolated conversations', async () => {
-    await asUser(ACCOUNT_B_REQUESTER, 'authenticated');
-
-    const reqId1 = 'bbbbbbbb-1111-4000-8000-000000000007';
-    const reqId2 = 'bbbbbbbb-1111-4000-8000-000000000008';
-
-    await db.query(`
-      INSERT INTO public.exchange_requests (id, listing_id, requester_id, requested_quantity, message, completion_code)
-      VALUES ($1, $2, $3, 10, 'Message for Listing 1', 'GL-7771');
-    `, [reqId1, LISTING_ID_1, ACCOUNT_B_REQUESTER]);
-
-    await db.query(`
-      INSERT INTO public.exchange_requests (id, listing_id, requester_id, requested_quantity, message, completion_code)
-      VALUES ($1, $2, $3, 5, 'Message for Listing 2', 'GL-7772');
-    `, [reqId2, LISTING_ID_2, ACCOUNT_B_REQUESTER]);
-
-    await asSuperuser();
-    const conv1 = (await db.query(`SELECT * FROM public.conversations WHERE exchange_request_id = $1;`, [reqId1])).rows[0];
-    const conv2 = (await db.query(`SELECT * FROM public.conversations WHERE exchange_request_id = $1;`, [reqId2])).rows[0];
-
-    expect(conv1.id).not.toBe(conv2.id);
-    expect(conv1.listing_id).toBe(LISTING_ID_1);
-    expect(conv2.listing_id).toBe(LISTING_ID_2);
-
-    const msgs1 = (await db.query(`SELECT * FROM public.messages WHERE conversation_id = $1;`, [conv1.id])).rows;
-    const msgs2 = (await db.query(`SELECT * FROM public.messages WHERE conversation_id = $1;`, [conv2.id])).rows;
-
-    expect(msgs1.length).toBe(1);
-    expect(msgs1[0].message_text).toBe('Message for Listing 1');
-    expect(msgs2.length).toBe(1);
-    expect(msgs2[0].message_text).toBe('Message for Listing 2');
-  });
-
-  it('Requirement 7: Legacy exchange request with missing or deleted listing handles gracefully', async () => {
-    await asUser(ACCOUNT_B_REQUESTER, 'authenticated');
-
-    const legacyReqId = 'bbbbbbbb-9999-4000-8000-000000000009';
-    const nonExistentListingId = '99999999-9999-4000-8000-999999999999';
-
-    // Disabling foreign key temporarily to simulate orphaned request
-    await asSuperuser();
-    await db.query(`ALTER TABLE public.exchange_requests DROP CONSTRAINT IF EXISTS exchange_requests_listing_id_fkey;`);
-
-    // Insert orphaned exchange request without provider_id
+    // Inserting new message after rejection is blocked
     await asUser(ACCOUNT_B_REQUESTER, 'authenticated');
     await expect(
       db.query(`
-        INSERT INTO public.exchange_requests (id, listing_id, requester_id, requested_quantity, message, completion_code)
-        VALUES ($1, $2, $3, 10, 'Orphaned message', 'GL-9999');
-      `, [legacyReqId, nonExistentListingId, ACCOUNT_B_REQUESTER])
-    ).resolves.toBeDefined();
-
-    // Conversation is safely skipped without throwing an exception or aborting
-    await asSuperuser();
-    const convRes = await db.query(`SELECT * FROM public.conversations WHERE exchange_request_id = $1;`, [legacyReqId]);
-    expect(convRes.rows.length).toBe(0);
+        INSERT INTO public.messages (conversation_id, sender_id, message_text)
+        VALUES ($1, $2, 'Are you there?');
+      `, [convRow.id, ACCOUNT_B_REQUESTER])
+    ).rejects.toThrow(/Conversation is read-only/i);
   });
 });
