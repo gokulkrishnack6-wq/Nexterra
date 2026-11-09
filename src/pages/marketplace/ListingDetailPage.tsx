@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Package,
   MessageSquare,
+  MessageCircle,
   Repeat
 } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
@@ -404,8 +405,9 @@ export const ListingDetailPage: React.FC = () => {
                     <span className="text-xs font-semibold text-primary">
                       {incomingRequests.length} Incoming Proposal{incomingRequests.length > 1 ? 's' : ''}
                     </span>
-                    <span className="text-[10px] text-on-surface-variant font-medium">
-                      Direct Chat Active
+                    <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-1">
+                      <MessageCircle className="w-3 h-3 text-[#25D366]" />
+                      WhatsApp Coordination
                     </span>
                   </div>
                   <div className="space-y-2">

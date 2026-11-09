@@ -211,7 +211,7 @@ export const Navbar: React.FC = () => {
                 <button
                   onClick={() => setProfileSettingsOpen(true)}
                   className="p-1.5 text-on-surface-variant hover:text-primary hover:bg-surface-container rounded-lg transition-colors"
-                  title="Contact & Chat Privacy Settings"
+                  title="WhatsApp & Contact Privacy Settings"
                 >
                   <Settings className="w-4 h-4" />
                 </button>
@@ -270,7 +270,7 @@ export const Navbar: React.FC = () => {
                 className="w-full text-left px-3 py-2 text-xs font-medium text-on-surface hover:bg-surface-container rounded-lg flex items-center gap-2"
               >
                 <Settings className="w-4 h-4 text-secondary" />
-                <span>Contact & Chat Privacy</span>
+                <span>WhatsApp & Contact Privacy</span>
               </button>
             )}
             <div className="pt-2 border-t border-outline-variant/40 flex items-center justify-between px-3">

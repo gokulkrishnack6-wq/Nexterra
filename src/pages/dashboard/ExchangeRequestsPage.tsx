@@ -18,6 +18,7 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/Skeleton';
 import { ProfileSettingsModal } from '../../components/profile/ProfileSettingsModal';
+import { createWhatsAppLink, buildExchangeWhatsAppMessage } from '../../utils/whatsapp';
 
 interface WhatsAppActionButtonProps {
   requestId: string;
@@ -120,15 +121,20 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
     );
   }
 
-  // Normalize phone number (digits only, no +, spaces, or dashes)
-  let cleanNumber = contactData.whatsapp.replace(/\D/g, '');
-  if (cleanNumber.length === 10) {
-    cleanNumber = `91${cleanNumber}`;
+  // Generate dynamic WhatsApp Click-to-Chat URL with contextual prefilled message
+  let waUrl = '#';
+  try {
+    const prefilledText = buildExchangeWhatsAppMessage({ listingTitle });
+    waUrl = createWhatsAppLink(contactData.whatsapp, prefilledText);
+  } catch (linkErr) {
+    console.warn('Failed to build WhatsApp link:', linkErr);
+    return (
+      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-xs text-outline border border-outline-variant/40">
+        <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+        <span>Invalid WhatsApp number format</span>
+      </div>
+    );
   }
-
-  // Contextual pre-filled message (never expose the handover completion code!)
-  const prefilledText = `Hi, I'm contacting you via GreenLoop regarding our accepted exchange for "${listingTitle}".`;
-  const waUrl = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(prefilledText)}`;
 
   return (
     <a
@@ -368,9 +374,11 @@ export const ExchangeRequestsPage: React.FC = () => {
             const isLoadingAction = Boolean(actionLoading[req.id]);
 
             // Derive the other participant's ID
-            const otherParticipantId = activeTab === 'incoming'
+            // Strictly uses the actual provider_id on the exchange request rather than assuming the listing owner
+            const isProvider = currentUser?.id === req.provider_id;
+            const otherParticipantId = isProvider
               ? req.requester_id
-              : (req.provider_id || listing?.user_id || '');
+              : (req.provider_id || (activeTab === 'incoming' ? req.requester_id : listing?.user_id || ''));
 
             return (
               <Card
