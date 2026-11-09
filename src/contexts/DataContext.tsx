@@ -66,6 +66,7 @@ interface DataContextType {
     participant_id: string;
     whatsapp: string | null;
     has_whatsapp_consent: boolean;
+    contact_state?: 'missing_number' | 'invalid_number' | 'sharing_disabled' | 'sharing_enabled';
     status?: string;
     notice?: string;
   }>;
@@ -1514,6 +1515,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       participant_id: string;
       whatsapp: string | null;
       has_whatsapp_consent: boolean;
+      contact_state?: 'missing_number' | 'invalid_number' | 'sharing_disabled' | 'sharing_enabled';
       status?: string;
       notice?: string;
     }> => {
@@ -1536,22 +1538,55 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const req = exchangeRequests.find((r) => r.id === exchangeRequestId);
       if (req && req.status === 'accepted') {
         const targetUser = req.requester_id === participantId ? req.requester : (req.provider || req.listing?.user);
-        if (targetUser?.share_whatsapp_with_exchange && targetUser.whatsapp_number) {
-          const digits = targetUser.whatsapp_number.replace(/\D/g, '');
-          const cleanWa = digits.length === 10 ? `91${digits}` : digits;
+        if (!targetUser || !targetUser.whatsapp_number) {
           return {
             participant_id: participantId,
-            whatsapp: cleanWa,
-            has_whatsapp_consent: true,
+            whatsapp: null,
+            has_whatsapp_consent: Boolean(targetUser?.share_whatsapp_with_exchange),
+            contact_state: 'missing_number',
             status: req.status,
+            notice: 'Participant has not provided a WhatsApp contact number.',
           };
         }
+
+        const digits = targetUser.whatsapp_number.replace(/\D/g, '');
+        if (digits.length < 10 || digits.length > 15) {
+          return {
+            participant_id: participantId,
+            whatsapp: null,
+            has_whatsapp_consent: Boolean(targetUser.share_whatsapp_with_exchange),
+            contact_state: 'invalid_number',
+            status: req.status,
+            notice: 'Participant WhatsApp contact number format is invalid.',
+          };
+        }
+
+        if (!targetUser.share_whatsapp_with_exchange) {
+          return {
+            participant_id: participantId,
+            whatsapp: null,
+            has_whatsapp_consent: false,
+            contact_state: 'sharing_disabled',
+            status: req.status,
+            notice: 'Participant has opted not to share their WhatsApp contact.',
+          };
+        }
+
+        const cleanWa = digits.length === 10 ? `91${digits}` : digits;
+        return {
+          participant_id: participantId,
+          whatsapp: cleanWa,
+          has_whatsapp_consent: true,
+          contact_state: 'sharing_enabled',
+          status: req.status,
+        };
       }
 
       return {
         participant_id: participantId,
         whatsapp: null,
         has_whatsapp_consent: false,
+        contact_state: 'missing_number',
         status: req?.status || 'pending',
       };
     },

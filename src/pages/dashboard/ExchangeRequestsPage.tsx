@@ -37,6 +37,7 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
   const [contactData, setContactData] = useState<{
     whatsapp: string | null;
     has_whatsapp_consent: boolean;
+    contact_state?: 'missing_number' | 'invalid_number' | 'sharing_disabled' | 'sharing_enabled';
     notice?: string;
   } | null>(null);
 
@@ -58,7 +59,7 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
       .catch((err) => {
         if (isMounted) {
           console.warn('Failed to load WhatsApp contact:', err);
-          setContactData({ whatsapp: null, has_whatsapp_consent: false });
+          setContactData({ whatsapp: null, has_whatsapp_consent: false, contact_state: 'sharing_disabled' });
           setLoading(false);
         }
       });
@@ -79,15 +80,37 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
     );
   }
 
-  if (!contactData || !contactData.has_whatsapp_consent) {
+  // Explicit state 1: missing_number
+  if (contactData?.contact_state === 'missing_number' || (!contactData?.whatsapp && !contactData?.has_whatsapp_consent && contactData?.contact_state !== 'sharing_disabled')) {
     return (
-      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-xs text-on-surface-variant/80 border border-outline-variant/40">
-        <ShieldAlert className="w-3.5 h-3.5 text-outline shrink-0" />
-        <span>WhatsApp contact not shared</span>
+      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-xs text-outline border border-outline-variant/40">
+        <AlertCircle className="w-3.5 h-3.5 text-outline shrink-0" />
+        <span>{contactData?.notice || 'WhatsApp number not configured'}</span>
       </div>
     );
   }
 
+  // Explicit state 2: invalid_number
+  if (contactData?.contact_state === 'invalid_number') {
+    return (
+      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-xs text-outline border border-outline-variant/40">
+        <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+        <span>{contactData.notice || 'Invalid WhatsApp number format'}</span>
+      </div>
+    );
+  }
+
+  // Explicit state 3: sharing_disabled
+  if (contactData?.contact_state === 'sharing_disabled' || !contactData?.has_whatsapp_consent) {
+    return (
+      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-xs text-on-surface-variant/80 border border-outline-variant/40">
+        <ShieldAlert className="w-3.5 h-3.5 text-outline shrink-0" />
+        <span>{contactData?.notice || 'WhatsApp contact not shared'}</span>
+      </div>
+    );
+  }
+
+  // Explicit state 4: sharing_enabled
   if (!contactData.whatsapp) {
     return (
       <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-xs text-outline border border-outline-variant/40">

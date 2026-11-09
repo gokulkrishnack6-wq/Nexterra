@@ -43,10 +43,20 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({ isOp
     setIsSaving(true);
     setStatusMsg(null);
 
+    // Format validation if WhatsApp number is provided
+    if (whatsappNumber.trim()) {
+      const cleanDigits = whatsappNumber.replace(/\D/g, '');
+      if (cleanDigits.length < 10 || cleanDigits.length > 15) {
+        setStatusMsg({ type: 'error', text: 'Please enter a valid mobile number with 10 to 15 digits.' });
+        setIsSaving(false);
+        return;
+      }
+    }
+
     try {
       const res = await updateProfile({
-        phone: phone.trim() || undefined,
-        whatsapp_number: whatsappNumber.trim() || undefined,
+        phone: phone.trim() ? phone.trim() : undefined,
+        whatsapp_number: whatsappNumber.trim() ? whatsappNumber.trim() : undefined,
         share_phone_with_exchange: sharePhone,
         share_whatsapp_with_exchange: shareWhatsapp,
       });
@@ -55,7 +65,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({ isOp
         setStatusMsg({ type: 'success', text: 'Privacy & contact preferences saved.' });
         setTimeout(() => {
           onClose();
-        }, 1200);
+        }, 1000);
       } else {
         setStatusMsg({ type: 'error', text: res.error || 'Failed to update preferences.' });
       }

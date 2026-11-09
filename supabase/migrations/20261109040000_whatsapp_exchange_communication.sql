@@ -90,33 +90,62 @@ BEGIN
     RAISE EXCEPTION 'Participant profile not found.';
   END IF;
 
-  -- G. Strict Consent & Format Validation
-  IF v_target_profile.share_whatsapp_with_exchange IS TRUE THEN
-    v_raw_wa := COALESCE(v_target_profile.whatsapp_number, v_target_profile.phone_number, v_target_profile.phone);
-    IF v_raw_wa IS NOT NULL THEN
-      -- Normalize to digits only
-      v_clean_wa := regexp_replace(v_raw_wa, '[^\d]', '', 'g');
-      v_wa_digits := length(v_clean_wa);
+  -- G. Strict Consent & Format Validation with Distinct State Resolution
+  v_raw_wa := COALESCE(v_target_profile.whatsapp_number, v_target_profile.phone_number, v_target_profile.phone);
+  IF v_raw_wa IS NOT NULL AND TRIM(v_raw_wa) <> '' THEN
+    -- Normalize to digits only
+    v_clean_wa := regexp_replace(v_raw_wa, '[^\d]', '', 'g');
+    v_wa_digits := length(v_clean_wa);
 
-      -- If exactly 10 digits (common for Indian mobile numbers without country code), default prefix +91
-      IF v_wa_digits = 10 THEN
-        v_clean_wa := '91' || v_clean_wa;
-        v_wa_digits := 12;
-      END IF;
-
-      -- Standard international E.164 phone numbers have 10-15 digits
-      IF v_wa_digits < 10 OR v_wa_digits > 15 THEN
-        v_clean_wa := NULL;
-      END IF;
+    -- If exactly 10 digits (common for Indian mobile numbers without country code), default prefix +91
+    IF v_wa_digits = 10 THEN
+      v_clean_wa := '91' || v_clean_wa;
+      v_wa_digits := 12;
     END IF;
   END IF;
 
-  RETURN jsonb_build_object(
-    'participant_id', p_participant_id,
-    'whatsapp', v_clean_wa,
-    'has_whatsapp_consent', (v_target_profile.share_whatsapp_with_exchange IS TRUE AND v_clean_wa IS NOT NULL),
-    'status', v_req.status
-  );
+  -- Distinguish 4 explicit contact states:
+  -- 1. Missing number: Target has not entered any number
+  -- 2. Invalid number: Target has configured an invalid digit count (<10 or >15)
+  -- 3. Sharing disabled: Target has a number but disabled consent
+  -- 4. Sharing enabled: Target has consented and number is valid
+  IF v_clean_wa IS NULL THEN
+    RETURN jsonb_build_object(
+      'participant_id', p_participant_id,
+      'whatsapp', NULL,
+      'has_whatsapp_consent', false,
+      'contact_state', 'missing_number',
+      'notice', 'Partner has not configured a WhatsApp number',
+      'status', v_req.status
+    );
+  ELSIF v_wa_digits < 10 OR v_wa_digits > 15 THEN
+    RETURN jsonb_build_object(
+      'participant_id', p_participant_id,
+      'whatsapp', NULL,
+      'has_whatsapp_consent', false,
+      'contact_state', 'invalid_number',
+      'notice', 'Partner''s WhatsApp number is invalid',
+      'status', v_req.status
+    );
+  ELSIF v_target_profile.share_whatsapp_with_exchange IS NOT TRUE THEN
+    RETURN jsonb_build_object(
+      'participant_id', p_participant_id,
+      'whatsapp', NULL,
+      'has_whatsapp_consent', false,
+      'contact_state', 'sharing_disabled',
+      'notice', 'WhatsApp contact not shared by partner',
+      'status', v_req.status
+    );
+  ELSE
+    RETURN jsonb_build_object(
+      'participant_id', p_participant_id,
+      'whatsapp', v_clean_wa,
+      'has_whatsapp_consent', true,
+      'contact_state', 'sharing_enabled',
+      'notice', 'WhatsApp contact active for collection coordination',
+      'status', v_req.status
+    );
+  END IF;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -371,4 +400,145 @@ $$ LANGUAGE plpgsql;
 
 REVOKE ALL ON FUNCTION public.confirm_exchange_handover(UUID, TEXT) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.confirm_exchange_handover(UUID, TEXT) TO authenticated;
+
+-- 5. Persistent WhatsApp Synchronization on User Signup Trigger
+-- Authoritatively persists whatsapp_number and sharing consent from signup metadata into public.profiles
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER 
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_full_name TEXT;
+  v_district TEXT;
+  v_whatsapp TEXT;
+  v_share_wa BOOLEAN;
+  v_phone TEXT;
+BEGIN
+  v_full_name := COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1), 'GreenLoop Member');
+  v_district := NULLIF(TRIM(NEW.raw_user_meta_data->>'district'), '');
+  v_whatsapp := NULLIF(TRIM(NEW.raw_user_meta_data->>'whatsapp_number'), '');
+  v_share_wa := COALESCE((NEW.raw_user_meta_data->>'share_whatsapp_with_exchange')::BOOLEAN, false);
+  v_phone := NULLIF(TRIM(COALESCE(NEW.raw_user_meta_data->>'phone', NEW.raw_user_meta_data->>'phone_number')), '');
+
+  INSERT INTO public.profiles (
+    id,
+    full_name,
+    email,
+    district,
+    state,
+    whatsapp_number,
+    share_whatsapp_with_exchange,
+    phone,
+    phone_number,
+    eco_points_balance,
+    is_verified,
+    created_at,
+    updated_at
+  )
+  VALUES (
+    NEW.id,
+    v_full_name,
+    COALESCE(NEW.email, ''),
+    v_district,
+    'Kerala',
+    v_whatsapp,
+    v_share_wa,
+    v_phone,
+    v_phone,
+    0,
+    COALESCE(NEW.email_confirmed_at IS NOT NULL, false),
+    NOW(),
+    NOW()
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    district = COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'district'), ''), public.profiles.district),
+    whatsapp_number = COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'whatsapp_number'), ''), public.profiles.whatsapp_number),
+    share_whatsapp_with_exchange = COALESCE((NEW.raw_user_meta_data->>'share_whatsapp_with_exchange')::BOOLEAN, public.profiles.share_whatsapp_with_exchange),
+    phone = COALESCE(NULLIF(TRIM(COALESCE(NEW.raw_user_meta_data->>'phone', NEW.raw_user_meta_data->>'phone_number')), ''), public.profiles.phone),
+    phone_number = COALESCE(NULLIF(TRIM(COALESCE(NEW.raw_user_meta_data->>'phone', NEW.raw_user_meta_data->>'phone_number')), ''), public.profiles.phone_number),
+    is_verified = CASE WHEN NEW.email_confirmed_at IS NOT NULL THEN true ELSE public.profiles.is_verified END,
+    updated_at = NOW();
+
+  -- Optionally update custom role if supplied in metadata, casting to live column type
+  IF NEW.raw_user_meta_data->>'role' IS NOT NULL THEN
+    BEGIN
+      EXECUTE 'UPDATE public.profiles SET role = $1::' || 
+        (SELECT CASE WHEN udt_name = 'user_role' THEN 'user_role' ELSE 'text' END 
+         FROM information_schema.columns 
+         WHERE table_schema = 'public' AND table_name = 'profiles' AND column_name = 'role') || 
+        ' WHERE id = $2'
+      USING (NEW.raw_user_meta_data->>'role'), NEW.id;
+    EXCEPTION WHEN OTHERS THEN
+      NULL;
+    END;
+  END IF;
+
+  -- Authoritative Welcome EcoPoints Allocation
+  BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'eco_points') THEN
+      INSERT INTO public.eco_points (user_id, points, action_type, description)
+      SELECT
+        NEW.id,
+        50,
+        'signup_bonus',
+        'Welcome bonus for joining GreenLoop circular ecosystem'
+      WHERE NOT EXISTS (
+        SELECT 1 FROM public.eco_points 
+        WHERE user_id = NEW.id AND action_type = 'signup_bonus'
+      );
+
+      PERFORM set_config('greenloop.internal_ecopoints_update', 'true', true);
+
+      UPDATE public.profiles
+      SET eco_points_balance = (SELECT COALESCE(SUM(points), 0) FROM public.eco_points WHERE user_id = NEW.id)
+      WHERE id = NEW.id;
+    END IF;
+  EXCEPTION 
+    WHEN unique_violation THEN
+      PERFORM set_config('greenloop.internal_ecopoints_update', 'true', true);
+      UPDATE public.profiles
+      SET eco_points_balance = (SELECT COALESCE(SUM(points), 0) FROM public.eco_points WHERE user_id = NEW.id)
+      WHERE id = NEW.id;
+    WHEN OTHERS THEN
+      NULL;
+  END;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Re-attach on_auth_user_created trigger on auth.users
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables 
+    WHERE table_schema = 'auth' AND table_name = 'users'
+  ) THEN
+    DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+    CREATE TRIGGER on_auth_user_created
+      AFTER INSERT ON auth.users
+      FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+  END IF;
+END $$;
+
+-- Safe backfill: sync any existing auth metadata whatsapp numbers into profiles if missing
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'auth' AND table_name = 'users' AND column_name = 'raw_user_meta_data'
+  ) THEN
+    UPDATE public.profiles p
+    SET 
+      whatsapp_number = COALESCE(p.whatsapp_number, NULLIF(TRIM(u.raw_user_meta_data->>'whatsapp_number'), '')),
+      share_whatsapp_with_exchange = COALESCE(p.share_whatsapp_with_exchange, (u.raw_user_meta_data->>'share_whatsapp_with_exchange')::BOOLEAN, false)
+    FROM auth.users u
+    WHERE p.id = u.id
+      AND (p.whatsapp_number IS NULL OR p.whatsapp_number = '')
+      AND u.raw_user_meta_data->>'whatsapp_number' IS NOT NULL;
+  END IF;
+END $$;
+
 

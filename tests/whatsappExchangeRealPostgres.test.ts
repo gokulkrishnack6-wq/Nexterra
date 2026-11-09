@@ -59,6 +59,14 @@ describe('GreenLoop WhatsApp Exchange & Contact Privacy — PGlite Tests', () =>
       CREATE SCHEMA IF NOT EXISTS auth;
       CREATE SCHEMA IF NOT EXISTS public;
 
+      CREATE TABLE IF NOT EXISTS auth.users (
+        id UUID PRIMARY KEY,
+        email TEXT,
+        raw_user_meta_data JSONB DEFAULT '{}'::jsonb,
+        email_confirmed_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
       CREATE OR REPLACE FUNCTION auth.uid() RETURNS UUID AS $$
       BEGIN
         RETURN NULLIF(current_setting('request.jwt.claim.sub', true), '')::UUID;
@@ -92,12 +100,17 @@ describe('GreenLoop WhatsApp Exchange & Contact Privacy — PGlite Tests', () =>
         id UUID PRIMARY KEY,
         full_name TEXT NOT NULL,
         email TEXT,
+        district TEXT,
+        state TEXT DEFAULT 'Kerala',
         phone TEXT,
         phone_number TEXT,
         whatsapp_number TEXT,
         share_phone_with_exchange BOOLEAN DEFAULT false,
         share_whatsapp_with_exchange BOOLEAN DEFAULT false,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        eco_points_balance INT DEFAULT 0,
+        is_verified BOOLEAN DEFAULT false,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
 
       CREATE TABLE public.waste_categories (
@@ -415,5 +428,183 @@ describe('GreenLoop WhatsApp Exchange & Contact Privacy — PGlite Tests', () =>
     const created = await db.query(`SELECT * FROM public.listings WHERE id = $1;`, [newListingId]);
     expect(created.rows.length).toBe(1);
     expect(created.rows[0].title).toBe('Newspaper Bundles');
+  });
+
+  it('Verifies WhatsApp Number Persistent Storage, Signup Trigger Synchronization, and Cross-Account Isolation', async () => {
+    await applyAllMigrations();
+
+    const USER_ALPHA = '55555555-5555-4000-8000-000000000005';
+    const USER_BETA = '66666666-6666-4000-8000-000000000006';
+    const USER_GAMMA = '77777777-7777-4000-8000-000000000007';
+
+    await asSuperuser();
+
+    // 1. Account Alpha signs up with WhatsApp number & consent = true
+    await db.query(`
+      INSERT INTO auth.users (id, email, raw_user_meta_data)
+      VALUES (
+        $1,
+        'alpha@greenloop.org',
+        jsonb_build_object(
+          'full_name', 'Alpha Alappuzha',
+          'district', 'Alappuzha',
+          'whatsapp_number', '+91 98765 55555',
+          'share_whatsapp_with_exchange', true
+        )
+      );
+    `, [USER_ALPHA]);
+
+    // Verify handle_new_user() trigger automatically populated public.profiles
+    let profileAlpha = await db.query(`SELECT * FROM public.profiles WHERE id = $1;`, [USER_ALPHA]);
+    expect(profileAlpha.rows.length).toBe(1);
+    expect(profileAlpha.rows[0].whatsapp_number).toBe('+91 98765 55555');
+    expect(profileAlpha.rows[0].share_whatsapp_with_exchange).toBe(true);
+
+    // 2. Client-side registration upsert race condition safety:
+    // AuthContext.registerUser() executes an upsert which must succeed without duplicate key errors
+    await asUser(USER_ALPHA, 'authenticated');
+    await db.query(`
+      INSERT INTO public.profiles (id, full_name, email, whatsapp_number, share_whatsapp_with_exchange)
+      VALUES ($1, 'Alpha Alappuzha', 'alpha@greenloop.org', '+91 98765 55555', true)
+      ON CONFLICT (id) DO UPDATE SET
+        whatsapp_number = EXCLUDED.whatsapp_number,
+        share_whatsapp_with_exchange = EXCLUDED.share_whatsapp_with_exchange;
+    `, [USER_ALPHA]);
+
+    profileAlpha = await db.query(`SELECT * FROM public.profiles WHERE id = $1;`, [USER_ALPHA]);
+    expect(profileAlpha.rows[0].whatsapp_number).toBe('+91 98765 55555');
+
+    // 3. Account Beta signs up with distinct WhatsApp number and consent = false
+    await asSuperuser();
+    await db.query(`
+      INSERT INTO auth.users (id, email, raw_user_meta_data)
+      VALUES (
+        $1,
+        'beta@greenloop.org',
+        jsonb_build_object(
+          'full_name', 'Beta Kozhikode',
+          'district', 'Kozhikode',
+          'whatsapp_number', '+91 98765 66666',
+          'share_whatsapp_with_exchange', false
+        )
+      );
+    `, [USER_BETA]);
+
+    const profileBeta = await db.query(`SELECT * FROM public.profiles WHERE id = $1;`, [USER_BETA]);
+    expect(profileBeta.rows.length).toBe(1);
+    expect(profileBeta.rows[0].whatsapp_number).toBe('+91 98765 66666');
+    expect(profileBeta.rows[0].share_whatsapp_with_exchange).toBe(false);
+
+    // 4. Persistence & UI Prompt Condition Verification:
+    // User Alpha has a saved WhatsApp number -> Exchanges page banner (!user.whatsapp_number) evaluates false
+    const alphaHasNumber = Boolean(profileAlpha.rows[0].whatsapp_number?.trim());
+    expect(alphaHasNumber).toBe(true);
+
+    // User Beta has a saved WhatsApp number (with consent false) -> banner also evaluates false!
+    // Storing consent independently ensures users who opted out of sharing are NOT badgered to configure a number
+    const betaHasNumber = Boolean(profileBeta.rows[0].whatsapp_number?.trim());
+    expect(betaHasNumber).toBe(true);
+    expect(profileBeta.rows[0].share_whatsapp_with_exchange).toBe(false);
+
+    // 5. Profile Update Verification & Account Isolation:
+    // User Alpha updates their number and toggles consent
+    await asUser(USER_ALPHA, 'authenticated');
+    await db.query(`
+      UPDATE public.profiles
+      SET whatsapp_number = '+91 98765 77777', share_whatsapp_with_exchange = false
+      WHERE id = $1;
+    `, [USER_ALPHA]);
+
+    const updatedAlpha = await db.query(`SELECT * FROM public.profiles WHERE id = $1;`, [USER_ALPHA]);
+    expect(updatedAlpha.rows[0].whatsapp_number).toBe('+91 98765 77777');
+    expect(updatedAlpha.rows[0].share_whatsapp_with_exchange).toBe(false);
+
+    // Verify Beta's profile was NOT modified (strict cross-account isolation)
+    const untouchedBeta = await db.query(`SELECT * FROM public.profiles WHERE id = $1;`, [USER_BETA]);
+    expect(untouchedBeta.rows[0].whatsapp_number).toBe('+91 98765 66666');
+    expect(untouchedBeta.rows[0].share_whatsapp_with_exchange).toBe(false);
+
+    // 6. Contact State Transitions & Explicit Statuses (4 states):
+    // Create listing owned by Alpha
+    const alphaListingId = 'aaaaaaaa-cccc-4000-8000-000000000001';
+    await asUser(USER_ALPHA, 'authenticated');
+    await db.query(`
+      INSERT INTO public.listings (id, user_id, category_id, title, quantity)
+      VALUES ('${alphaListingId}', '${USER_ALPHA}', '${CATEGORY_ID_1}', 'Compost Batch', 15);
+    `);
+
+    // Beta requests the exchange
+    const alphaBetaReqId = 'bbbbbbbb-5555-4000-8000-000000000005';
+    await asUser(USER_BETA, 'authenticated');
+    await db.query(`
+      INSERT INTO public.exchange_requests (id, listing_id, requester_id, requested_quantity, completion_code)
+      VALUES ('${alphaBetaReqId}', '${alphaListingId}', '${USER_BETA}', 5, 'GL-5555');
+    `);
+
+    // Alpha accepts the exchange
+    await asUser(USER_ALPHA, 'authenticated');
+    await db.query(`UPDATE public.exchange_requests SET status = 'accepted' WHERE id = '${alphaBetaReqId}';`);
+
+    // State 1: sharing_disabled
+    // Beta queries Alpha's contact while Alpha has share_whatsapp_with_exchange = false
+    await asUser(USER_BETA, 'authenticated');
+    const resSharingDisabled = await db.query(
+      `SELECT public.get_exchange_whatsapp_contact($1, $2) as res;`,
+      [alphaBetaReqId, USER_ALPHA]
+    );
+    expect(resSharingDisabled.rows[0].res.whatsapp).toBeNull();
+    expect(resSharingDisabled.rows[0].res.has_whatsapp_consent).toBe(false);
+    expect(resSharingDisabled.rows[0].res.contact_state).toBe('sharing_disabled');
+    expect(resSharingDisabled.rows[0].res.notice).toBe('WhatsApp contact not shared by partner');
+
+    // State 2: sharing_enabled
+    // Alpha enables consent
+    await asUser(USER_ALPHA, 'authenticated');
+    await db.query(`UPDATE public.profiles SET share_whatsapp_with_exchange = true WHERE id = $1;`, [USER_ALPHA]);
+
+    await asUser(USER_BETA, 'authenticated');
+    const resSharingEnabled = await db.query(
+      `SELECT public.get_exchange_whatsapp_contact($1, $2) as res;`,
+      [alphaBetaReqId, USER_ALPHA]
+    );
+    expect(resSharingEnabled.rows[0].res.whatsapp).toBe('919876577777');
+    expect(resSharingEnabled.rows[0].res.has_whatsapp_consent).toBe(true);
+    expect(resSharingEnabled.rows[0].res.contact_state).toBe('sharing_enabled');
+    expect(resSharingEnabled.rows[0].res.notice).toBe('WhatsApp contact active for collection coordination');
+
+    // State 3: missing_number
+    // Create User Gamma without a WhatsApp number
+    await asSuperuser();
+    await db.query(`
+      INSERT INTO public.profiles (id, full_name, email, whatsapp_number, share_whatsapp_with_exchange)
+      VALUES ('${USER_GAMMA}', 'Gamma Thrissur', 'gamma@greenloop.org', NULL, true);
+    `);
+    const gammaReqId = 'bbbbbbbb-6666-4000-8000-000000000006';
+    await db.query(`
+      INSERT INTO public.exchange_requests (id, listing_id, requester_id, requested_quantity, completion_code)
+      VALUES ('${gammaReqId}', '${alphaListingId}', '${USER_GAMMA}', 2, 'GL-6666');
+    `);
+    await asUser(USER_ALPHA, 'authenticated');
+    await db.query(`UPDATE public.exchange_requests SET status = 'accepted' WHERE id = '${gammaReqId}';`);
+
+    const resMissing = await db.query(
+      `SELECT public.get_exchange_whatsapp_contact($1, $2) as res;`,
+      [gammaReqId, USER_GAMMA]
+    );
+    expect(resMissing.rows[0].res.whatsapp).toBeNull();
+    expect(resMissing.rows[0].res.contact_state).toBe('missing_number');
+    expect(resMissing.rows[0].res.notice).toBe('Partner has not configured a WhatsApp number');
+
+    // State 4: invalid_number
+    await asSuperuser();
+    await db.query(`UPDATE public.profiles SET whatsapp_number = '123' WHERE id = '${USER_GAMMA}';`);
+    await asUser(USER_ALPHA, 'authenticated');
+    const resInvalid = await db.query(
+      `SELECT public.get_exchange_whatsapp_contact($1, $2) as res;`,
+      [gammaReqId, USER_GAMMA]
+    );
+    expect(resInvalid.rows[0].res.whatsapp).toBeNull();
+    expect(resInvalid.rows[0].res.contact_state).toBe('invalid_number');
+    expect(resInvalid.rows[0].res.notice).toBe("Partner's WhatsApp number is invalid");
   });
 });

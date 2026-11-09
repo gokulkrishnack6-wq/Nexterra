@@ -85,6 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!isSupabaseConfigured || !supabase) return;
 
       const isEmailConfirmed = Boolean(user.email_confirmed_at || user.confirmed_at);
+      const metadata = user.user_metadata || {};
 
       // 1. Try querying the profiles table
       const { data: profileData, error: profileError } = await supabase
@@ -95,10 +96,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (profileData) {
         const verified = isEmailConfirmed || Boolean(profileData.is_verified);
+
+        // Canonical resolution: check database column first, fall back to auth user metadata
+        const dbWa = profileData.whatsapp_number ? String(profileData.whatsapp_number).trim() : null;
+        const metaWa = metadata.whatsapp_number ? String(metadata.whatsapp_number).trim() : null;
+        const resolvedWa = dbWa || metaWa || undefined;
+
+        // Consent resolution: check database column first, fall back to metadata, default false
+        const dbShareWa = profileData.share_whatsapp_with_exchange;
+        const metaShareWa = metadata.share_whatsapp_with_exchange;
+        const resolvedShareWa = typeof dbShareWa === 'boolean'
+          ? dbShareWa
+          : typeof metaShareWa === 'boolean'
+            ? metaShareWa
+            : false;
+
         const updatedProfile: UserProfile = {
           ...(profileData as UserProfile),
+          whatsapp_number: resolvedWa,
+          share_whatsapp_with_exchange: resolvedShareWa,
           is_verified: verified,
         };
+
+        // Self-healing synchronization: if auth metadata has the WhatsApp number but the profiles row lacks it,
+        // persist it to public.profiles immediately so it stays authoritative and persistent.
+        if (!dbWa && metaWa) {
+          try {
+            await supabase.from('profiles').update({
+              whatsapp_number: metaWa,
+              share_whatsapp_with_exchange: resolvedShareWa,
+              updated_at: new Date().toISOString(),
+            }).eq('id', user.id);
+          } catch (syncErr: any) {
+            console.warn('Auto-syncing metadata WhatsApp number to profiles row:', syncErr);
+          }
+        }
 
         // If email is confirmed in Auth but not yet marked in public.profiles table, sync it
         if (verified && !profileData.is_verified) {
@@ -115,13 +147,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // 2. If no record in profiles table yet, assemble from Supabase user metadata
-      const metadata = user.user_metadata || {};
       const generatedProfile: UserProfile = {
         id: user.id,
         full_name: metadata.full_name || user.email?.split('@')[0] || 'Member',
         email: user.email || '',
         phone: user.phone || metadata.phone || '',
-        whatsapp_number: metadata.whatsapp_number || '',
+        whatsapp_number: metadata.whatsapp_number || undefined,
         share_whatsapp_with_exchange: metadata.share_whatsapp_with_exchange ?? false,
         role: (metadata.role as UserRole) || 'individual',
         district: metadata.district || '',
@@ -140,9 +171,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Attempt to save to public.profiles table if possible
       if (!profileError) {
         try {
-          await supabase.from('profiles').upsert(generatedProfile);
-        } catch {
-          // ignore table write errors
+          const { error: upsertErr } = await supabase.from('profiles').upsert(generatedProfile);
+          if (upsertErr) {
+            console.warn('Profile upsert notice:', upsertErr.message);
+          }
+        } catch (tableErr) {
+          console.warn('Profile upsert exception:', tableErr);
         }
       }
     } catch (e) {
@@ -302,9 +336,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCurrentUser(newProfile);
 
         try {
-          await supabase.from('profiles').insert(newProfile);
-        } catch {
-          // ignore
+          const { error: upsertErr } = await supabase.from('profiles').upsert(newProfile);
+          if (upsertErr) {
+            console.warn('Profile upsert notice on signup:', upsertErr.message);
+          }
+        } catch (tableErr: any) {
+          console.warn('Profile upsert exception on signup:', tableErr);
         }
 
         return {
@@ -472,28 +509,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updated_at: new Date().toISOString(),
       };
 
-      setCurrentUser(newProfile);
-
       if (isSupabaseConfigured && supabase) {
-        await supabase.auth.updateUser({
+        // 1. Keep auth.users raw_user_meta_data synchronized with WhatsApp & profile changes
+        const { error: authUpdateError } = await supabase.auth.updateUser({
           data: {
             full_name: newProfile.full_name,
             role: newProfile.role,
             district: newProfile.district,
             bio: newProfile.bio,
             avatar_url: newProfile.avatar_url,
+            phone: newProfile.phone,
+            phone_number: newProfile.phone,
+            whatsapp_number: newProfile.whatsapp_number,
+            share_phone_with_exchange: newProfile.share_phone_with_exchange,
+            share_whatsapp_with_exchange: newProfile.share_whatsapp_with_exchange,
           },
         });
 
+        if (authUpdateError) {
+          console.warn('Auth user metadata update notice:', authUpdateError.message);
+        }
+
+        // 2. Persist to authoritative public.profiles row
         // Exclude server-controlled columns (eco_points_balance, id, created_at) from direct client updates
         const { eco_points_balance, id, created_at, ...safeUpdateData } = updatedData as any;
+        safeUpdateData.updated_at = new Date().toISOString();
+
         if (Object.keys(safeUpdateData).length > 0) {
-          await supabase.from('profiles').update(safeUpdateData).eq('id', currentUser.id);
+          const { error: profileUpdateError } = await supabase
+            .from('profiles')
+            .update(safeUpdateData)
+            .eq('id', currentUser.id);
+
+          if (profileUpdateError) {
+            console.error('Error updating public.profiles row:', profileUpdateError);
+            return { success: false, error: profileUpdateError.message || 'Failed to update profile in database' };
+          }
         }
       }
 
+      // Update state and localStorage
+      setCurrentUser(newProfile);
       return { success: true };
     } catch (err: any) {
+      console.error('updateProfile exception:', err);
       return { success: false, error: err.message || 'Failed to update profile' };
     }
   };
