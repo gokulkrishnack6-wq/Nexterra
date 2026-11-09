@@ -161,9 +161,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
         <div className="flex flex-col gap-space-sm">
           {/* Logo Brand Header */}
           <Link to="/" className="px-2 lg:px-space-md pb-space-sm flex items-center justify-center lg:justify-start gap-space-sm hover:opacity-90 transition-opacity" title="GreenLoop">
-            <div className="w-9 h-9 rounded-lg bg-primary-container text-on-primary flex items-center justify-center font-bold shadow-sm shrink-0">
-              <img src="/logo.png" alt="GreenLoop" className="w-6 h-6 object-contain" />
-            </div>
+            <img src="/logo.png" alt="GreenLoop" className="w-8 h-8 object-contain shrink-0" />
             <div className="hidden lg:flex flex-col">
               <span className="font-heading font-bold text-title-md text-primary tracking-tight leading-none">
                 GREENLOOP
@@ -259,9 +257,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
             <div>
               <div className="flex items-center justify-between pb-space-md border-b border-outline-variant/40 px-2">
                 <Link to="/" onClick={closeAllMenus} className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-primary-container text-on-primary flex items-center justify-center font-bold">
-                    <img src="/logo.png" alt="GreenLoop" className="w-5 h-5 object-contain" />
-                  </div>
+                  <img src="/logo.png" alt="GreenLoop" className="w-8 h-8 object-contain shrink-0" />
                   <div>
                     <span className="font-heading font-bold text-title-md text-primary">GREENLOOP</span>
                     <span className="text-[10px] text-secondary block font-semibold">Kerala Circular Action</span>
