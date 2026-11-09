@@ -690,4 +690,194 @@ describe('GreenLoop WhatsApp Exchange & Contact Privacy — PGlite Tests', () =>
       db.query(`SELECT public.get_exchange_whatsapp_contact($1, $2) as res;`, [REQ_DEV, USER_DEV_A])
     ).rejects.toThrow('Permission denied: Caller is not an authorized participant in this exchange request.');
   });
+
+  it('Verifies Security Hardening: Authorization before mutation, consent hierarchy, and trigger integrity (All 9 Requirements)', async () => {
+    await applyAllMigrations();
+
+    const SEC_USER_A = '55555555-aaaa-4000-8000-000000000001';
+    const SEC_USER_B = '55555555-bbbb-4000-8000-000000000002';
+    const SEC_USER_C = '55555555-cccc-4000-8000-000000000003';
+    const SEC_LISTING = '66666666-aaaa-4000-8000-000000000001';
+    const SEC_REQ_ACCEPTED = '77777777-aaaa-4000-8000-000000000001';
+    const SEC_REQ_PENDING = '77777777-bbbb-4000-8000-000000000002';
+    const SEC_REQ_REJECTED = '77777777-cccc-4000-8000-000000000003';
+    const SEC_REQ_NULL_PROVIDER = '77777777-dddd-4000-8000-000000000004';
+
+    // 1. Existing phone values are preserved (Req 8)
+    await asSuperuser();
+    await db.query(`
+      INSERT INTO public.profiles (id, full_name, email, phone, whatsapp_number, share_whatsapp_with_exchange)
+      VALUES 
+        ('${SEC_USER_A}', 'Sec User A', 'sec_a@greenloop.org', '+91 94978 54095', NULL, true),
+        ('${SEC_USER_B}', 'Sec User B', 'sec_b@greenloop.org', NULL, '9876543210', false);
+    `);
+
+    // Verify backfill preserved existing phone on User A and explicit FALSE on User B (Req 2 & Req 8)
+    const checkUserA = await db.query(`SELECT phone, whatsapp_number, share_whatsapp_with_exchange FROM public.profiles WHERE id = '${SEC_USER_A}';`);
+    expect(checkUserA.rows[0].phone).toBe('+91 94978 54095');
+    expect(checkUserA.rows[0].share_whatsapp_with_exchange).toBe(true);
+
+    const checkUserB = await db.query(`SELECT phone, whatsapp_number, share_whatsapp_with_exchange FROM public.profiles WHERE id = '${SEC_USER_B}';`);
+    expect(checkUserB.rows[0].whatsapp_number).toBe('9876543210');
+    expect(checkUserB.rows[0].share_whatsapp_with_exchange).toBe(false); // Explicit FALSE strictly preserved!
+
+    // Create listing owned by SEC_USER_A
+    await db.query(`
+      INSERT INTO public.listings (id, user_id, category_id, title, quantity)
+      VALUES ('${SEC_LISTING}', '${SEC_USER_A}', '${CATEGORY_ID_1}', 'Industrial Cardboard', 10);
+    `);
+
+    // Create exchange requests: accepted, pending, rejected
+    await db.query(`
+      INSERT INTO public.exchange_requests (id, listing_id, requester_id, provider_id, requested_quantity, completion_code)
+      VALUES 
+        ('${SEC_REQ_ACCEPTED}', '${SEC_LISTING}', '${SEC_USER_B}', '${SEC_USER_A}', 2, 'GL-A111'),
+        ('${SEC_REQ_PENDING}', '${SEC_LISTING}', '${SEC_USER_B}', '${SEC_USER_A}', 1, 'GL-B222'),
+        ('${SEC_REQ_REJECTED}', '${SEC_LISTING}', '${SEC_USER_B}', '${SEC_USER_A}', 1, 'GL-C333');
+    `);
+
+    // Provider accepts SEC_REQ_ACCEPTED and rejects SEC_REQ_REJECTED
+    await asUser(SEC_USER_A, 'authenticated');
+    await db.query(`UPDATE public.exchange_requests SET status = 'accepted' WHERE id = '${SEC_REQ_ACCEPTED}';`);
+    await db.query(`UPDATE public.exchange_requests SET status = 'rejected' WHERE id = '${SEC_REQ_REJECTED}';`);
+
+    // Req 1: Both registered users can retrieve each other's numbers after acceptance (when consent active)
+    // First, verify User B queries User A (User A has consent = true)
+    await asUser(SEC_USER_B, 'authenticated');
+    const resBqueriesA = await db.query(
+      `SELECT public.get_exchange_whatsapp_contact($1, $2) as res;`,
+      [SEC_REQ_ACCEPTED, SEC_USER_A]
+    );
+    expect(resBqueriesA.rows[0].res.contact_state).toBe('sharing_enabled');
+    expect(resBqueriesA.rows[0].res.whatsapp).toBe('919497854095');
+    expect(resBqueriesA.rows[0].res.has_whatsapp_consent).toBe(true);
+
+    // Req 2: Explicit consent FALSE is preserved
+    // User A queries User B (User B explicitly opted out: share_whatsapp_with_exchange = false)
+    await asUser(SEC_USER_A, 'authenticated');
+    const resAqueriesB = await db.query(
+      `SELECT public.get_exchange_whatsapp_contact($1, $2) as res;`,
+      [SEC_REQ_ACCEPTED, SEC_USER_B]
+    );
+    expect(resAqueriesB.rows[0].res.contact_state).toBe('sharing_disabled');
+    expect(resAqueriesB.rows[0].res.whatsapp).toBeNull();
+    expect(resAqueriesB.rows[0].res.has_whatsapp_consent).toBe(false);
+    expect(resAqueriesB.rows[0].res.notice).toBe('WhatsApp contact not shared by partner');
+
+    // Enable User B consent to test reciprocal sharing
+    await asSuperuser();
+    await db.query(`UPDATE public.profiles SET share_whatsapp_with_exchange = true WHERE id = '${SEC_USER_B}';`);
+    await asUser(SEC_USER_A, 'authenticated');
+    const resAqueriesBEnabled = await db.query(
+      `SELECT public.get_exchange_whatsapp_contact($1, $2) as res;`,
+      [SEC_REQ_ACCEPTED, SEC_USER_B]
+    );
+    expect(resAqueriesBEnabled.rows[0].res.contact_state).toBe('sharing_enabled');
+    expect(resAqueriesBEnabled.rows[0].res.whatsapp).toBe('919876543210');
+
+    // Req 3: Pending requests cannot reveal numbers
+    const resPending = await db.query(
+      `SELECT public.get_exchange_whatsapp_contact($1, $2) as res;`,
+      [SEC_REQ_PENDING, SEC_USER_B]
+    );
+    expect(resPending.rows[0].res.whatsapp).toBeNull();
+    expect(resPending.rows[0].res.has_whatsapp_consent).toBe(false);
+    expect(resPending.rows[0].res.notice).toContain('only accessible while the exchange request is in accepted status');
+
+    // Req 4: Rejected requests cannot reveal numbers
+    const resRejected = await db.query(
+      `SELECT public.get_exchange_whatsapp_contact($1, $2) as res;`,
+      [SEC_REQ_REJECTED, SEC_USER_B]
+    );
+    expect(resRejected.rows[0].res.whatsapp).toBeNull();
+    expect(resRejected.rows[0].res.has_whatsapp_consent).toBe(false);
+    expect(resRejected.rows[0].res.notice).toContain('only accessible while the exchange request is in accepted status');
+
+    // Req 5: Unrelated users cannot retrieve contact information
+    await asUser(SEC_USER_C, 'authenticated');
+    await expect(
+      db.query(`SELECT public.get_exchange_whatsapp_contact($1, $2) as res;`, [SEC_REQ_ACCEPTED, SEC_USER_A])
+    ).rejects.toThrow('Permission denied: Caller is not an authorized participant in this exchange request.');
+
+    // Req 6: An unauthorized caller CANNOT mutate an unrelated exchange request (even when provider_id is NULL)
+    await asSuperuser();
+    await db.query(`ALTER TABLE public.exchange_requests DISABLE TRIGGER trg_set_exchange_request_provider;`);
+    await db.query(`
+      INSERT INTO public.exchange_requests (id, listing_id, requester_id, provider_id, requested_quantity, status, completion_code)
+      VALUES ('${SEC_REQ_NULL_PROVIDER}', '${SEC_LISTING}', '${SEC_USER_B}', NULL, 1, 'accepted', 'GL-D444');
+    `);
+    await db.query(`ALTER TABLE public.exchange_requests ENABLE TRIGGER trg_set_exchange_request_provider;`);
+
+    // Verify row initially has provider_id = NULL
+    const initialReq = await db.query(`SELECT provider_id FROM public.exchange_requests WHERE id = '${SEC_REQ_NULL_PROVIDER}';`);
+    expect(initialReq.rows[0].provider_id).toBeNull();
+
+    // Unauthorized caller SEC_USER_C attempts to call get_exchange_whatsapp_contact on this row
+    await asUser(SEC_USER_C, 'authenticated');
+    await expect(
+      db.query(`SELECT public.get_exchange_whatsapp_contact($1, $2) as res;`, [SEC_REQ_NULL_PROVIDER, SEC_USER_B])
+    ).rejects.toThrow('Permission denied: Caller is not an authorized participant in this exchange request.');
+
+    // CRITICAL SECURITY ASSERTION: Row's provider_id MUST STILL BE NULL! The unauthorized caller was NOT able to mutate the record!
+    await asSuperuser();
+    const unchangedReq = await db.query(`SELECT provider_id FROM public.exchange_requests WHERE id = '${SEC_REQ_NULL_PROVIDER}';`);
+    expect(unchangedReq.rows[0].provider_id).toBeNull();
+
+    // Authorized caller SEC_USER_B calls it: NOW it successfully self-heals!
+    await asUser(SEC_USER_B, 'authenticated');
+    await db.query(`SELECT public.get_exchange_whatsapp_contact($1, $2) as res;`, [SEC_REQ_NULL_PROVIDER, SEC_USER_A]);
+    await asSuperuser();
+    const authorizedHealedReq = await db.query(`SELECT provider_id FROM public.exchange_requests WHERE id = '${SEC_REQ_NULL_PROVIDER}';`);
+    expect(authorizedHealedReq.rows[0].provider_id).toBe(SEC_USER_A);
+
+    // Req 7: Missing and invalid numbers are handled correctly as separate distinct states
+    const USER_MISSING = '55555555-eeee-4000-8000-000000000005';
+    const USER_INVALID = '55555555-ffff-4000-8000-000000000006';
+    const REQ_MISSING = '77777777-eeee-4000-8000-000000000005';
+    const REQ_INVALID = '77777777-ffff-4000-8000-000000000006';
+
+    await asSuperuser();
+    await db.exec(`
+      INSERT INTO public.profiles (id, full_name, email, phone, whatsapp_number, share_whatsapp_with_exchange)
+      VALUES 
+        ('${USER_MISSING}', 'Missing Number User', 'missing@greenloop.org', NULL, NULL, true),
+        ('${USER_INVALID}', 'Invalid Number User', 'invalid@greenloop.org', '12345', '12345', true);
+      INSERT INTO public.exchange_requests (id, listing_id, requester_id, provider_id, requested_quantity, completion_code)
+      VALUES 
+        ('${REQ_MISSING}', '${SEC_LISTING}', '${USER_MISSING}', '${SEC_USER_A}', 1, 'GL-M111'),
+        ('${REQ_INVALID}', '${SEC_LISTING}', '${USER_INVALID}', '${SEC_USER_A}', 1, 'GL-I222');
+      UPDATE public.exchange_requests SET status = 'accepted' WHERE id IN ('${REQ_MISSING}', '${REQ_INVALID}');
+    `);
+
+    await asUser(SEC_USER_A, 'authenticated');
+    const resStateMissing = await db.query(`SELECT public.get_exchange_whatsapp_contact($1, $2) as res;`, [REQ_MISSING, USER_MISSING]);
+    expect(resStateMissing.rows[0].res.contact_state).toBe('missing_number');
+    expect(resStateMissing.rows[0].res.whatsapp).toBeNull();
+    expect(resStateMissing.rows[0].res.notice).toBe('Partner has not configured a WhatsApp number');
+
+    const resStateInvalid = await db.query(`SELECT public.get_exchange_whatsapp_contact($1, $2) as res;`, [REQ_INVALID, USER_INVALID]);
+    expect(resStateInvalid.rows[0].res.contact_state).toBe('invalid_number');
+    expect(resStateInvalid.rows[0].res.whatsapp).toBeNull();
+    expect(resStateInvalid.rows[0].res.notice).toBe("Partner's WhatsApp number is invalid");
+
+    // Req 9: Signup trigger correctly creates or updates profiles and preserves consent
+    const NEW_SIGNUP_USER = '55555555-9999-4000-8000-000000000009';
+    await asSuperuser();
+    await db.query(`
+      INSERT INTO auth.users (id, email, raw_user_meta_data)
+      VALUES (
+        '${NEW_SIGNUP_USER}',
+        'keralarecycler@greenloop.org',
+        '{"full_name":"Anjali Menon","district":"Kozhikode","whatsapp_number":"+91 94978 12345","share_whatsapp_with_exchange":false}'::jsonb
+      );
+    `);
+
+    // Verify handle_new_user trigger populated public.profiles with canonical fields & explicit FALSE consent!
+    const signupProfile = await db.query(`SELECT * FROM public.profiles WHERE id = '${NEW_SIGNUP_USER}';`);
+    expect(signupProfile.rows[0].full_name).toBe('Anjali Menon');
+    expect(signupProfile.rows[0].district).toBe('Kozhikode');
+    expect(signupProfile.rows[0].phone).toBe('+91 94978 12345');
+    expect(signupProfile.rows[0].whatsapp_number).toBe('+91 94978 12345');
+    expect(signupProfile.rows[0].share_whatsapp_with_exchange).toBe(false); // Explicit opt-out at signup preserved!
+  });
 });

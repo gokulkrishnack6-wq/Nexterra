@@ -1,15 +1,19 @@
 -- ==============================================================================
 -- Migration: 20261109050000_whatsapp_contact_sharing_hardening.sql
 -- Description: WhatsApp Contact Sharing Hardening & Self-Healing Resolution:
---              1. Ensures phone and whatsapp_number columns exist on public.profiles.
---              2. Hardens get_exchange_whatsapp_contact to resolve provider_id from
---                 public.listings when NULL on exchange_requests and self-heal the row.
---              3. Resolves contact details from auth.users metadata if profiles row
---                 is temporarily unsynced or missing whatsapp_number.
---              4. Defaults sharing consent to TRUE when user has provided a WhatsApp
---                 number during registration, unless explicitly opted out.
---              5. Prevents false "missing_number" errors across accepted exchanges.
---              6. Backfills existing profiles and exchange_requests.
+--              1. Ensures phone and whatsapp_number columns exist on public.profiles
+--                 while strictly preserving existing phone values.
+--              2. Enforces strict participant authorization BEFORE any mutations
+--                 to exchange_requests (preventing unauthorized provider_id updates).
+--              3. Resolves contact details with strict consent hierarchy:
+--                 - Profile consent is authoritative when explicitly set (TRUE or FALSE).
+--                 - Explicit FALSE is NEVER replaced with TRUE.
+--                 - Metadata is inspected only when profile consent is genuinely NULL.
+--                 - Saved number never overrides an explicit opt-out.
+--              4. Ensures handle_new_user trigger is explicitly attached to auth.users.
+--              5. Accurately distinguishes 4 contact states: missing_number,
+--                 invalid_number, sharing_disabled, and sharing_enabled.
+--              6. Automatic backfill strictly targets NULL consent, preserving FALSE.
 -- ==============================================================================
 
 -- 0. Ensure Required Columns Exist on public.profiles
@@ -18,7 +22,7 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS whatsapp_number TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS phone_number TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS share_whatsapp_with_exchange BOOLEAN DEFAULT true;
 
--- Backfill phone to whatsapp_number and vice-versa
+-- Backfill phone to whatsapp_number and vice-versa (preserving existing non-empty values)
 UPDATE public.profiles
 SET whatsapp_number = phone
 WHERE (whatsapp_number IS NULL OR TRIM(whatsapp_number) = '')
@@ -43,11 +47,13 @@ DECLARE
   v_req RECORD;
   v_provider_id UUID;
   v_target_profile RECORD;
-  v_target_consent BOOLEAN := NULL;
   v_raw_wa TEXT := NULL;
   v_meta_wa TEXT := NULL;
   v_clean_wa TEXT := NULL;
   v_wa_digits INT;
+  v_profile_consent BOOLEAN := NULL;
+  v_meta_consent BOOLEAN := NULL;
+  v_final_consent BOOLEAN := NULL;
 BEGIN
   -- A. Authentication Check: Reject unauthenticated callers
   IF v_caller IS NULL THEN
@@ -63,27 +69,20 @@ BEGIN
     RAISE EXCEPTION 'Exchange request % not found.', p_exchange_request_id;
   END IF;
 
-  -- C. Robust Provider ID Resolution & Self-Healing:
-  -- If provider_id is missing on the exchange_request row, retrieve from listings owner
+  -- C. In-Memory Provider ID Resolution (No database mutation before authorization!)
   v_provider_id := v_req.provider_id;
   IF v_provider_id IS NULL THEN
     SELECT user_id INTO v_provider_id
     FROM public.listings
     WHERE id = v_req.listing_id;
-
-    -- Self-heal exchange_requests record if listing owner was found
-    IF v_provider_id IS NOT NULL THEN
-      UPDATE public.exchange_requests
-      SET provider_id = v_provider_id
-      WHERE id = v_req.id;
-    END IF;
   END IF;
 
   IF v_provider_id IS NULL THEN
     RAISE EXCEPTION 'Exchange listing owner not found for exchange request %.', p_exchange_request_id;
   END IF;
 
-  -- D. Participant Authorization: Caller must be either requester or provider
+  -- D. Participant Authorization Check: Caller must be either requester or provider
+  -- CRITICAL SECURITY GATE: Unauthorized callers are halted immediately before any updates
   IF v_caller IS DISTINCT FROM v_req.requester_id AND v_caller IS DISTINCT FROM v_provider_id THEN
     RAISE EXCEPTION 'Permission denied: Caller is not an authorized participant in this exchange request.';
   END IF;
@@ -97,7 +96,16 @@ BEGIN
     RAISE EXCEPTION 'Cannot request own contact details through exchange participant function.';
   END IF;
 
-  -- F. State Machine Gate: WhatsApp contact is ONLY released for ACCEPTED exchanges
+  -- F. Post-Authorization Self-Healing:
+  -- Only AFTER authorization succeeds, self-heal exchange_requests record if provider_id was NULL on the row
+  IF v_req.provider_id IS NULL AND v_provider_id IS NOT NULL THEN
+    UPDATE public.exchange_requests
+    SET provider_id = v_provider_id,
+        updated_at = NOW()
+    WHERE id = v_req.id;
+  END IF;
+
+  -- G. State Machine Gate: WhatsApp contact is ONLY released for ACCEPTED exchanges
   -- Pending, rejected, cancelled, and completed exchanges strictly withhold contact details
   IF v_req.status <> 'accepted' THEN
     RETURN jsonb_build_object(
@@ -109,42 +117,65 @@ BEGIN
     );
   END IF;
 
-  -- G. Fetch target participant's profile
+  -- H. Fetch target participant's profile
   SELECT whatsapp_number, phone, phone_number, share_whatsapp_with_exchange
   INTO v_target_profile
   FROM public.profiles
   WHERE id = p_participant_id;
 
   IF FOUND THEN
-    v_raw_wa := COALESCE(v_target_profile.whatsapp_number, v_target_profile.phone_number, v_target_profile.phone);
-    v_target_consent := v_target_profile.share_whatsapp_with_exchange;
+    v_raw_wa := NULLIF(TRIM(COALESCE(v_target_profile.whatsapp_number, v_target_profile.phone_number, v_target_profile.phone)), '');
+    v_profile_consent := v_target_profile.share_whatsapp_with_exchange;
   END IF;
 
-  -- Self-healing fallback: If public.profiles lacks the WhatsApp number, inspect auth.users metadata
-  IF v_raw_wa IS NULL OR TRIM(v_raw_wa) = '' THEN
+  -- I. Inspect auth.users metadata ONLY when number or consent is missing from public.profiles
+  IF v_raw_wa IS NULL OR v_profile_consent IS NULL THEN
     SELECT 
-      COALESCE(raw_user_meta_data->>'whatsapp_number', raw_user_meta_data->>'phone', raw_user_meta_data->>'phone_number'),
-      (raw_user_meta_data->>'share_whatsapp_with_exchange')::BOOLEAN
-    INTO v_meta_wa, v_target_consent
+      NULLIF(TRIM(COALESCE(raw_user_meta_data->>'whatsapp_number', raw_user_meta_data->>'phone', raw_user_meta_data->>'phone_number')), ''),
+      CASE 
+        WHEN (raw_user_meta_data ? 'share_whatsapp_with_exchange') THEN (raw_user_meta_data->>'share_whatsapp_with_exchange')::BOOLEAN
+        ELSE NULL
+      END
+    INTO v_meta_wa, v_meta_consent
     FROM auth.users
     WHERE id = p_participant_id;
 
-    IF v_meta_wa IS NOT NULL AND TRIM(v_meta_wa) <> '' THEN
+    IF v_raw_wa IS NULL AND v_meta_wa IS NOT NULL THEN
       v_raw_wa := v_meta_wa;
-      -- Auto-heal public.profiles record
-      UPDATE public.profiles
-      SET phone = v_meta_wa,
-          whatsapp_number = v_meta_wa,
-          share_whatsapp_with_exchange = COALESCE(public.profiles.share_whatsapp_with_exchange, v_target_consent, true),
-          updated_at = NOW()
-      WHERE id = p_participant_id;
     END IF;
   END IF;
 
-  -- H. Normalize Phone Digits
-  IF v_raw_wa IS NOT NULL AND TRIM(v_raw_wa) <> '' THEN
+  -- J. Strict Consent Resolution Hierarchy:
+  -- 1. Profile consent is authoritative when explicitly set (whether TRUE or FALSE).
+  -- 2. Metadata consent is used only when profile consent is genuinely NULL.
+  -- 3. If still NULL, default to TRUE only if a valid number was provided at signup without opting out.
+  -- 4. Explicit FALSE is NEVER replaced with TRUE.
+  IF v_profile_consent IS NOT NULL THEN
+    v_final_consent := v_profile_consent;
+  ELSIF v_meta_consent IS NOT NULL THEN
+    v_final_consent := v_meta_consent;
+  ELSIF v_raw_wa IS NOT NULL THEN
+    v_final_consent := TRUE;
+  ELSE
+    v_final_consent := FALSE;
+  END IF;
+
+  -- K. Self-healing fallback for public.profiles:
+  -- If metadata had the number or consent and public.profiles was missing them, persist safely.
+  -- CRITICAL: Never overwrite existing non-null values!
+  IF v_meta_wa IS NOT NULL OR (v_profile_consent IS NULL AND v_final_consent IS NOT NULL) THEN
+    UPDATE public.profiles
+    SET phone = COALESCE(public.profiles.phone, v_meta_wa),
+        whatsapp_number = COALESCE(public.profiles.whatsapp_number, v_meta_wa),
+        share_whatsapp_with_exchange = COALESCE(public.profiles.share_whatsapp_with_exchange, v_final_consent),
+        updated_at = NOW()
+    WHERE id = p_participant_id;
+  END IF;
+
+  -- L. Normalize Phone Digits
+  IF v_raw_wa IS NOT NULL THEN
     v_clean_wa := regexp_replace(v_raw_wa, '[^\d]', '', 'g');
-    -- Strip single leading zero (trunk prefix)
+    -- Strip single leading zero (trunk prefix in India, e.g. 09876543210 -> 9876543210)
     IF length(v_clean_wa) = 11 AND v_clean_wa LIKE '0%' THEN
       v_clean_wa := substring(v_clean_wa from 2);
     END IF;
@@ -158,17 +189,11 @@ BEGIN
     END IF;
   END IF;
 
-  -- I. Consent Resolution:
-  -- If user entered a WhatsApp number and consent was not explicitly set to false, default to TRUE
-  IF v_clean_wa IS NOT NULL AND v_target_consent IS NULL THEN
-    v_target_consent := TRUE;
-  END IF;
-
-  -- J. Distinguish 4 explicit contact states:
+  -- M. Distinguish 4 explicit contact states:
   -- 1. Missing number: Target has not entered any number
   -- 2. Invalid number: Target has configured an invalid digit count (<10 or >15)
-  -- 3. Sharing disabled: Target has explicitly opted out of sharing
-  -- 4. Sharing enabled: Target has valid number and consent is active
+  -- 3. Sharing disabled: Target has explicitly opted out of sharing (consent is false)
+  -- 4. Sharing enabled: Target has valid number and consent is active (true)
   IF v_clean_wa IS NULL THEN
     RETURN jsonb_build_object(
       'participant_id', p_participant_id,
@@ -187,7 +212,7 @@ BEGIN
       'notice', 'Partner''s WhatsApp number is invalid',
       'status', v_req.status
     );
-  ELSIF v_target_consent IS NOT TRUE THEN
+  ELSIF v_final_consent IS NOT TRUE THEN
     RETURN jsonb_build_object(
       'participant_id', p_participant_id,
       'whatsapp', NULL,
@@ -213,7 +238,7 @@ $$ LANGUAGE plpgsql;
 REVOKE ALL ON FUNCTION public.get_exchange_whatsapp_contact(UUID, UUID) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.get_exchange_whatsapp_contact(UUID, UUID) TO authenticated;
 
--- 2. Authoritative handle_new_user Trigger Update
+-- 2. Authoritative handle_new_user Trigger Function
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER 
 SECURITY DEFINER
@@ -223,8 +248,8 @@ DECLARE
   v_full_name TEXT;
   v_district TEXT;
   v_whatsapp TEXT;
-  v_share_wa BOOLEAN;
   v_phone TEXT;
+  v_share_wa BOOLEAN;
 BEGIN
   v_full_name := COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1), 'GreenLoop Member');
   v_district := NULLIF(TRIM(NEW.raw_user_meta_data->>'district'), '');
@@ -232,10 +257,12 @@ BEGIN
   v_phone := NULLIF(TRIM(COALESCE(NEW.raw_user_meta_data->>'phone', NEW.raw_user_meta_data->>'phone_number')), '');
 
   -- When WhatsApp number is provided at signup, default sharing consent to TRUE unless explicitly set to false
-  IF v_whatsapp IS NOT NULL THEN
-    v_share_wa := COALESCE((NEW.raw_user_meta_data->>'share_whatsapp_with_exchange')::BOOLEAN, true);
+  IF (NEW.raw_user_meta_data ? 'share_whatsapp_with_exchange') THEN
+    v_share_wa := (NEW.raw_user_meta_data->>'share_whatsapp_with_exchange')::BOOLEAN;
+  ELSIF v_whatsapp IS NOT NULL OR v_phone IS NOT NULL THEN
+    v_share_wa := true;
   ELSE
-    v_share_wa := COALESCE((NEW.raw_user_meta_data->>'share_whatsapp_with_exchange')::BOOLEAN, false);
+    v_share_wa := false;
   END IF;
 
   INSERT INTO public.profiles (
@@ -259,10 +286,10 @@ BEGIN
     COALESCE(NEW.email, ''),
     v_district,
     'Kerala',
-    v_whatsapp,
+    COALESCE(v_whatsapp, v_phone),
     v_share_wa,
-    v_phone,
-    v_phone,
+    COALESCE(v_phone, v_whatsapp),
+    COALESCE(v_phone, v_whatsapp),
     0,
     COALESCE(NEW.email_confirmed_at IS NOT NULL, false),
     NOW(),
@@ -271,10 +298,11 @@ BEGIN
   ON CONFLICT (id) DO UPDATE SET
     full_name = EXCLUDED.full_name,
     district = COALESCE(EXCLUDED.district, public.profiles.district),
-    whatsapp_number = COALESCE(EXCLUDED.whatsapp_number, public.profiles.whatsapp_number),
-    share_whatsapp_with_exchange = COALESCE(EXCLUDED.share_whatsapp_with_exchange, public.profiles.share_whatsapp_with_exchange, true),
-    phone = COALESCE(EXCLUDED.phone, public.profiles.phone),
-    phone_number = COALESCE(EXCLUDED.phone_number, public.profiles.phone_number),
+    phone = COALESCE(public.profiles.phone, EXCLUDED.phone),
+    whatsapp_number = COALESCE(public.profiles.whatsapp_number, EXCLUDED.whatsapp_number),
+    phone_number = COALESCE(public.profiles.phone_number, EXCLUDED.phone_number),
+    -- CRITICAL: Preserve explicit existing profile consent if already set (whether TRUE or FALSE)
+    share_whatsapp_with_exchange = COALESCE(public.profiles.share_whatsapp_with_exchange, EXCLUDED.share_whatsapp_with_exchange),
     is_verified = CASE WHEN NEW.email_confirmed_at IS NOT NULL THEN true ELSE public.profiles.is_verified END,
     updated_at = NOW();
 
@@ -282,12 +310,23 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Ensure Trigger Exists on auth.users
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
 -- 3. Automatic Backfill & Self-Healing:
--- A. Ensure any profile with a whatsapp_number has share_whatsapp_with_exchange = true if it was null or defaulted false
+-- A. Only genuinely unset (NULL) consent receives a default when a contact number exists.
+-- Explicit FALSE is strictly preserved. Existing TRUE is strictly preserved.
 UPDATE public.profiles
 SET share_whatsapp_with_exchange = true
-WHERE (whatsapp_number IS NOT NULL AND TRIM(whatsapp_number) <> '')
-  AND (share_whatsapp_with_exchange IS NULL OR share_whatsapp_with_exchange = false);
+WHERE (
+    (whatsapp_number IS NOT NULL AND TRIM(whatsapp_number) <> '')
+    OR (phone IS NOT NULL AND TRIM(phone) <> '')
+    OR (phone_number IS NOT NULL AND TRIM(phone_number) <> '')
+  )
+  AND share_whatsapp_with_exchange IS NULL;
 
 -- B. Backfill provider_id on any exchange_requests that have NULL provider_id
 UPDATE public.exchange_requests er
@@ -295,4 +334,3 @@ SET provider_id = l.user_id
 FROM public.listings l
 WHERE er.listing_id = l.id
   AND er.provider_id IS NULL;
-

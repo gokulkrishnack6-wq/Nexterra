@@ -260,3 +260,4 @@ describe('GreenLoop WhatsApp Contact Fallback & Two-Way Exchange Retrieval Tests
     expect(result.notice).toContain('Partner has opted not to share');
   });
 });
+
