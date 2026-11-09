@@ -25,7 +25,14 @@ interface ChatPanelProps {
   isOpen: boolean;
 }
 
-export function formatWhatsAppUrl(rawNumber: string, listingTitle?: string): string {
+export function isValidPhoneNumber(rawNumber?: string | null): boolean {
+  if (!rawNumber) return false;
+  const digits = rawNumber.replace(/[^\d]/g, '');
+  return digits.length >= 7 && digits.length <= 15;
+}
+
+export function formatWhatsAppUrl(rawNumber: string, listingTitle?: string): string | null {
+  if (!isValidPhoneNumber(rawNumber)) return null;
   let cleaned = rawNumber.replace(/[^\d]/g, '');
   if (cleaned.length === 10) {
     cleaned = `91${cleaned}`;
@@ -36,8 +43,10 @@ export function formatWhatsAppUrl(rawNumber: string, listingTitle?: string): str
   return `https://wa.me/${cleaned}?text=${encodeURIComponent(text)}`;
 }
 
-export function formatPhoneUrl(rawNumber: string): string {
-  return `tel:${rawNumber.trim()}`;
+export function formatPhoneUrl(rawNumber: string): string | null {
+  if (!isValidPhoneNumber(rawNumber)) return null;
+  const sanitized = rawNumber.trim().replace(/[^\d+]/g, '');
+  return `tel:${sanitized}`;
 }
 
 export const ChatPanel: React.FC<ChatPanelProps> = ({ conversationId, onClose, isOpen }) => {
@@ -299,9 +308,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ conversationId, onClose, i
             <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-outline-variant/40">
               <div className="flex items-center gap-2">
                 {/* WhatsApp button */}
-                {contactInfo?.whatsapp && contactInfo.has_whatsapp_consent ? (
+                {contactInfo?.whatsapp && contactInfo.has_whatsapp_consent && formatWhatsAppUrl(contactInfo.whatsapp, associatedListing?.title) ? (
                   <a
-                    href={formatWhatsAppUrl(contactInfo.whatsapp, associatedListing?.title)}
+                    href={formatWhatsAppUrl(contactInfo.whatsapp, associatedListing?.title)!}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-label-sm text-xs font-semibold shadow-xs transition-colors"
@@ -312,9 +321,9 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ conversationId, onClose, i
                 ) : null}
 
                 {/* Direct Phone Call button */}
-                {contactInfo?.phone && contactInfo.has_phone_consent ? (
+                {contactInfo?.phone && contactInfo.has_phone_consent && formatPhoneUrl(contactInfo.phone) ? (
                   <a
-                    href={formatPhoneUrl(contactInfo.phone)}
+                    href={formatPhoneUrl(contactInfo.phone)!}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-highest hover:bg-surface-container text-primary font-label-sm text-xs font-semibold border border-outline-variant transition-colors"
                   >
                     <Phone className="w-3.5 h-3.5" />
