@@ -941,5 +941,47 @@ describe('GreenLoop WhatsApp Exchange & Contact Privacy — PGlite Tests', () =>
     const optInProfile = await db.query(`SELECT * FROM public.profiles WHERE id = '${NEW_SIGNUP_OPT_IN}';`);
     expect(optInProfile.rows[0].whatsapp_number).toBe('+91 94978 88888');
     expect(optInProfile.rows[0].share_whatsapp_with_exchange).toBe(true);
+
+    // 10. Verify RPC Named Parameter Invocation (matching frontend supabase.rpc exactly)
+    await asUser(SEC_USER_B, 'authenticated');
+    const namedCallRes = await db.query(`
+      SELECT public.get_exchange_whatsapp_contact(
+        p_exchange_request_id => $1::uuid,
+        p_participant_id => $2::uuid
+      ) as res;
+    `, [SEC_REQ_ACCEPTED, SEC_USER_A]);
+    expect((namedCallRes.rows[0].res as any).has_whatsapp_consent).toBe(true);
+    expect((namedCallRes.rows[0].res as any).whatsapp).toBe('919497854095');
+
+    // 11. Verify NULL status exchange request rejection via IS DISTINCT FROM 'accepted'
+    const NULL_STATUS_REQ = '88888888-0000-4000-8000-000000000001';
+    await asSuperuser();
+    await db.exec(`
+      ALTER TABLE public.exchange_requests ALTER COLUMN status DROP NOT NULL;
+      ALTER TABLE public.exchange_requests DISABLE TRIGGER ALL;
+      INSERT INTO public.exchange_requests (id, listing_id, requester_id, provider_id, requested_quantity, status, completion_code)
+      VALUES ('${NULL_STATUS_REQ}', '${SEC_LISTING}', '${SEC_USER_B}', '${SEC_USER_A}', 5, NULL, 'NULLST');
+      ALTER TABLE public.exchange_requests ENABLE TRIGGER ALL;
+    `);
+    await asUser(SEC_USER_B, 'authenticated');
+    const nullStatusRes = await db.query(`
+      SELECT public.get_exchange_whatsapp_contact(
+        p_exchange_request_id => $1::uuid,
+        p_participant_id => $2::uuid
+      ) as res;
+    `, [NULL_STATUS_REQ, SEC_USER_A]);
+    expect((nullStatusRes.rows[0].res as any).whatsapp).toBeNull();
+    expect((nullStatusRes.rows[0].res as any).has_whatsapp_consent).toBe(false);
+    expect((nullStatusRes.rows[0].res as any).status).toBeNull();
+
+    // 12. Verify enforced column default is false
+    const colDefault = await db.query(`
+      SELECT column_default 
+      FROM information_schema.columns 
+      WHERE table_schema = 'public' 
+        AND table_name = 'profiles' 
+        AND column_name = 'share_whatsapp_with_exchange';
+    `);
+    expect(colDefault.rows[0].column_default).toMatch(/false/i);
   });
 });

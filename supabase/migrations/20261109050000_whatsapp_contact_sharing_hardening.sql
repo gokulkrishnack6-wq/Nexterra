@@ -26,6 +26,8 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS whatsapp_number TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS phone_number TEXT;
 -- Add share_whatsapp_with_exchange with DEFAULT false so existing users are NOT opted in automatically
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS share_whatsapp_with_exchange BOOLEAN DEFAULT false;
+-- Explicitly enforce column default to false (preserves all existing TRUE and FALSE values)
+ALTER TABLE public.profiles ALTER COLUMN share_whatsapp_with_exchange SET DEFAULT false;
 
 -- Backfill phone to whatsapp_number and vice-versa (preserving existing non-empty values)
 UPDATE public.profiles
@@ -45,7 +47,7 @@ CREATE OR REPLACE FUNCTION public.get_exchange_whatsapp_contact(
 )
 RETURNS JSONB
 SECURITY DEFINER
-SET search_path = public, pg_temp
+SET search_path = ''
 AS $$
 DECLARE
   v_caller UUID := auth.uid();
@@ -106,14 +108,14 @@ BEGIN
   IF v_req.provider_id IS NULL AND v_provider_id IS NOT NULL THEN
     UPDATE public.exchange_requests
     SET provider_id = v_provider_id,
-        updated_at = NOW()
+        updated_at = pg_catalog.now()
     WHERE id = v_req.id;
   END IF;
 
   -- G. State Machine Gate: WhatsApp contact is ONLY released for ACCEPTED exchanges
   -- Pending, rejected, cancelled, and completed exchanges strictly withhold contact details
-  IF v_req.status <> 'accepted' THEN
-    RETURN jsonb_build_object(
+  IF v_req.status IS DISTINCT FROM 'accepted' THEN
+    RETURN pg_catalog.jsonb_build_object(
       'participant_id', p_participant_id,
       'whatsapp', NULL,
       'has_whatsapp_consent', false,
@@ -171,19 +173,19 @@ BEGIN
     SET phone = COALESCE(public.profiles.phone, v_meta_wa),
         whatsapp_number = COALESCE(public.profiles.whatsapp_number, v_meta_wa),
         share_whatsapp_with_exchange = COALESCE(public.profiles.share_whatsapp_with_exchange, v_meta_consent, false),
-        updated_at = NOW()
+        updated_at = pg_catalog.now()
     WHERE id = p_participant_id;
   END IF;
 
   -- L. Normalize Phone Digits
   IF v_raw_wa IS NOT NULL THEN
-    v_clean_wa := regexp_replace(v_raw_wa, '[^\d]', '', 'g');
+    v_clean_wa := pg_catalog.regexp_replace(v_raw_wa, '[^\d]', '', 'g');
     -- Strip single leading zero (trunk prefix in India, e.g. 09876543210 -> 9876543210)
-    IF length(v_clean_wa) = 11 AND v_clean_wa LIKE '0%' THEN
-      v_clean_wa := substring(v_clean_wa from 2);
+    IF pg_catalog.length(v_clean_wa) = 11 AND v_clean_wa LIKE '0%' THEN
+      v_clean_wa := pg_catalog.substr(v_clean_wa, 2);
     END IF;
 
-    v_wa_digits := length(v_clean_wa);
+    v_wa_digits := pg_catalog.length(v_clean_wa);
 
     -- If exactly 10 digits (standard Indian mobile format without country code), default prefix 91
     IF v_wa_digits = 10 THEN
@@ -198,7 +200,7 @@ BEGIN
   -- 3. Sharing disabled: Target has opted out OR has unknown/disabled consent (v_final_consent IS NOT TRUE)
   -- 4. Sharing enabled: Target has valid number AND explicit consent IS TRUE
   IF v_clean_wa IS NULL THEN
-    RETURN jsonb_build_object(
+    RETURN pg_catalog.jsonb_build_object(
       'participant_id', p_participant_id,
       'whatsapp', NULL,
       'has_whatsapp_consent', false,
@@ -207,7 +209,7 @@ BEGIN
       'status', v_req.status
     );
   ELSIF v_wa_digits < 10 OR v_wa_digits > 15 THEN
-    RETURN jsonb_build_object(
+    RETURN pg_catalog.jsonb_build_object(
       'participant_id', p_participant_id,
       'whatsapp', NULL,
       'has_whatsapp_consent', false,
@@ -216,7 +218,7 @@ BEGIN
       'status', v_req.status
     );
   ELSIF v_final_consent IS NOT TRUE THEN
-    RETURN jsonb_build_object(
+    RETURN pg_catalog.jsonb_build_object(
       'participant_id', p_participant_id,
       'whatsapp', NULL,
       'has_whatsapp_consent', false,
@@ -225,7 +227,7 @@ BEGIN
       'status', v_req.status
     );
   ELSE
-    RETURN jsonb_build_object(
+    RETURN pg_catalog.jsonb_build_object(
       'participant_id', p_participant_id,
       'whatsapp', v_clean_wa,
       'has_whatsapp_consent', true,
@@ -245,7 +247,7 @@ GRANT EXECUTE ON FUNCTION public.get_exchange_whatsapp_contact(UUID, UUID) TO au
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER 
 SECURITY DEFINER
-SET search_path = public, pg_temp
+SET search_path = ''
 AS $$
 DECLARE
   v_full_name TEXT;
@@ -254,7 +256,7 @@ DECLARE
   v_phone TEXT;
   v_share_wa BOOLEAN;
 BEGIN
-  v_full_name := COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1), 'GreenLoop Member');
+  v_full_name := COALESCE(NEW.raw_user_meta_data->>'full_name', pg_catalog.split_part(NEW.email, '@', 1), 'GreenLoop Member');
   v_district := NULLIF(TRIM(NEW.raw_user_meta_data->>'district'), '');
   v_whatsapp := NULLIF(TRIM(NEW.raw_user_meta_data->>'whatsapp_number'), '');
   v_phone := NULLIF(TRIM(COALESCE(NEW.raw_user_meta_data->>'phone', NEW.raw_user_meta_data->>'phone_number')), '');
@@ -294,8 +296,8 @@ BEGIN
     COALESCE(v_phone, v_whatsapp),
     0,
     COALESCE(NEW.email_confirmed_at IS NOT NULL, false),
-    NOW(),
-    NOW()
+    pg_catalog.now(),
+    pg_catalog.now()
   )
   ON CONFLICT (id) DO UPDATE SET
     full_name = EXCLUDED.full_name,
@@ -306,7 +308,7 @@ BEGIN
     -- CRITICAL: Preserve explicit existing profile consent if already set (whether TRUE or FALSE)
     share_whatsapp_with_exchange = COALESCE(public.profiles.share_whatsapp_with_exchange, EXCLUDED.share_whatsapp_with_exchange, false),
     is_verified = CASE WHEN NEW.email_confirmed_at IS NOT NULL THEN true ELSE public.profiles.is_verified END,
-    updated_at = NOW();
+    updated_at = pg_catalog.now();
 
   RETURN NEW;
 END;
