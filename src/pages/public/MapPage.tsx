@@ -48,18 +48,11 @@ export const MapPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-1.5 mb-1">
-            <Badge variant="brand">Spatial Infrastructure</Badge>
-            <span className="text-outline text-xs">•</span>
-            <span className="font-label-sm text-label-sm text-secondary">
-              Kerala Circular Points
-            </span>
-          </div>
           <h1 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight">
-            Waste Bins & Facility Directory
+            Recycling Directory &amp; Bins
           </h1>
-          <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
-            Locate public segregated waste bins, verified resource recovery hubs (MCFs), and active material listings across Kerala.
+          <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">
+            Find public waste bins, recycling centres, and collection hubs across Kerala.
           </p>
         </div>
 
@@ -69,7 +62,7 @@ export const MapPage: React.FC = () => {
             onChange={(e) => setSelectedDistrict(e.target.value)}
             className="w-full sm:w-auto py-2 px-3 bg-surface-container-lowest border border-outline-variant hover:border-outline focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg text-body-sm text-on-surface focus:outline-none transition-all"
           >
-            <option value="All Kerala">All Kerala Districts</option>
+            <option value="All Kerala">All Kerala</option>
             {keralaDistricts.map((d) => (
               <option key={d} value={d}>
                 {d}

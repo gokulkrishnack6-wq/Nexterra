@@ -77,20 +77,12 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, referenceCoor
           loading="lazy"
         />
 
-        {/* Pricing, Demo & AI Illustrative tags */}
+        {/* Pricing & Sample tag */}
         <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
           {getPricingBadge()}
           {listing.is_demo && (
             <span className="font-label-sm text-[10px] uppercase font-bold text-amber-800 bg-amber-100/95 dark:bg-amber-950/90 dark:text-amber-300 border border-amber-300 px-2 py-0.5 rounded-full shadow-sm backdrop-blur-sm">
-              Demo Sample
-            </span>
-          )}
-          {isAiGeneratedImage(listing) && (
-            <span
-              className="font-label-sm text-[10px] font-semibold text-white bg-black/65 backdrop-blur-xs px-2 py-0.5 rounded-full border border-white/20 flex items-center gap-1 shadow-sm"
-              title="AI-generated illustrative depiction (not actual seller photo)"
-            >
-              <Sparkles className="w-2.5 h-2.5 text-secondary" /> AI Image
+              Sample
             </span>
           )}
         </div>
@@ -129,16 +121,16 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, referenceCoor
             {listing.title}
           </h3>
 
-          <div className="flex items-center gap-1.5 mt-1 text-[11px] font-label-sm text-secondary">
+          <div className="flex items-center gap-1.5 mt-1.5 text-[11px] font-label-sm">
             <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
             <span className="font-medium text-emerald-700 dark:text-emerald-400">Available</span>
-            <span className="text-outline">•</span>
-            <span className="truncate text-on-surface-variant font-medium">{listing.condition}</span>
+            {listing.condition && (
+              <>
+                <span className="text-outline">•</span>
+                <span className="truncate text-on-surface-variant font-medium">{listing.condition}</span>
+              </>
+            )}
           </div>
-
-          <p className="font-body-sm text-body-sm text-on-surface-variant mt-1.5 line-clamp-2 leading-relaxed">
-            {listing.description}
-          </p>
         </div>
 
         <div className="mt-3 pt-2.5 border-t border-outline-variant/40 flex items-center justify-between text-body-sm">
@@ -147,16 +139,12 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, referenceCoor
             <div className="text-[11px] truncate leading-tight">
               {distanceKm !== null ? (
                 <span>
-                  <strong className="text-primary font-semibold">{distanceKm} km away</strong>
+                  <strong className="text-primary font-semibold">{distanceKm} km</strong>
                   <span className="text-outline mx-1">•</span>
                   <span>{listing.locality ? `${listing.locality}, ${listing.district}` : listing.district}</span>
                 </span>
               ) : (
-                <span>
-                  <span className="text-on-surface-variant/75">Distance unavailable</span>
-                  <span className="text-outline mx-1">•</span>
-                  <span>{listing.locality ? `${listing.locality}, ${listing.district}` : listing.district}</span>
-                </span>
+                <span>{listing.locality ? `${listing.locality}, ${listing.district}` : listing.district}</span>
               )}
             </div>
           </div>

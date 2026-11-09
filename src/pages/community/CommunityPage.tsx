@@ -41,18 +41,11 @@ export const CommunityPage: React.FC = () => {
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 space-y-8 text-left">
       {/* Header */}
       <div className="space-y-1">
-        <div className="inline-flex items-center gap-1.5 mb-1">
-          <Badge variant="brand">Collective Drives</Badge>
-          <span className="text-outline text-xs">•</span>
-          <span className="font-label-sm text-label-sm text-secondary">
-            Community Circular Initiatives
-          </span>
-        </div>
         <h1 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight">
-          Community Drives & Challenges
+          Community Drives
         </h1>
         <p className="font-body-sm text-body-sm text-on-surface-variant max-w-xl">
-          Collective waste diversion challenges, campus collections, and practical circular knowledge for Kerala communities.
+          Join local waste collection drives, campus cleanups, and community initiatives across Kerala.
         </p>
       </div>
 

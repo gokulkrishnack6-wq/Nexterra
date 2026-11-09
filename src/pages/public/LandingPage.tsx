@@ -43,11 +43,11 @@ export const LandingPage: React.FC = () => {
           <div className="lg:col-span-7 space-y-5 text-left">
             <div className="inline-flex items-center gap-2">
               <span className="px-2.5 py-1 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm tracking-wide uppercase font-semibold">
-                Kerala Circular Resource Action
+                Kerala Material Exchange
               </span>
               <span className="text-outline text-xs">•</span>
               <span className="text-secondary font-label-sm text-label-sm flex items-center gap-1 font-medium">
-                <ShieldCheck className="w-3.5 h-3.5 text-primary" /> Community Verified
+                <ShieldCheck className="w-3.5 h-3.5 text-primary" /> Verified Community
               </span>
             </div>
 
@@ -56,32 +56,32 @@ export const LandingPage: React.FC = () => {
             </h1>
 
             <p className="font-body text-body-lg text-on-surface-variant leading-relaxed max-w-xl">
-              Connect with people who can reuse, recycle, or transform materials you no longer need. Built for Kerala’s households, restaurants, farmers, and recycling networks.
+              Buy, sell, or donate recyclable and reusable materials in Kerala. Connect directly with people who can reuse what you no longer need.
             </p>
 
             {/* Call to Actions */}
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <Link to="/marketplace">
                 <Button size="lg" variant="primary" icon={<ArrowRight className="w-4 h-4" />} iconPosition="right">
-                  Explore Materials
+                  Browse Marketplace
                 </Button>
               </Link>
 
               <Link to="/marketplace/new">
                 <Button size="lg" variant="subtle">
-                  List Your Waste
+                  Add Listing
                 </Button>
               </Link>
 
               <Link to="/scanner">
                 <Button size="lg" variant="secondary" icon={<ScanLine className="w-4 h-4 text-primary" />}>
-                  Scan Material
+                  Identify Waste
                 </Button>
               </Link>
             </div>
 
             <p className="font-body-sm text-body-sm text-outline pt-1">
-              Community platform • Direct circular exchange • Local Kerala district tracking.
+              Free to use • Local pickups across Kerala • Direct WhatsApp coordination.
             </p>
           </div>
 
@@ -96,7 +96,7 @@ export const LandingPage: React.FC = () => {
               <div className="p-3 bg-surface-container-lowest border-t border-outline-variant flex items-center justify-between text-xs text-on-surface-variant">
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-primary"></span>
-                  <span className="font-medium text-on-surface">Decentralized Waste Diversion</span>
+                  <span className="font-medium text-on-surface">Local Material Redistribution</span>
                 </div>
                 <span className="text-outline">Kerala, India</span>
               </div>
@@ -106,14 +106,14 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* 2. RESTRAINED LIVE PLATFORM KPI BAR */}
+      {/* 2. PLATFORM IMPACT BAR */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="bg-surface-container p-space-md sm:p-space-lg rounded-xl border border-outline-variant/60 shadow-subtle">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 divide-y sm:divide-y-0 sm:divide-x divide-outline-variant/50">
             
             <div className="pt-2 sm:pt-0 sm:px-4 text-left">
               <span className="font-label-sm text-label-sm text-outline uppercase tracking-wider block">
-                Total Diverted
+                Diverted from Landfill
               </span>
               <div className="flex items-baseline gap-1 mt-1">
                 <span className="font-heading font-bold text-2xl sm:text-3xl text-primary">
@@ -122,13 +122,13 @@ export const LandingPage: React.FC = () => {
                 <span className="font-label-sm text-secondary font-semibold">kg</span>
               </div>
               <span className="font-body-sm text-body-sm text-on-surface-variant block mt-0.5">
-                Empirical landfill diversion
+                Saved from dumping
               </span>
             </div>
 
             <div className="pt-4 sm:pt-0 sm:px-4 text-left">
               <span className="font-label-sm text-label-sm text-outline uppercase tracking-wider block">
-                CO₂e Avoided
+                CO₂ Saved
               </span>
               <div className="flex items-baseline gap-1 mt-1">
                 <span className="font-heading font-bold text-2xl sm:text-3xl text-primary">
@@ -137,7 +137,7 @@ export const LandingPage: React.FC = () => {
                 <span className="font-label-sm text-secondary font-semibold">kg</span>
               </div>
               <span className="font-body-sm text-body-sm text-on-surface-variant block mt-0.5">
-                Empirical emissions prevented
+                Emissions prevented
               </span>
             </div>
 
@@ -149,7 +149,7 @@ export const LandingPage: React.FC = () => {
                 <span className="font-heading font-bold text-2xl sm:text-3xl text-primary">
                   {metrics.total_active_listings}
                 </span>
-                <span className="font-label-sm text-primary font-semibold">lots</span>
+                <span className="font-label-sm text-primary font-semibold">items</span>
               </div>
               <span className="font-body-sm text-body-sm text-on-surface-variant block mt-0.5">
                 Available for pickup
@@ -164,10 +164,10 @@ export const LandingPage: React.FC = () => {
                 <span className="font-heading font-bold text-2xl sm:text-3xl text-primary">
                   {metrics.total_completed_exchanges}
                 </span>
-                <span className="font-label-sm text-primary font-semibold">verified</span>
+                <span className="font-label-sm text-primary font-semibold">completed</span>
               </div>
               <span className="font-body-sm text-body-sm text-on-surface-variant block mt-0.5">
-                Code verified handovers
+                Verified handovers
               </span>
             </div>
 
@@ -175,15 +175,15 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* 3. FOUR-STEP PRACTICAL WORKFLOW */}
+      {/* 3. FOUR-STEP WORKFLOW */}
       <section id="how-it-works" className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="text-left mb-8 space-y-1">
-          <Badge variant="brand">Operational Workflow</Badge>
+          <Badge variant="brand">How It Works</Badge>
           <h2 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight">
-            How GreenLoop works in your area
+            Simple 4-step process
           </h2>
           <p className="font-body text-body-md text-on-surface-variant max-w-2xl">
-            A simple, verified loop from material generation to responsible circular redistribution.
+            Give unused materials a second life in your neighborhood.
           </p>
         </div>
 
@@ -195,14 +195,14 @@ export const LandingPage: React.FC = () => {
                 1
               </div>
               <h3 className="font-heading font-bold text-lg text-primary mb-1">
-                List your materials
+                Post your materials
               </h3>
               <p className="font-body-sm text-body-sm text-on-surface-variant">
-                Post vegetable discards, cardboard cartons, coconut husks, glass bottles, or scrap metals with photo and quantity.
+                List cardboard boxes, bottles, organic scraps, or scrap metal with photo, condition, and quantity.
               </p>
             </div>
             <div className="pt-4 mt-4 border-t border-outline-variant/40 text-[11px] text-outline">
-              Instant listing
+              Fast & free
             </div>
           </Card>
 
@@ -212,14 +212,14 @@ export const LandingPage: React.FC = () => {
                 2
               </div>
               <h3 className="font-heading font-bold text-lg text-primary mb-1">
-                Smart circular guidance
+                Find local matches
               </h3>
               <p className="font-body-sm text-body-sm text-on-surface-variant">
-                Smart camera classification identifies the material, estimates weight, gives handling guidance, and suggests composting or recycling.
+                Nearby neighbors, gardeners, compost yards, or recyclers discover your listing and send an exchange request.
               </p>
             </div>
             <div className="pt-4 mt-4 border-t border-outline-variant/40 text-[11px] text-outline">
-              Automated Material Analysis
+              Local discovery
             </div>
           </Card>
 
@@ -229,14 +229,14 @@ export const LandingPage: React.FC = () => {
                 3
               </div>
               <h3 className="font-heading font-bold text-lg text-primary mb-1">
-                Local smart match
+                Chat on WhatsApp
               </h3>
               <p className="font-body-sm text-body-sm text-on-surface-variant">
-                Nearby terrace gardeners, compost yards, or collection hubs discover compatible materials.
+                Accept a request and click directly into WhatsApp to agree on a convenient pickup time and location.
               </p>
             </div>
             <div className="pt-4 mt-4 border-t border-outline-variant/40 text-[11px] text-outline">
-              Proximity match scoring
+              Direct communication
             </div>
           </Card>
 
@@ -246,14 +246,14 @@ export const LandingPage: React.FC = () => {
                 4
               </div>
               <h3 className="font-heading font-bold text-lg text-primary mb-1">
-                Handover & points
+                Confirm & earn points
               </h3>
               <p className="font-body-sm text-body-sm text-on-surface-variant">
-                Coordinate pickup with secure completion codes, confirm handover, and receive verifiable EcoPoints into your ledger.
+                Hand over the materials, confirm the secure pickup code, and automatically earn EcoPoints.
               </p>
             </div>
             <div className="pt-4 mt-4 border-t border-outline-variant/40 text-[11px] text-outline">
-              Verifiable EcoPoints
+              Earn EcoPoints
             </div>
           </Card>
 
@@ -265,15 +265,15 @@ export const LandingPage: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-6 gap-3">
           <div className="space-y-1">
             <span className="font-label-sm text-label-sm text-outline uppercase tracking-wider block">
-              Recent Kerala Listings
+              Recent Listings
             </span>
             <h2 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight">
-              Materials ready for a second life
+              Materials ready for pickup
             </h2>
           </div>
           <Link to="/marketplace">
             <Button variant="secondary" size="sm" icon={<ArrowRight className="w-4 h-4" />} iconPosition="right">
-              View All Materials ({availableListings.length})
+              View All ({availableListings.length})
             </Button>
           </Link>
         </div>
@@ -281,11 +281,11 @@ export const LandingPage: React.FC = () => {
         {previewListings.length === 0 ? (
           <div className="p-8 border border-dashed border-outline-variant rounded-xl bg-surface-container-low/40 text-center max-w-lg mx-auto">
             <p className="font-body-md text-on-surface-variant text-sm mb-3">
-              Be the first in your district to list reusable materials, biomass, or recyclables!
+              Be the first in your area to list reusable materials or recyclables!
             </p>
             <Link to="/marketplace/new">
               <Button variant="primary" size="sm">
-                + List Material
+                Add Listing
               </Button>
             </Link>
           </div>
@@ -298,15 +298,15 @@ export const LandingPage: React.FC = () => {
         )}
       </section>
 
-      {/* 5. KERALA STAKEHOLDERS GRID */}
+      {/* 5. WHO USES GREENLOOP */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="bg-surface-container p-space-md sm:p-space-xl rounded-xl border border-outline-variant/60">
           <div className="text-left mb-8 space-y-1">
             <span className="font-label-sm text-label-sm text-outline uppercase tracking-wider block">
-              Local Ecosystem
+              Community
             </span>
             <h2 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight">
-              Built for everyone in Kerala's circular cycle
+              Who uses GreenLoop
             </h2>
           </div>
 
@@ -320,7 +320,7 @@ export const LandingPage: React.FC = () => {
                 Households & Individuals
               </h3>
               <p className="font-body-sm text-body-sm text-on-surface-variant">
-                Give away cardboard, bottles, dry coconut shells, and e-waste. Track personal CO₂ savings and earn EcoPoints.
+                Give away or sell cartons, bottles, coconut shells, and recyclables. Earn points and reduce landfill waste.
               </p>
             </div>
 
@@ -329,10 +329,10 @@ export const LandingPage: React.FC = () => {
                 <Building2 className="w-5 h-5" />
               </div>
               <h3 className="font-heading font-bold text-base text-primary mb-1">
-                Restaurants & Markets
+                Businesses & Restaurants
               </h3>
               <p className="font-body-sm text-body-sm text-on-surface-variant">
-                Divert daily vegetable peelings and wet waste directly to local composters, eliminating dump fees.
+                Redirect clean packaging, food waste, and excess materials directly to local reuse channels.
               </p>
             </div>
 
@@ -341,10 +341,10 @@ export const LandingPage: React.FC = () => {
                 <Sprout className="w-5 h-5" />
               </div>
               <h3 className="font-heading font-bold text-base text-primary mb-1">
-                Farmers & Gardeners
+                Gardeners & Farmers
               </h3>
               <p className="font-body-sm text-body-sm text-on-surface-variant">
-                Source free organic substrates, coir dust, coffee grounds, and compost material within a local radius.
+                Source organic materials, compost feedstocks, dry leaves, and containers for free or low cost nearby.
               </p>
             </div>
 
@@ -353,10 +353,10 @@ export const LandingPage: React.FC = () => {
                 <Recycle className="w-5 h-5" />
               </div>
               <h3 className="font-heading font-bold text-base text-primary mb-1">
-                Recycling MCFs & Centres
+                Recyclers & Collection Hubs
               </h3>
               <p className="font-body-sm text-body-sm text-on-surface-variant">
-                Collection hubs and recyclers locate segregated batches of clean plastics, metals, paper, and e-waste.
+                Find segregated batches of clean plastics, metals, paper, and e-waste directly in your neighborhood.
               </p>
             </div>
 
@@ -369,23 +369,23 @@ export const LandingPage: React.FC = () => {
         <div className="bg-primary-container text-on-primary rounded-xl p-space-lg sm:p-space-xl relative overflow-hidden shadow-sm">
           <div className="relative z-10 max-w-xl space-y-4 text-left">
             <span className="px-2.5 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-semibold tracking-wide uppercase">
-              Join Kerala Circular Action
+              Get Started
             </span>
             <h2 className="font-heading font-bold text-2xl sm:text-3xl lg:text-4xl text-on-primary tracking-tight">
-              Start diverting materials today.
+              Have items you don't need?
             </h2>
             <p className="font-body text-body-md text-on-primary-container leading-relaxed">
-              Whether you have 2 kg of kitchen scrap or 50 shipping cartons, someone in your community can give it a second life.
+              Whether you have leftover boxes, garden scrap, or scrap metal, someone in your community can use it.
             </p>
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <Link to="/marketplace/new">
                 <Button size="lg" className="bg-surface-container-lowest text-primary hover:bg-surface-container-high border-none font-semibold">
-                  List Your First Material
+                  Add a Listing
                 </Button>
               </Link>
               <Link to="/scanner">
                 <Button size="lg" variant="outline" className="border-on-primary-container text-on-primary hover:bg-primary">
-                  Try Waste Scanner
+                  Identify Waste
                 </Button>
               </Link>
             </div>

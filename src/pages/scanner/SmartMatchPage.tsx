@@ -27,39 +27,32 @@ export const SmartMatchPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-1.5 mb-1">
-            <Badge variant="brand">Algorithmic Pairing</Badge>
-            <span className="text-outline text-xs">•</span>
-            <span className="font-label-sm text-label-sm text-secondary">
-              Proximity & Circular Compatibility Engine
-            </span>
-          </div>
           <h1 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight">
-            Smart Material Matches
+            Recommended Matches
           </h1>
-          <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
-            Materials matching your profile as <strong className="text-primary capitalize">{userRole}</strong> in {userDistrict}.
+          <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">
+            Materials recommended for you in {userDistrict}.
           </p>
         </div>
 
-        <span className="font-label-sm text-label-sm text-primary bg-surface-container px-3 py-1.5 rounded-full border border-outline-variant font-semibold self-start sm:self-auto">
-          {smartMatches.length} Compatible Batches Found
+        <span className="font-label-sm text-xs text-primary bg-surface-container px-3 py-1.5 rounded-full border border-outline-variant font-semibold self-start sm:self-auto">
+          {smartMatches.length} Matches Found
         </span>
       </div>
 
       {/* Role Matching Explanation Banner */}
       <Card variant="low" className="p-4 space-y-1">
-        <span className="font-heading font-semibold text-body-md text-primary flex items-center gap-1.5">
+        <span className="font-heading font-semibold text-xs text-primary flex items-center gap-1.5">
           <Sparkles className="w-4 h-4 text-primary" />
-          <span>Active Role Matching Logic:</span>
+          <span>Recommendations for your profile:</span>
         </span>
-        <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
-          {userRole === 'farmer' && 'Prioritizing organic kitchen discards, vegetable peelings, and coconut husks for compost amendment.'}
-          {userRole === 'recycler' && 'Highlighting segregated clean plastics, corrugated shipping cartons, e-waste, and scrap metals.'}
-          {userRole === 'business' && 'Connecting local commercial food outlets to regional decentralized composting hubs.'}
-          {userRole === 'ngo' && 'Surfacing bulk community batches suitable for neighborhood drives and cooperative sorting.'}
-          {userRole === 'individual' && 'Surfacing neighborhood household items, free materials, and nearby collection opportunities.'}
-          {userRole === 'admin' && 'Displaying multi-district proximity and circular diversion scores across all stakeholders.'}
+        <p className="font-body-sm text-xs text-on-surface-variant leading-relaxed">
+          {userRole === 'farmer' && 'Showing organic materials, vegetable scrap, and coconut husks for compost and soil amendment.'}
+          {userRole === 'recycler' && 'Showing clean plastics, cardboard boxes, scrap metals, and e-waste.'}
+          {userRole === 'business' && 'Connecting commercial outlets with local composting and recycling channels.'}
+          {userRole === 'ngo' && 'Surfacing bulk batches suitable for community collection drives.'}
+          {userRole === 'individual' && 'Showing free items, household recyclables, and materials available nearby.'}
+          {userRole === 'admin' && 'Displaying circular materials and local diversion opportunities across all districts.'}
         </p>
       </Card>
 
@@ -120,7 +113,7 @@ export const SmartMatchPage: React.FC = () => {
 
                 <Link to={`/marketplace/${match.listing.id}`} className="w-full sm:w-auto">
                   <Button size="sm" variant="primary" fullWidth className="sm:w-auto" icon={<ArrowRight className="w-3.5 h-3.5" />} iconPosition="right">
-                    Initiate Exchange
+                    View Details
                   </Button>
                 </Link>
               </div>

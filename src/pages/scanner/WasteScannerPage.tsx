@@ -285,10 +285,9 @@ export const WasteScannerPage: React.FC = () => {
         className="hidden"
       />
 
-      {/* 1. TOP TELEMETRY & HEADER SECTION (Stitch 1:1) */}
+      {/* 1. TOP HEADER SECTION */}
       <div className="flex flex-col gap-space-sm mb-4">
         <div className="flex flex-wrap items-center justify-between gap-space-sm">
-          {/* Honest Service Status Badge (Verified dynamically, no static claims) */}
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-xs border border-outline-variant/40">
             <span className={`w-2 h-2 rounded-full ${
               backendStatus === 'ready'
@@ -299,28 +298,26 @@ export const WasteScannerPage: React.FC = () => {
             }`} />
             <span className="font-semibold text-primary">
               {backendStatus === 'ready'
-                ? 'Material Analysis: Online'
+                ? 'Scanner: Ready'
                 : backendStatus === 'checking'
-                ? 'Checking Edge Function Deployment...'
-                : 'Edge Function: Deployment Required'}
+                ? 'Connecting Scanner...'
+                : 'Scanner: Offline'}
             </span>
-            <span className="text-outline">•</span>
-            <span>Multimodal Pixel Inspection</span>
           </div>
 
           <div className="flex items-center gap-1.5 text-secondary font-label-sm text-xs font-semibold">
             <ShieldCheck className="w-4 h-4 text-primary" />
-            <span>Kerala Circular Protocol Aligned</span>
+            <span>AI Material Detection</span>
           </div>
         </div>
 
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-space-md pt-space-xs">
           <div className="max-w-3xl">
             <h1 className="font-heading font-bold text-2xl sm:text-3xl lg:text-headline-lg text-primary tracking-tight">
-              Smart Waste &amp; Material Scanner
+              Waste Scanner
             </h1>
             <p className="font-body-lg text-body-md text-on-surface-variant mt-1 leading-relaxed">
-              Upload or capture photographs of unsegregated waste, industrial byproducts, or agricultural residues. Our material analysis system inspects physical material composition, purity grade, local circular reuse pathways, and pre-fills your marketplace listing.
+              Take or upload a photo to identify recyclable materials and pre-fill your marketplace listing.
             </p>
           </div>
           <div className="flex items-center gap-space-sm">
@@ -330,7 +327,7 @@ export const WasteScannerPage: React.FC = () => {
               type="button"
             >
               <Recycle className="w-4 h-4 text-secondary" />
-              <span>Browse Materials</span>
+              <span>Browse Marketplace</span>
             </button>
           </div>
         </div>

@@ -50,10 +50,10 @@ export const Navbar: React.FC = () => {
 
   const navLinks = [
     { name: 'Dashboard', path: '/dashboard' },
-    { name: 'Explore Materials', path: '/marketplace' },
-    { name: 'Find Waste Bins', path: '/bins' },
-    { name: 'Waste Scanner', path: '/scanner' },
-    { name: 'Directory Map', path: '/map' },
+    { name: 'Marketplace', path: '/marketplace' },
+    { name: 'Collection Bins', path: '/bins' },
+    { name: 'Scanner', path: '/scanner' },
+    { name: 'Directory', path: '/map' },
     { name: 'Impact', path: '/impact' },
     { name: 'Community', path: '/community' },
   ];
@@ -87,7 +87,7 @@ export const Navbar: React.FC = () => {
                 GREENLOOP
               </span>
               <span className="font-label-sm text-[10px] text-secondary tracking-wider uppercase font-semibold">
-                Kerala Circular Action
+                Waste Has a Second Life
               </span>
             </div>
           </Link>
@@ -184,7 +184,7 @@ export const Navbar: React.FC = () => {
             {/* List Waste Button */}
             <Link to="/marketplace/new">
               <Button size="sm" variant="primary" icon={<Plus className="w-3.5 h-3.5" />}>
-                List Waste
+                Add Listing
               </Button>
             </Link>
 
@@ -211,7 +211,7 @@ export const Navbar: React.FC = () => {
                 <button
                   onClick={() => setProfileSettingsOpen(true)}
                   className="p-1.5 text-on-surface-variant hover:text-primary hover:bg-surface-container rounded-lg transition-colors"
-                  title="WhatsApp & Contact Privacy Settings"
+                  title="Profile & Contact Settings"
                 >
                   <Settings className="w-4 h-4" />
                 </button>
@@ -270,7 +270,7 @@ export const Navbar: React.FC = () => {
                 className="w-full text-left px-3 py-2 text-xs font-medium text-on-surface hover:bg-surface-container rounded-lg flex items-center gap-2"
               >
                 <Settings className="w-4 h-4 text-secondary" />
-                <span>WhatsApp & Contact Privacy</span>
+                <span>Profile & WhatsApp Settings</span>
               </button>
             )}
             <div className="pt-2 border-t border-outline-variant/40 flex items-center justify-between px-3">
@@ -279,7 +279,7 @@ export const Navbar: React.FC = () => {
                 onClick={() => setMobileMenuOpen(false)}
                 className="text-xs font-semibold text-primary"
               >
-                + List Waste
+                + Add Listing
               </Link>
               {currentUser ? (
                 <button

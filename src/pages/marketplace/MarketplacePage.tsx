@@ -239,27 +239,11 @@ export const MarketplacePage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-1.5 mb-1 flex-wrap">
-            <Badge variant="brand">Circular Marketplace</Badge>
-            <span className="text-outline text-xs">•</span>
-            <span className="font-label-sm text-label-sm text-secondary">
-              {filteredListings.length} materials in Kerala circulation
-            </span>
-            {demoListings?.length > 0 && (
-              <>
-                <span className="text-outline text-xs">•</span>
-                <span className="bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300/80 px-2 py-0.5 rounded-full font-label-sm text-[11px] font-medium inline-flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-amber-600" />
-                  4 Location-Adapted Sample Listings (Demo)
-                </span>
-              </>
-            )}
-          </div>
           <h1 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight">
             Waste Marketplace
           </h1>
-          <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
-            Discover reusable, recyclable, and compostable resources available across Kerala.
+          <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">
+            Browse recyclable and reusable materials available across Kerala.
           </p>
         </div>
 
@@ -300,7 +284,7 @@ export const MarketplacePage: React.FC = () => {
 
           <Link to="/marketplace/new" className="flex-1 sm:flex-initial">
             <Button variant="primary" size="md" icon={<Plus className="w-4 h-4" />} fullWidth className="sm:w-auto">
-              List Material
+              Add Listing
             </Button>
           </Link>
         </div>
@@ -314,24 +298,24 @@ export const MarketplacePage: React.FC = () => {
             onClick={() => refreshData()}
             className="underline font-semibold ml-2 hover:opacity-80 shrink-0"
           >
-            Retry Connection
+            Retry
           </button>
         </div>
       )}
 
       {/* Filter Toolbar */}
       <Card variant="elevated" className="space-y-3 p-4">
-        {/* Row 1: Location Discovery & Reference Anchor */}
+        {/* Row 1: Location Filter */}
         <div className="p-3 bg-surface-container-low rounded-lg border border-outline-variant/60 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
           <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-2">
             <div className="flex items-center gap-1.5 text-primary font-semibold shrink-0">
               <MapPin className="w-4 h-4 text-primary" />
-              <span className="font-label-sm">Discovery Center:</span>
+              <span className="font-label-sm">Location:</span>
             </div>
 
             <div className="flex-1 max-w-sm">
               <LocationAutocomplete
-                placeholder="Search town/locality (e.g. Cheruvathur, Kanhangad, Aluva)..."
+                placeholder="Search town or locality..."
                 onSelect={handleSelectAutocomplete}
                 initialValue={customRefLocation?.name || ''}
               />
@@ -341,10 +325,10 @@ export const MarketplacePage: React.FC = () => {
               onClick={handleUseGps}
               disabled={isDetectingGps}
               className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-surface-container-lowest hover:bg-surface-container border border-outline-variant text-on-surface rounded-lg font-label-sm text-xs font-medium transition-colors shrink-0 disabled:opacity-50"
-              title="Anchor discovery to current browser GPS location"
+              title="Use current location"
             >
               <Navigation className={`w-3.5 h-3.5 text-primary ${isDetectingGps ? 'animate-spin' : ''}`} />
-              <span>{isDetectingGps ? 'Locating...' : 'Use My GPS'}</span>
+              <span>{isDetectingGps ? 'Locating...' : 'Use current location'}</span>
             </button>
           </div>
 
@@ -356,7 +340,7 @@ export const MarketplacePage: React.FC = () => {
                 <button
                   onClick={handleClearRefLocation}
                   className="ml-1 hover:text-error transition-colors"
-                  title="Reset to default location"
+                  title="Reset location"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -400,22 +384,22 @@ export const MarketplacePage: React.FC = () => {
               onChange={(e) => setSelectedDistrict(e.target.value)}
               className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant hover:border-outline focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg text-body-sm text-on-surface focus:outline-none transition-all"
             >
-              <option value="All Kerala">All Kerala (14 Districts)</option>
+              <option value="All Kerala">All Kerala</option>
               {keralaDistricts.map((d) => (
                 <option key={d} value={d}>
-                  {d} {d === detectedDistrict ? '(Near You)' : ''}
+                  {d}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Nearby Search Radius (5 km, 10 km, 25 km, 50 km, All Kerala) */}
+          {/* Nearby Search Radius */}
           <div className="sm:col-span-2">
             <select
               value={selectedRadius}
               onChange={(e) => setSelectedRadius(e.target.value)}
               className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant hover:border-outline focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg text-body-sm text-on-surface focus:outline-none transition-all"
-              title="Search radius from your reference location or selected district"
+              title="Search radius"
             >
               <option value="all">All Kerala</option>
               <option value="5">Within 5 km</option>
@@ -432,10 +416,10 @@ export const MarketplacePage: React.FC = () => {
               onChange={(e) => setSelectedPricing(e.target.value)}
               className="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant hover:border-outline focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg text-body-sm text-on-surface focus:outline-none transition-all"
             >
-              <option value="all">All Pricing</option>
+              <option value="all">All Types</option>
               <option value="free">Free Only</option>
-              <option value="exchange">Exchange / Barter</option>
-              <option value="sale">Nominal Sale</option>
+              <option value="exchange">Exchange</option>
+              <option value="sale">For Sale</option>
             </select>
           </div>
 
@@ -504,9 +488,9 @@ export const MarketplacePage: React.FC = () => {
       ) : filteredListings.length === 0 ? (
         <EmptyState
           icon={<Filter className="w-6 h-6" />}
-          title="No Materials Found"
-          description={`There are currently no listings matching your criteria within ${selectedRadius === 'all' ? 'Kerala' : `${selectedRadius} km`} of ${activeReferenceLabel}. Be the first to list reusable materials!`}
-          actionLabel="+ List Material Now"
+          title="No Listings Found"
+          description="No listings match your current filters. Try changing your search or location."
+          actionLabel="Add a Listing"
           actionLink="/marketplace/new"
         />
       ) : viewMode === 'map' ? (
@@ -520,13 +504,13 @@ export const MarketplacePage: React.FC = () => {
             referenceCoords={refCoords}
           />
           <div className="p-3 bg-surface-container-low rounded-lg border border-outline-variant/60 text-xs text-on-surface-variant flex items-center justify-between">
-            <span>Showing <strong>{filteredListings.length}</strong> active material locations on the Kerala map. Click any pin to view details.</span>
+            <span>Showing <strong>{filteredListings.length}</strong> listings on the map. Click any pin to view details.</span>
             <button
               onClick={() => setViewMode('grid')}
               className="text-primary font-semibold hover:underline inline-flex items-center gap-1"
             >
               <LayoutGrid className="w-3.5 h-3.5" />
-              <span>Switch to Grid View</span>
+              <span>Grid View</span>
             </button>
           </div>
         </div>

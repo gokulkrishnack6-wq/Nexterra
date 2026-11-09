@@ -232,7 +232,7 @@ export const ImpactDashboardPage: React.FC = () => {
           <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/40 flex items-center gap-2.5 text-xs text-on-surface-variant">
             <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
             <span>
-              <strong>Strict Data Integrity:</strong> Zero random points or fabricated balances. All points are credited to private account ledgers only upon verified completion.
+              <strong>Verified Points:</strong> EcoPoints are credited directly to your account when material pickups and reports are completed.
             </span>
           </div>
         </div>
@@ -331,18 +331,11 @@ export const ImpactDashboardPage: React.FC = () => {
       {/* Header & Personal Identity Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-1.5 mb-1">
-            <Badge variant="brand">Empirical Telemetry</Badge>
-            <span className="text-outline text-xs">•</span>
-            <span className="font-label-sm text-label-sm text-secondary">
-              Kerala Circular Ledger
-            </span>
-          </div>
           <h1 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight">
-            Environmental Impact &amp; EcoPoints
+            Environmental Impact
           </h1>
-          <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
-            Transparent empirical tracking of your landfill diversion, carbon mitigation, and earned rewards.
+          <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">
+            Track your waste diverted, emissions saved, and EcoPoints earned.
           </p>
         </div>
 
@@ -367,7 +360,7 @@ export const ImpactDashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 4 PRIMARY METRIC CARDS (User-Specific + Empirical) */}
+      {/* 4 PRIMARY METRIC CARDS */}
       <div className="grid grid-cols-1 min-[360px]:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           label="Current Balance"
@@ -389,7 +382,7 @@ export const ImpactDashboardPage: React.FC = () => {
           label="Completed Activities"
           value={completedActivitiesCount}
           unit="actions"
-          subtext={`${userListings.length} lists, ${userTransactions.length} trades, ${userResolvedReports.length} reports`}
+          subtext={`${userListings.length} listings, ${userTransactions.length} exchanges, ${userResolvedReports.length} reports`}
           icon={<CheckCircle2 className="w-5 h-5 text-primary" />}
         />
 
@@ -411,7 +404,7 @@ export const ImpactDashboardPage: React.FC = () => {
               : 'text-on-surface-variant hover:bg-surface-container'
           }`}
         >
-          Personal Impact &amp; Overview
+          Overview
         </button>
         <button
           onClick={() => setActiveTab('points')}
@@ -421,7 +414,7 @@ export const ImpactDashboardPage: React.FC = () => {
               : 'text-on-surface-variant hover:bg-surface-container'
           }`}
         >
-          My EcoPoints Ledger ({userPointsHistory.length})
+          EcoPoints Ledger ({userPointsHistory.length})
         </button>
         <button
           onClick={() => setActiveTab('rewards')}
@@ -431,7 +424,7 @@ export const ImpactDashboardPage: React.FC = () => {
               : 'text-on-surface-variant hover:bg-surface-container'
           }`}
         >
-          Available Rewards ({AVAILABLE_REWARDS.length})
+          Rewards ({AVAILABLE_REWARDS.length})
         </button>
         <button
           onClick={() => setActiveTab('factors')}
@@ -441,7 +434,7 @@ export const ImpactDashboardPage: React.FC = () => {
               : 'text-on-surface-variant hover:bg-surface-container'
           }`}
         >
-          How to Earn &amp; Factors
+          How to Earn
         </button>
       </div>
 

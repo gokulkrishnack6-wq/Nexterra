@@ -385,27 +385,27 @@ export const CreateListingPage: React.FC = () => {
           <span>Back to Marketplace</span>
         </button>
 
-        <Link to="/ai-scanner">
+        <Link to="/scanner">
           <Button variant="secondary" size="sm" icon={<Sparkles className="w-4 h-4 text-primary" />} fullWidth className="xs:w-auto">
-            Auto-fill with Smart Scanner
+            Scan Material
           </Button>
         </Link>
       </div>
 
       <div className="space-y-1">
         <div className="inline-flex items-center gap-1.5 mb-1">
-          <Badge variant="brand">List Material</Badge>
+          <Badge variant="brand">New Listing</Badge>
           {aiClassified && (
             <Badge variant="active" icon={<Sparkles className="w-3 h-3" />}>
-              Scanner Pre-Filled
+              Scanner Filled
             </Badge>
           )}
         </div>
         <h1 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight">
-          List Material for Circular Use
+          Add a Listing
         </h1>
         <p className="font-body-sm text-body-sm text-on-surface-variant">
-          Connect with nearby compost producers, terrace gardeners, upcyclers, or collection hubs across Kerala.
+          Share recyclable materials or reusable items with people nearby.
         </p>
 
         {!currentUser && (
@@ -434,23 +434,23 @@ export const CreateListingPage: React.FC = () => {
           {/* Material Name, Type & Category */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Input
-              label="Material Title *"
+              label="Item Title *"
               required
-              placeholder="e.g. Dry Coconut Husks, Corrugated Cartons, Clean Glass Bottles"
+              placeholder="e.g. Cardboard boxes, glass bottles, coconut husks"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
 
             <Input
-              label="Material / Composition"
-              placeholder="e.g. PET Plastic #1, Coconut Coir, HDPE"
+              label="Material (optional)"
+              placeholder="e.g. Cardboard, PET Plastic, Metal"
               value={materialType}
               onChange={(e) => setMaterialType(e.target.value)}
             />
 
             <div>
               <label className="block font-label-md text-label-md text-on-surface mb-1 font-semibold">
-                Circular Category *
+                Category *
               </label>
               <select
                 value={categoryId}
@@ -469,10 +469,10 @@ export const CreateListingPage: React.FC = () => {
 
           {/* Material Description */}
           <Textarea
-            label="Description & Condition Details *"
+            label="Description *"
             required
             rows={3}
-            placeholder="Describe the material condition, packaging, cleanliness, and any handling instructions for pickup..."
+            placeholder="Describe the condition, quantity, and any pickup details..."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
@@ -511,33 +511,33 @@ export const CreateListingPage: React.FC = () => {
 
             <div>
               <label className="block font-label-md text-label-md text-on-surface mb-1 font-semibold">
-                Cleanliness / Condition *
+                Condition
               </label>
               <select
                 value={condition}
                 onChange={(e) => setCondition(e.target.value)}
                 className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-3 transition-all"
               >
-                <option value="clean/dry">Clean & Dry (Standard)</option>
-                <option value="sorted">Separated & Sorted</option>
-                <option value="washed">Washed / Sanitized</option>
-                <option value="mixed">Mixed Recyclables</option>
+                <option value="clean/dry">Clean & Dry</option>
+                <option value="sorted">Sorted</option>
+                <option value="washed">Washed</option>
+                <option value="mixed">Mixed</option>
                 <option value="raw/unprocessed">Raw / Unprocessed</option>
               </select>
             </div>
 
             <div>
               <label className="block font-label-md text-label-md text-on-surface mb-1 font-semibold">
-                Pricing / Exchange *
+                Pricing *
               </label>
               <select
                 value={listingType}
                 onChange={(e) => setListingType(e.target.value as any)}
                 className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-3 transition-all"
               >
-                <option value="free">Free Donation (Recommended)</option>
-                <option value="exchange">Barter Exchange</option>
-                <option value="sale">Nominal Price (₹)</option>
+                <option value="free">Free</option>
+                <option value="exchange">Exchange</option>
+                <option value="sale">For Sale (₹)</option>
               </select>
             </div>
           </div>
@@ -545,7 +545,7 @@ export const CreateListingPage: React.FC = () => {
           {listingType === 'sale' && (
             <div className="max-w-xs">
               <Input
-                label="Total Asking Price (₹) *"
+                label="Price (₹) *"
                 type="number"
                 min={1}
                 value={price}
@@ -554,27 +554,16 @@ export const CreateListingPage: React.FC = () => {
             </div>
           )}
 
-          {/* ========================================================================= */}
-          {/* FEATURE 1: CLEARLY VISIBLE PICKUP LOCATION SELECTION SECTION              */}
-          {/* ========================================================================= */}
+          {/* Unified Location Picker */}
           <div className="pt-4 border-t border-outline-variant/50 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-              <div>
-                <h2 className="font-heading font-bold text-title-md text-primary flex items-center gap-1.5">
-                  <MapPin className="w-5 h-5 text-primary" />
-                  <span>Pickup Location in Kerala *</span>
-                </h2>
-                <p className="font-body-sm text-xs text-on-surface-variant">
-                  Select your current GPS location or search for your town/locality. Coordinates are used to calculate distances for nearby users.
-                </p>
-              </div>
-
-              {hasSelectedLocation && (
-                <span className="font-mono text-[11px] text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 px-2 py-0.5 rounded-full inline-flex items-center gap-1 self-start sm:self-auto">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                  {latitude?.toFixed(4)}°N, {longitude?.toFixed(4)}°E
-                </span>
-              )}
+            <div>
+              <h2 className="font-heading font-bold text-base text-primary flex items-center gap-1.5">
+                <MapPin className="w-4 h-4 text-primary" />
+                <span>Pickup Location *</span>
+              </h2>
+              <p className="font-body-sm text-xs text-on-surface-variant mt-0.5">
+                Select your location so buyers nearby can find your listing.
+              </p>
             </div>
 
             {locationError && (
@@ -584,100 +573,55 @@ export const CreateListingPage: React.FC = () => {
               </div>
             )}
 
-            {/* Selection Methods Grid: Option A & Option B */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Option A: Use My Current Location */}
-              <div className="p-4 rounded-xl border border-outline-variant/70 bg-surface-container-low/50 hover:border-primary/40 transition-all flex flex-col justify-between space-y-3">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="w-6 h-6 rounded-full bg-primary-container text-on-primary font-bold text-xs flex items-center justify-center">
-                      A
-                    </span>
-                    <h3 className="font-semibold text-body-md text-on-surface">
-                      Use My Current Location
-                    </h3>
-                  </div>
-                  <p className="text-xs text-on-surface-variant leading-relaxed">
-                    Automatically detect your precise GPS coordinates and reverse-geocode your Kerala locality and district.
-                  </p>
-                </div>
-
-                <Button
-                  type="button"
-                  variant={locationSource === 'current' ? 'primary' : 'outline'}
-                  size="md"
-                  onClick={handleUseCurrentLocation}
-                  disabled={isDetectingGps}
-                  icon={isDetectingGps ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
-                  fullWidth
-                >
-                  {isDetectingGps
-                    ? 'Detecting GPS Coordinates...'
-                    : locationSource === 'current'
-                    ? '✓ GPS Location Detected'
-                    : 'Use My Current Location'}
-                </Button>
-              </div>
-
-              {/* Option B: Search for a Location */}
-              <div className="p-4 rounded-xl border border-outline-variant/70 bg-surface-container-low/50 hover:border-primary/40 transition-all flex flex-col justify-between space-y-3">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="w-6 h-6 rounded-full bg-primary-container text-on-primary font-bold text-xs flex items-center justify-center">
-                      B
-                    </span>
-                    <h3 className="font-semibold text-body-md text-on-surface">
-                      Search for a Location
-                    </h3>
-                  </div>
-                  <p className="text-xs text-on-surface-variant leading-relaxed">
-                    Type your locality, village, town, or district in Kerala and select from autocomplete suggestions.
-                  </p>
-                </div>
-
+            {/* Location Search Bar with Current Location Action */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <div className="flex-1">
                 <LocationAutocomplete
                   onSelect={handleSelectAutocomplete}
                   selectedLocation={locationSource === 'search' ? selectedLocation : null}
-                  placeholder="e.g. Cheruvathur, Kanhangad, Edappally, Aluva..."
+                  placeholder="Search town or locality (e.g. Edappally, Aluva, Cheruvathur)..."
                   onClear={handleClearLocation}
                 />
               </div>
+
+              <Button
+                type="button"
+                variant={locationSource === 'current' ? 'primary' : 'outline'}
+                size="md"
+                onClick={handleUseCurrentLocation}
+                disabled={isDetectingGps}
+                icon={isDetectingGps ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
+                className="shrink-0"
+              >
+                {isDetectingGps
+                  ? 'Locating...'
+                  : locationSource === 'current'
+                  ? 'Location Found'
+                  : 'Use current location'}
+              </Button>
             </div>
 
-            {/* Selected Location Summary Card */}
+            {/* Selected Location Display */}
             {hasSelectedLocation && (
-              <div className="p-4 rounded-xl border border-emerald-300 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20 space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div className="flex items-start gap-2.5">
-                    <div className="p-1.5 rounded-lg bg-emerald-600 text-white shrink-0 mt-0.5">
-                      <MapPin className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-body-md text-emerald-950 dark:text-emerald-100">
-                          {locality}, {district}
-                        </span>
-                        <span className="text-xs text-emerald-800 dark:text-emerald-300 font-medium">
-                          ({state}{pincode ? ` - ${pincode}` : ''})
-                        </span>
-                        <Badge variant="active">
-                          {locationSource === 'current' ? 'GPS Detected' : 'Verified Autocomplete'}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-emerald-900/80 dark:text-emerald-300/80 mt-0.5">
-                        {formattedAddress || `${locality}, ${district}, Kerala`}
-                      </p>
-                    </div>
+              <div className="p-3.5 rounded-xl border border-outline-variant bg-surface-container-low/50 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-primary font-semibold text-sm">
+                      📍 {locality}, {district}
+                    </span>
+                    <span className="text-xs text-on-surface-variant">
+                      ({state})
+                    </span>
                   </div>
 
-                  <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                  <div className="flex items-center gap-3 shrink-0">
                     <button
                       type="button"
                       onClick={() => setIsEditingLocationDetails(!isEditingLocationDetails)}
-                      className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 hover:underline inline-flex items-center gap-1"
+                      className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
-                      <span>{isEditingLocationDetails ? 'Done Editing' : 'Edit Details'}</span>
+                      <span>{isEditingLocationDetails ? 'Done' : 'Edit'}</span>
                     </button>
                     <button
                       type="button"
@@ -690,15 +634,13 @@ export const CreateListingPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Optional Landmark & Editable Fields */}
-                <div className="pt-2 border-t border-emerald-200 dark:border-emerald-800/60 grid grid-cols-1 sm:grid-cols-12 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-2 border-t border-outline-variant/40">
                   <div className="sm:col-span-12">
                     <Input
-                      label="Pickup Landmark / Directions (Optional)"
-                      placeholder="e.g. Near Municipal Bus Stand, Opp. Primary Health Centre, Gate No. 2"
+                      label="Landmark / Directions (optional)"
+                      placeholder="e.g. Near bus stand, Opp. post office"
                       value={landmarkAddress}
                       onChange={(e) => setLandmarkAddress(e.target.value)}
-                      helperText="Public listings only display approximate locality. Exact residential street directions are only shared upon confirmed pickup."
                     />
                   </div>
 
@@ -714,7 +656,7 @@ export const CreateListingPage: React.FC = () => {
                           className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-3 transition-all"
                           required
                         >
-                          <option value="">Select Kerala District</option>
+                          <option value="">Select District</option>
                           {keralaDistricts.map((d) => (
                             <option key={d} value={d}>{d}</option>
                           ))}
@@ -723,7 +665,7 @@ export const CreateListingPage: React.FC = () => {
 
                       <div className="sm:col-span-6">
                         <Input
-                          label="Ward / Locality Name *"
+                          label="Locality / Town *"
                           value={locality}
                           onChange={(e) => setLocality(e.target.value)}
                           required
@@ -742,9 +684,7 @@ export const CreateListingPage: React.FC = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="block font-label-md text-label-md text-on-surface font-semibold">
-                    {isAiGeneratedImage({ images: [imageUrl], is_ai_image: isAiImage })
-                      ? 'AI-Generated Illustrative Image'
-                      : 'Material Photograph'}
+                    Photo Preview
                   </label>
                   <button
                     type="button"
@@ -760,20 +700,16 @@ export const CreateListingPage: React.FC = () => {
                 <div className="relative inline-flex items-center gap-3.5 p-3 rounded-xl border border-outline-variant bg-surface-container-lowest shadow-xs">
                   <img
                     src={imageUrl}
-                    alt="Material illustration"
+                    alt="Material preview"
                     className="w-20 h-20 rounded-lg object-cover border border-outline-variant/60 shrink-0"
                   />
                   <div className="flex flex-col gap-1 min-w-0">
                     <span className="font-semibold text-xs text-primary flex items-center gap-1.5">
                       <Sparkles className="w-3.5 h-3.5 text-secondary shrink-0" />
-                      {isAiGeneratedImage({ images: [imageUrl], is_ai_image: isAiImage })
-                        ? 'AI Illustrative Depiction'
-                        : 'Attached Photograph'}
+                      Listing Photo
                     </span>
                     <span className="text-[11px] text-on-surface-variant leading-relaxed">
-                      {isAiGeneratedImage({ images: [imageUrl], is_ai_image: isAiImage })
-                        ? 'Realistic AI-generated depiction based on material name and circular category.'
-                        : 'Optimized photograph attached for circular verification and discovery.'}
+                      Photo will be displayed on the marketplace card and details page.
                     </span>
                   </div>
                 </div>
@@ -781,14 +717,14 @@ export const CreateListingPage: React.FC = () => {
             ) : (
               <div className="space-y-3">
                 <Input
-                  label="Photo Image URL (Optional)"
-                  placeholder="https://... (or leave empty for automatic AI generation upon publishing)"
+                  label="Photo (optional)"
+                  placeholder="https://... (or leave empty to auto-generate a photo)"
                   value={imageUrl}
                   onChange={(e) => {
                     setImageUrl(e.target.value);
                     setIsAiImage(false);
                   }}
-                  helperText="Leave empty to automatically generate a realistic AI illustration upon publishing, or preview one below."
+                  helperText="Leave empty to automatically generate a photo based on your item title, or preview one below."
                 />
 
                 <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -801,17 +737,17 @@ export const CreateListingPage: React.FC = () => {
                     {isGeneratingPreview ? (
                       <>
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Generating illustrative preview...</span>
+                        <span>Generating preview...</span>
                       </>
                     ) : (
                       <>
                         <Sparkles className="w-3.5 h-3.5 text-secondary" />
-                        <span>Preview AI Generated Image</span>
+                        <span>Generate Photo Preview</span>
                       </>
                     )}
                   </button>
                   <span className="text-[11px] text-on-surface-variant">
-                    (Automatically generated if left empty)
+                    (Auto-generated if left empty)
                   </span>
                 </div>
               </div>
@@ -847,12 +783,12 @@ export const CreateListingPage: React.FC = () => {
               }
             >
               {publishingStage === 'generating_image'
-                ? 'Generating listing image...'
+                ? 'Generating photo...'
                 : publishingStage === 'publishing'
-                ? 'Publishing Material Listing...'
+                ? 'Publishing listing...'
                 : submitting
                 ? 'Publishing...'
-                : 'Publish Material Listing'}
+                : 'Publish Listing'}
             </Button>
           </div>
         </form>

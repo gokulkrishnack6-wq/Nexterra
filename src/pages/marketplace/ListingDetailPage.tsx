@@ -178,7 +178,7 @@ export const ListingDetailPage: React.FC = () => {
     setSubmitting(true);
     try {
       if (listing.is_demo) {
-        setSuccessMessage('Demo Mode: Exchange proposal simulated successfully for competition review! Real exchange requests are enabled on authentic community listings.');
+        setSuccessMessage('This is a sample listing for demonstration. On real listings, requests notify the owner and unlock WhatsApp contact upon acceptance.');
         setTimeout(() => {
           navigate('/marketplace');
         }, 2500);
@@ -189,12 +189,12 @@ export const ListingDetailPage: React.FC = () => {
         listing.id,
         requestedQuantity,
         proposedAction,
-        message || `Requesting ${requestedQuantity} ${listing.unit} of ${listing.title} for reuse.`
+        message || `Requesting ${requestedQuantity} ${listing.unit} of ${listing.title}.`
       );
       setCreatedRequestId(newRequestId);
-      setSuccessMessage('Exchange request submitted. Once accepted by the provider, direct WhatsApp contact will unlock to coordinate collection.');
+      setSuccessMessage('Request sent. When the owner accepts, you can chat directly on WhatsApp.');
     } catch (err: any) {
-      alert(err.message || 'Failed to submit exchange proposal');
+      alert(err.message || 'Failed to submit request');
     } finally {
       setSubmitting(false);
     }
@@ -236,16 +236,9 @@ export const ListingDetailPage: React.FC = () => {
         {/* Left Col (7 cols): Images & Description */}
         <div className="lg:col-span-7 space-y-6">
           {listing.is_demo && (
-            <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 rounded-xl p-4 flex items-start gap-3 shadow-sm">
-              <Sparkles className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <h4 className="font-heading font-semibold text-sm text-amber-900 dark:text-amber-200">
-                  Location-Aware Competition Demonstration Listing
-                </h4>
-                <p className="font-body-sm text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-                  This sample material has been dynamically assigned to an authentic locality ({listing.locality}, {listing.district}) based on your current geographic reference point ({distanceKm !== null ? `${distanceKm} km away` : 'nearby'}). It demonstrates how local circular resources are surfaced to nearby residents.
-                </p>
-              </div>
+            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/80 rounded-xl p-3 flex items-center gap-2.5 text-xs text-amber-900 dark:text-amber-200">
+              <span className="font-bold uppercase tracking-wider text-[10px] bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100 px-2 py-0.5 rounded">Sample</span>
+              <span>This is a sample listing to demonstrate how materials are shared on GreenLoop.</span>
             </div>
           )}
 
@@ -257,48 +250,34 @@ export const ListingDetailPage: React.FC = () => {
                 className="w-full h-full object-cover"
               />
               <div className="absolute top-3 left-3 flex gap-2 flex-wrap">
-                <span className="font-label-sm text-label-sm text-primary font-bold bg-secondary-container px-3 py-1 rounded-full shadow-sm">
-                  {listing.listing_type === 'free' ? 'Free Claim' : listing.listing_type === 'exchange' ? 'Barter Exchange' : `₹${listing.price}`}
+                <span className="font-label-sm text-xs text-primary font-bold bg-surface-container-lowest/90 backdrop-blur-xs px-3 py-1 rounded-full shadow-sm">
+                  {listing.listing_type === 'free' ? 'Free' : listing.listing_type === 'exchange' ? 'Exchange' : `₹${listing.price}`}
                 </span>
-                {listing.ai_classified && (
-                  <span className="font-label-sm text-label-sm text-on-primary bg-primary-container px-3 py-1 rounded-full flex items-center gap-1 shadow-sm font-semibold">
-                    <Sparkles className="w-3 h-3" /> Verified Material
-                  </span>
-                )}
-                {isAiGeneratedImage(listing) && (
-                  <span className="font-label-sm text-label-sm text-white bg-black/75 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm font-semibold border border-white/20">
-                    <Sparkles className="w-3 h-3 text-secondary" /> AI Illustrative Image
+                {listing.is_demo && (
+                  <span className="font-label-sm text-xs font-bold text-amber-800 bg-amber-100/95 dark:bg-amber-950/90 dark:text-amber-300 border border-amber-300 px-2.5 py-1 rounded-full shadow-sm">
+                    Sample
                   </span>
                 )}
               </div>
             </div>
 
             <div className="p-space-md sm:p-space-lg space-y-4">
-              {isAiGeneratedImage(listing) && (
-                <div className="p-3 rounded-xl bg-surface-container/60 border border-outline-variant/60 text-xs text-on-surface-variant flex items-start gap-2.5 shadow-2xs">
-                  <Sparkles className="w-4 h-4 text-secondary shrink-0 mt-0.5" />
-                  <p className="leading-relaxed">
-                    <strong className="text-primary font-semibold">AI-Generated Illustrative Image: </strong>
-                    This image was automatically generated to help circular buyers identify the material type ({listing.material_type || listing.title}). It is an illustrative depiction and not an actual photograph of the seller's specific lot.
-                  </p>
-                </div>
-              )}
               <div>
-                <span className="font-label-sm text-label-sm text-secondary uppercase tracking-wider block font-semibold">
+                <span className="font-label-sm text-xs text-secondary uppercase tracking-wider block font-semibold">
                   {category?.name || 'Recyclable Material'}
                 </span>
                 <h1 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight mt-1">
                   {listing.title}
                 </h1>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-on-surface-variant font-body-sm text-body-sm mt-2">
-                  <span className="flex items-center gap-1">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-on-surface-variant font-body-sm text-xs mt-2">
+                  <span className="flex items-center gap-1 font-medium text-primary">
                     <MapPin className="w-3.5 h-3.5 text-primary" />
-                    {distanceKm !== null ? `${distanceKm} km away • ` : ''}
-                    {listing.locality}, {listing.district}
+                    {distanceKm !== null ? `${distanceKm} km • ` : ''}
+                    {listing.locality ? `${listing.locality}, ` : ''}{listing.district}
                   </span>
                   <span>•</span>
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5 text-outline" /> Listed on {new Date(listing.created_at).toLocaleDateString()}
+                  <span className="flex items-center gap-1 text-outline">
+                    <Calendar className="w-3.5 h-3.5" /> Listed on {new Date(listing.created_at).toLocaleDateString()}
                   </span>
                 </div>
               </div>
@@ -306,24 +285,26 @@ export const ListingDetailPage: React.FC = () => {
               {/* Material Specs */}
               <div className="grid grid-cols-1 xs:grid-cols-3 gap-3 p-3 bg-surface-container rounded-lg border border-outline-variant/40">
                 <div>
-                  <span className="font-label-sm text-label-sm text-outline block">Available Quantity</span>
-                  <span className="font-heading font-bold text-body-lg text-primary">{listing.quantity} {listing.unit}</span>
+                  <span className="font-label-sm text-xs text-outline block">Quantity</span>
+                  <span className="font-heading font-bold text-sm text-primary">{listing.quantity} {listing.unit}</span>
                 </div>
                 <div>
-                  <span className="font-label-sm text-label-sm text-outline block">Condition</span>
-                  <span className="font-heading font-semibold text-body-md text-on-surface capitalize">{listing.condition}</span>
+                  <span className="font-label-sm text-xs text-outline block">Condition</span>
+                  <span className="font-heading font-semibold text-sm text-on-surface capitalize">{listing.condition}</span>
                 </div>
                 <div>
-                  <span className="font-label-sm text-label-sm text-outline block">Circularity Mode</span>
-                  <span className="font-heading font-semibold text-body-md text-on-surface capitalize">{listing.listing_type}</span>
+                  <span className="font-label-sm text-xs text-outline block">Listing Type</span>
+                  <span className="font-heading font-semibold text-sm text-on-surface capitalize">
+                    {listing.listing_type === 'free' ? 'Free' : listing.listing_type === 'exchange' ? 'Exchange' : 'For Sale'}
+                  </span>
                 </div>
               </div>
 
               <div>
-                <h3 className="font-heading font-semibold text-title-md text-primary mb-1">
-                  Material Details & Context
+                <h3 className="font-heading font-semibold text-base text-primary mb-1">
+                  Details
                 </h3>
-                <p className="font-body text-body-md text-on-surface-variant leading-relaxed">
+                <p className="font-body text-sm text-on-surface-variant leading-relaxed">
                   {listing.description}
                 </p>
               </div>
@@ -389,15 +370,15 @@ export const ListingDetailPage: React.FC = () => {
           {isOwner ? (
             <Card variant="flat" className="space-y-4 p-4 border border-outline-variant/60">
               <div className="flex items-center justify-between">
-                <span className="font-label-sm text-label-sm text-outline uppercase tracking-wider font-semibold">
-                  Your Published Listing
+                <span className="font-label-sm text-xs text-outline uppercase tracking-wider font-semibold">
+                  Your Listing
                 </span>
                 <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-semibold">
-                  Owner Active
+                  Active
                 </span>
               </div>
-              <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
-                You created this material listing. Incoming exchange proposals from nearby collectors will appear here and in your exchanges pipeline.
+              <p className="font-body-sm text-xs text-on-surface-variant leading-relaxed">
+                You created this listing. Requests from people nearby will appear here and in your exchanges page.
               </p>
 
               {/* Incoming proposals quick access */}
@@ -405,11 +386,11 @@ export const ListingDetailPage: React.FC = () => {
                 <div className="p-3 bg-surface-container rounded-lg space-y-2 border border-outline-variant/50">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-primary">
-                      {incomingRequests.length} Incoming Proposal{incomingRequests.length > 1 ? 's' : ''}
+                      {incomingRequests.length} Request{incomingRequests.length > 1 ? 's' : ''} Received
                     </span>
                     <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-1">
                       <MessageCircle className="w-3 h-3 text-[#25D366]" />
-                      WhatsApp Coordination
+                      WhatsApp
                     </span>
                   </div>
                   <div className="space-y-2">
@@ -417,7 +398,7 @@ export const ListingDetailPage: React.FC = () => {
                       <div key={req.id} className="flex items-center justify-between gap-2 text-xs bg-surface-container-lowest p-2 rounded-lg border border-outline-variant/40">
                         <div className="min-w-0 pr-2">
                           <p className="font-semibold text-on-surface truncate">
-                            {req.requester?.full_name || 'Collector'}
+                            {req.requester?.full_name || 'Buyer'}
                           </p>
                           <p className="text-[10px] text-on-surface-variant">
                             {req.requested_quantity} {listing.unit} • <span className="capitalize font-medium">{req.status}</span>
@@ -429,7 +410,7 @@ export const ListingDetailPage: React.FC = () => {
                           variant="secondary"
                           onClick={() => navigate('/exchanges')}
                         >
-                          Review in Pipeline
+                          View
                         </Button>
                       </div>
                     ))}
@@ -473,14 +454,14 @@ export const ListingDetailPage: React.FC = () => {
                           }
                         }
                       } catch (err: any) {
-                        alert(err.message || 'Failed to regenerate AI image');
+                        alert(err.message || 'Failed to regenerate image');
                       } finally {
                         setIsRegeneratingImage(false);
                       }
                     }}
                     icon={<Sparkles className={`w-4 h-4 text-secondary ${isRegeneratingImage ? 'animate-spin' : ''}`} />}
                   >
-                    {isRegeneratingImage ? 'Regenerating AI Image...' : 'Regenerate AI Image'}
+                    {isRegeneratingImage ? 'Regenerating Photo...' : 'Regenerate Photo'}
                   </Button>
                 )}
 
@@ -489,12 +470,12 @@ export const ListingDetailPage: React.FC = () => {
                   fullWidth
                   onClick={() => navigate('/exchanges')}
                 >
-                  View All Exchanges
+                  View Requests
                 </Button>
                 <button
                   type="button"
                   onClick={async () => {
-                    if (window.confirm('Are you sure you want to remove this listing from the marketplace?')) {
+                    if (window.confirm('Are you sure you want to remove this listing?')) {
                       try {
                         await deleteListing(listing.id);
                         navigate('/marketplace');
@@ -511,13 +492,13 @@ export const ListingDetailPage: React.FC = () => {
             </Card>
           ) : (
             <Card variant="elevated" className="space-y-4 p-5">
-              <h3 className="font-heading font-semibold text-title-md text-primary">
-                Propose Material Exchange
+              <h3 className="font-heading font-semibold text-base text-primary">
+                Request this Item
               </h3>
 
               {!currentUser && (
                 <div className="p-3 bg-secondary-container/40 rounded-lg text-xs text-primary flex items-center justify-between border border-primary/20">
-                  <span>Sign in to request this material and earn EcoPoints.</span>
+                  <span>Sign in to request this item and earn EcoPoints.</span>
                   <Link
                     to="/login"
                     state={{ from: `/marketplace/${listing.id}` }}
@@ -532,7 +513,7 @@ export const ListingDetailPage: React.FC = () => {
                 <div className="p-4 bg-secondary-container text-primary rounded-xl text-body-sm font-medium border border-primary/20 space-y-3">
                   <div className="flex items-center gap-2 font-bold text-sm">
                     <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                    <span>Proposal Sent Successfully</span>
+                    <span>Request Sent</span>
                   </div>
                   <p className="text-xs text-on-surface-variant leading-relaxed">
                     {successMessage}
@@ -552,14 +533,14 @@ export const ListingDetailPage: React.FC = () => {
                 <div className="p-4 bg-surface-container rounded-xl border border-outline-variant/60 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="font-heading font-semibold text-xs text-primary flex items-center gap-1.5">
-                      <Repeat className="w-4 h-4 text-secondary" /> Active Exchange Request
+                      <Repeat className="w-4 h-4 text-secondary" /> Active Request
                     </span>
                     <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize bg-secondary-container text-primary">
                       {existingRequest.status}
                     </span>
                   </div>
                   <p className="text-xs text-on-surface-variant leading-relaxed">
-                    You have an active proposal for <strong>{existingRequest.requested_quantity} {listing.unit}</strong>. Once accepted by the provider, direct WhatsApp communication will be unlocked to coordinate collection.
+                    You have requested <strong>{existingRequest.requested_quantity} {listing.unit}</strong>. When the owner accepts, you can coordinate pickup on WhatsApp.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-2 pt-1">
                     <Button
@@ -568,14 +549,14 @@ export const ListingDetailPage: React.FC = () => {
                       variant="primary"
                       onClick={() => navigate('/exchanges')}
                     >
-                      Manage Exchange
+                      View Request
                     </Button>
                   </div>
                 </div>
               ) : (
                 <form onSubmit={handleRequestSubmit} className="space-y-3">
                   <Input
-                    label={`Requested Quantity (Max ${listing.quantity} ${listing.unit}) *`}
+                    label={`Quantity (${listing.unit}) *`}
                     type="number"
                     min={1}
                     max={listing.quantity}
@@ -585,25 +566,25 @@ export const ListingDetailPage: React.FC = () => {
                   />
 
                   <div>
-                    <label className="block font-label-md text-label-md text-on-surface mb-1 font-semibold">
-                      Proposed Circular Purpose *
+                    <label className="block font-label-md text-xs text-on-surface mb-1 font-semibold">
+                      Intended Use *
                     </label>
                     <select
                       value={proposedAction}
                       onChange={(e) => setProposedAction(e.target.value)}
-                      className="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-3 transition-all"
+                      className="w-full bg-surface-container-lowest text-on-surface font-body-md text-xs rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-3 transition-all"
                     >
-                      <option value="Composting & organic soil amendment">Composting & organic soil amendment</option>
-                      <option value="Direct reuse or packaging">Direct reuse or packaging</option>
-                      <option value="Mechanical recycling at registered centre">Mechanical recycling at registered centre</option>
-                      <option value="Artisanal upcycling / crafts">Artisanal upcycling / crafts</option>
-                      <option value="Bio-gas generation / animal feed">Bio-gas generation / animal feed</option>
+                      <option value="Composting & organic soil amendment">Composting & soil amendment</option>
+                      <option value="Direct reuse or packaging">Reuse or packaging</option>
+                      <option value="Mechanical recycling at registered centre">Recycling</option>
+                      <option value="Artisanal upcycling / crafts">Upcycling / crafts</option>
+                      <option value="Bio-gas generation / animal feed">Animal feed / biogas</option>
                     </select>
                   </div>
 
                   <Textarea
-                    label="Message to Generator"
-                    placeholder="e.g. Can pick up this weekend near your locality..."
+                    label="Message (optional)"
+                    placeholder="e.g. Can pick up this weekend near your location..."
                     rows={3}
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
@@ -617,7 +598,7 @@ export const ListingDetailPage: React.FC = () => {
                     loading={submitting}
                     icon={<Send className="w-4 h-4" />}
                   >
-                    {submitting ? 'Submitting Proposal...' : 'Submit Pickup Proposal'}
+                    {submitting ? 'Sending Request...' : 'Send Request'}
                   </Button>
                 </form>
               )}

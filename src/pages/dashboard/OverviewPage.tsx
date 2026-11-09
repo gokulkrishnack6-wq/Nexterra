@@ -99,7 +99,7 @@ export const OverviewPage: React.FC = () => {
   return (
     <div className="flex flex-col w-full gap-8 pb-14 max-w-7xl mx-auto text-left">
 
-      {/* 1. EDITORIAL PLATFORM MASTHEAD (Grounded & Integrated, Not a Floating Box) */}
+      {/* 1. MASTHEAD */}
       <header className="border-b border-gl-border/80 pb-7 pt-1">
         <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
 
@@ -108,31 +108,25 @@ export const OverviewPage: React.FC = () => {
             <div className="inline-flex flex-wrap items-center gap-2 text-xs">
               <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-gl-olive flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-gl-forest" />
-                Kerala Circular Resource Network
+                Waste Has a Second Life
               </span>
               <span className="text-gl-sand">•</span>
               <span className="font-mono text-[11px] text-gl-charcoal-muted flex items-center gap-1">
                 <Compass className="w-3.5 h-3.5 text-gl-olive" />
                 {userDistrict
-                  ? (userLocality && userLocality !== userDistrict ? `${userLocality}, ${userDistrict}` : `${userDistrict} Regional Node`)
-                  : (geoLoading
-                      ? 'Detecting Regional Node...'
-                      : (geoSource === 'gps' && !geoKeralaBased
-                          ? (userLocality ? `${userLocality} (Outside Kerala)` : 'Outside Kerala')
-                          : (geoSource === 'approximate' && geoApproxDistrict
-                              ? `Near ${geoApproxDistrict} (Unconfirmed)`
-                              : 'Location Undetected • Select District')))}
+                  ? (userLocality && userLocality !== userDistrict ? `${userLocality}, ${userDistrict}` : userDistrict)
+                  : 'Kerala'}
               </span>
             </div>
 
             <h1 className="font-heading font-extrabold text-2xl sm:text-3xl lg:text-4xl text-gl-dark tracking-tight leading-tight">
-              {currentUser ? `Namaskaram, ${currentUser.full_name}` : 'Sustainable Material Exchange in Kerala'}
+              {currentUser ? `Welcome, ${currentUser.full_name}` : 'Sustainable Material Exchange'}
             </h1>
 
             <p className="font-body text-sm sm:text-base text-gl-charcoal-muted leading-relaxed">
               {currentUser
-                ? `${currentUser.district} • ${currentUser.role.toUpperCase()} operational account. Facilitating peer-to-peer material handovers, agricultural biomass reuse, and audited emission avoidance.`
-                : 'A decentralized circular network connecting Kerala’s households, commercial establishments, organic farmers, and certified recovery units.'}
+                ? `Manage your listings, coordinate pickups on WhatsApp, and track your environmental impact.`
+                : 'Connect with people nearby to buy, sell, or donate recyclable and reusable materials in Kerala.'}
             </p>
           </div>
 
@@ -143,11 +137,11 @@ export const OverviewPage: React.FC = () => {
               className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gl-forest hover:bg-gl-dark text-white rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-[0.98]"
             >
               <Plus className="w-4 h-4" />
-              <span>List Available Material</span>
+              <span>Add Listing</span>
             </button>
 
             <button
-              onClick={() => navigate('/ai-scanner')}
+              onClick={() => navigate('/scanner')}
               className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gl-cream hover:bg-white text-gl-forest border border-gl-sand rounded-lg text-sm font-semibold transition-all active:scale-[0.98]"
             >
               <ScanLine className="w-4 h-4 text-gl-olive" />
@@ -157,10 +151,10 @@ export const OverviewPage: React.FC = () => {
             <button
               onClick={() => navigate('/report-issue')}
               className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-gl-ivory hover:bg-gl-clay-light text-gl-charcoal hover:text-gl-clay border border-gl-border hover:border-gl-clay/40 rounded-lg text-sm font-medium transition-all active:scale-[0.98]"
-              title="Report Open Dumping or Unmanaged Waste"
+              title="Report an Issue"
             >
               <AlertTriangle className="w-4 h-4 text-gl-clay" />
-              <span>Report Dumping</span>
+              <span>Report Issue</span>
             </button>
           </div>
 

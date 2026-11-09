@@ -28,22 +28,22 @@ export const Footer: React.FC = () => {
           {/* Navigation */}
           <div>
             <h4 className="font-heading font-semibold text-on-primary uppercase tracking-wider text-label-sm mb-3">
-              Platform Modules
+              Explore
             </h4>
             <ul className="space-y-2 text-secondary-fixed-dim">
               <li>
                 <Link to="/marketplace" className="hover:text-on-primary transition-colors">
-                  Waste Marketplace
+                  Marketplace
                 </Link>
               </li>
               <li>
                 <Link to="/bins" className="hover:text-on-primary transition-colors">
-                  Find Waste Bins
+                  Collection Bins
                 </Link>
               </li>
               <li>
                 <Link to="/report-issue" className="hover:text-on-primary transition-colors">
-                  Report Civic Issue
+                  Report an Issue
                 </Link>
               </li>
               <li>
@@ -53,12 +53,12 @@ export const Footer: React.FC = () => {
               </li>
               <li>
                 <Link to="/smart-match" className="hover:text-on-primary transition-colors">
-                  Smart Proximity Match
+                  Smart Match
                 </Link>
               </li>
               <li>
                 <Link to="/map" className="hover:text-on-primary transition-colors">
-                  Recycling Directory Map
+                  Recycling Directory
                 </Link>
               </li>
             </ul>
@@ -67,14 +67,14 @@ export const Footer: React.FC = () => {
           {/* Ecosystem */}
           <div>
             <h4 className="font-heading font-semibold text-on-primary uppercase tracking-wider text-label-sm mb-3">
-              Participants & Hubs
+              Community
             </h4>
             <ul className="space-y-2 text-secondary-fixed-dim">
-              <li>Households & Resident Associations</li>
-              <li>Restaurants, Hotels & Cafes</li>
-              <li>Organic Farmers & Terrace Nurseries</li>
+              <li>Households & Residents</li>
+              <li>Restaurants & Cafes</li>
+              <li>Gardeners & Farmers</li>
               <li>Haritha Karma Sena & Ward MCFs</li>
-              <li>Clean Kerala Company Smelters</li>
+              <li>Recycling Centres</li>
             </ul>
           </div>
 
@@ -94,11 +94,11 @@ export const Footer: React.FC = () => {
 
         {/* Bottom divider */}
         <div className="border-t border-primary-container/80 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-body-sm text-secondary-fixed-dim">
-          <p>© 2026 GreenLoop. Kerala Circular Waste Redistribution System.</p>
+          <p>© 2026 GreenLoop. Waste Has a Second Life.</p>
           <div className="flex items-center gap-4 text-label-sm">
             <Link to="/marketplace" className="hover:text-on-primary transition-colors">Marketplace</Link>
-            <Link to="/impact" className="hover:text-on-primary transition-colors">Impact Telemetry</Link>
-            <Link to="/community" className="hover:text-on-primary transition-colors">Community Drives</Link>
+            <Link to="/impact" className="hover:text-on-primary transition-colors">Impact</Link>
+            <Link to="/community" className="hover:text-on-primary transition-colors">Community</Link>
           </div>
         </div>
       </div>

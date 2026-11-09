@@ -124,18 +124,11 @@ export const ReportIssuePage: React.FC = () => {
       </div>
 
       <div className="space-y-1">
-        <div className="inline-flex items-center gap-1.5 mb-1">
-          <Badge variant="error">Civic Action</Badge>
-          <span className="text-outline text-xs">•</span>
-          <span className="font-label-sm text-label-sm text-secondary">
-            Community Environmental Watch
-          </span>
-        </div>
         <h1 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight">
-          Report Environmental Issue / Waste Dump
+          Report an Issue
         </h1>
         <p className="font-body-sm text-body-sm text-on-surface-variant">
-          Submit geo-tagged alerts for overflowing bins, unauthorized dumps, or burning for community awareness and remediation.
+          Report overflowing bins, illegal dumping, or burning to alert the local community.
         </p>
       </div>
 

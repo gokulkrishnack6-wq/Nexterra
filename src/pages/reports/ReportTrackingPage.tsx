@@ -34,24 +34,17 @@ export const ReportTrackingPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-1.5 mb-1">
-            <Badge variant="brand">Civic Watch</Badge>
-            <span className="text-outline text-xs">•</span>
-            <span className="font-label-sm text-label-sm text-secondary">
-              Community Incident Registry
-            </span>
-          </div>
           <h1 className="font-heading font-bold text-2xl sm:text-3xl text-primary tracking-tight">
-            Environmental Issue & Ticket Tracker
+            Reported Issues
           </h1>
-          <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
-            Transparent public tracking of community-reported waste accumulation, dump alerts, and remediation progress.
+          <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">
+            Track community-reported waste alerts and cleanup progress.
           </p>
         </div>
 
         <Link to="/report-issue">
           <Button variant="primary" size="md" icon={<Plus className="w-4 h-4" />}>
-            Report New Issue
+            Report an Issue
           </Button>
         </Link>
       </div>
@@ -66,7 +59,7 @@ export const ReportTrackingPage: React.FC = () => {
               : 'text-on-surface-variant hover:bg-surface-container'
           }`}
         >
-          All Incident Tickets ({reports.length})
+          All Reports ({reports.length})
         </button>
         <button
           onClick={() => setFilter('in_progress')}

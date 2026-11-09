@@ -313,10 +313,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode }) => {
         </h1>
 
         <p className="font-body-sm text-body-sm text-on-surface-variant max-w-md mx-auto">
-          {mode === 'signin' && "Access Kerala's circular resource exchange network."}
-          {mode === 'register' && "Join households, businesses, farmers, and recycling networks across Kerala."}
-          {mode === 'forgot_password' && "Enter your registered email address and we'll send you a link to reset your password."}
-          {mode === 'check_email' && "We've sent a verification link to your email. Confirm your account to start trading resources."}
+          {mode === 'signin' && "Sign in to manage your listings and exchanges."}
+          {mode === 'register' && "Sign up to give waste a second life in your area."}
+          {mode === 'forgot_password' && "Enter your email address and we'll send you a link to reset your password."}
+          {mode === 'check_email' && "We've sent a verification link to your email. Confirm your account to get started."}
         </p>
       </div>
 
