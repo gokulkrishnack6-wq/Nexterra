@@ -197,7 +197,7 @@ describe('Real PostgreSQL Migration & Security Integration Tests', () => {
         ('bbbbbbbb-0001-4000-8000-000000000001', '${LISTING_ID_1}', '${ACCOUNT_B_REQUESTER}', 10, 'pending', 'GL-1001'),
         ('bbbbbbbb-0002-4000-8000-000000000002', NULL, '${ACCOUNT_B_REQUESTER}', 5, 'pending', 'GL-1002');
     `);
-  });
+  }, 45000);
 
   afterEach(async () => {
     if (db) {

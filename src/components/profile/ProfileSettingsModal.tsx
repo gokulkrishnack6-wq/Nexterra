@@ -22,7 +22,9 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({ isOp
   const [phone, setPhone] = useState(currentUser?.phone || '');
   const [whatsappNumber, setWhatsappNumber] = useState(currentUser?.whatsapp_number || '');
   const [sharePhone, setSharePhone] = useState(currentUser?.share_phone_with_exchange ?? false);
-  const [shareWhatsapp, setShareWhatsapp] = useState(currentUser?.share_whatsapp_with_exchange ?? false);
+  const [shareWhatsapp, setShareWhatsapp] = useState(
+    currentUser?.share_whatsapp_with_exchange ?? Boolean(currentUser?.whatsapp_number)
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -31,7 +33,9 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({ isOp
       setPhone(currentUser.phone || '');
       setWhatsappNumber(currentUser.whatsapp_number || currentUser.phone || '');
       setSharePhone(currentUser.share_phone_with_exchange ?? false);
-      setShareWhatsapp(currentUser.share_whatsapp_with_exchange ?? false);
+      setShareWhatsapp(
+        currentUser.share_whatsapp_with_exchange ?? Boolean(currentUser.whatsapp_number || currentUser.phone)
+      );
       setStatusMsg(null);
     }
   }, [currentUser, isOpen]);

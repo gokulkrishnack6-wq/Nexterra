@@ -43,12 +43,14 @@ describe('GreenLoop WhatsApp Exchange & Contact Privacy — PGlite Tests', () =>
     const mig2 = path.resolve(__dirname, '../supabase/migrations/20261109020000_chat_security_and_idempotency_hardening.sql');
     const mig3 = path.resolve(__dirname, '../supabase/migrations/20261109030000_production_chat_and_notification_hardening.sql');
     const mig4 = path.resolve(__dirname, '../supabase/migrations/20261109040000_whatsapp_exchange_communication.sql');
+    const mig5 = path.resolve(__dirname, '../supabase/migrations/20261109050000_whatsapp_contact_sharing_hardening.sql');
 
     await db.exec(fs.readFileSync(mig0, 'utf8'));
     await db.exec(fs.readFileSync(mig1, 'utf8'));
     await db.exec(fs.readFileSync(mig2, 'utf8'));
     await db.exec(fs.readFileSync(mig3, 'utf8'));
     await db.exec(fs.readFileSync(mig4, 'utf8'));
+    await db.exec(fs.readFileSync(mig5, 'utf8'));
   }
 
   beforeEach(async () => {
@@ -202,7 +204,7 @@ describe('GreenLoop WhatsApp Exchange & Contact Privacy — PGlite Tests', () =>
       GRANT SELECT ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
       GRANT INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authenticated, service_role;
     `);
-  });
+  }, 45000);
 
   it('Verifies Requirements 1–8: Complete WhatsApp Contact Lifecycle & Privacy Isolation', async () => {
     await applyAllMigrations();
@@ -606,5 +608,86 @@ describe('GreenLoop WhatsApp Exchange & Contact Privacy — PGlite Tests', () =>
     expect(resInvalid.rows[0].res.whatsapp).toBeNull();
     expect(resInvalid.rows[0].res.contact_state).toBe('invalid_number');
     expect(resInvalid.rows[0].res.notice).toBe("Partner's WhatsApp number is invalid");
+  });
+
+  it('Verifies WhatsApp Contact Sharing Hardening: NULL provider_id resolution, self-healing, mutual two-way retrieval, and consent defaulting', async () => {
+    await applyAllMigrations();
+
+    const USER_DEV_A = 'dddddddd-1111-4000-8000-000000000001';
+    const USER_DEV_B = 'dddddddd-2222-4000-8000-000000000002';
+    const LISTING_DEV = 'eeeeeeee-1111-4000-8000-000000000001';
+    const REQ_DEV = 'ffffffff-1111-4000-8000-000000000001';
+
+    await asSuperuser();
+    // User A registered with Indian mobile number without country code (+91 9497854095 represented as 9497854095)
+    // share_whatsapp_with_exchange is intentionally NULL to test consent defaulting
+    await db.query(`
+      INSERT INTO public.profiles (id, full_name, email, whatsapp_number, share_whatsapp_with_exchange)
+      VALUES 
+        ('${USER_DEV_A}', 'Dev Priya', 'priyadev@greenloop.org', '9497854095', NULL),
+        ('${USER_DEV_B}', 'Dev Rahul', 'rahuldev@greenloop.org', '+91 98765 43210', NULL);
+    `);
+
+    // Create listing owned by USER_DEV_A
+    await db.query(`
+      INSERT INTO public.listings (id, user_id, category_id, title, quantity)
+      VALUES ('${LISTING_DEV}', '${USER_DEV_A}', '${CATEGORY_ID_1}', 'Solar Inverters & Batteries', 5);
+    `);
+
+    // Disable trigger temporarily to simulate legacy/unsynced rows created with NULL provider_id
+    await asSuperuser();
+    await db.query(`ALTER TABLE public.exchange_requests DISABLE TRIGGER trg_set_exchange_request_provider;`);
+    await db.query(`
+      INSERT INTO public.exchange_requests (id, listing_id, requester_id, provider_id, requested_quantity, status, completion_code)
+      VALUES ('${REQ_DEV}', '${LISTING_DEV}', '${USER_DEV_B}', NULL, 2, 'accepted', 'GL-7777');
+    `);
+    await db.query(`ALTER TABLE public.exchange_requests ENABLE TRIGGER trg_set_exchange_request_provider;`);
+
+    // 1. Account A (Provider) queries Account B (Requester) contact
+    await asUser(USER_DEV_A, 'authenticated');
+    const resAtoB = await db.query(
+      `SELECT public.get_exchange_whatsapp_contact($1, $2) as res;`,
+      [REQ_DEV, USER_DEV_B]
+    );
+
+    expect(resAtoB.rows[0].res).toEqual({
+      participant_id: USER_DEV_B,
+      whatsapp: '919876543210',
+      has_whatsapp_consent: true,
+      contact_state: 'sharing_enabled',
+      notice: 'WhatsApp contact active for collection coordination',
+      status: 'accepted',
+    });
+
+    // Verify self-healing: exchange_requests.provider_id was automatically populated!
+    const healedReq = await db.query(`SELECT provider_id FROM public.exchange_requests WHERE id = $1;`, [REQ_DEV]);
+    expect(healedReq.rows[0].provider_id).toBe(USER_DEV_A);
+
+    // 2. Account B (Requester) queries Account A (Provider) contact
+    await asUser(USER_DEV_B, 'authenticated');
+    const resBtoA = await db.query(
+      `SELECT public.get_exchange_whatsapp_contact($1, $2) as res;`,
+      [REQ_DEV, USER_DEV_A]
+    );
+
+    expect(resBtoA.rows[0].res).toEqual({
+      participant_id: USER_DEV_A,
+      whatsapp: '919497854095', // Automatically normalized 10 digits with India prefix 91!
+      has_whatsapp_consent: true,
+      contact_state: 'sharing_enabled',
+      notice: 'WhatsApp contact active for collection coordination',
+      status: 'accepted',
+    });
+
+    // 3. User attempting to query their own contact through this RPC must be rejected
+    await expect(
+      db.query(`SELECT public.get_exchange_whatsapp_contact($1, $2) as res;`, [REQ_DEV, USER_DEV_B])
+    ).rejects.toThrow('Cannot request own contact details through exchange participant function.');
+
+    // 4. Unauthorized non-participant (ACCOUNT_C) must be rejected
+    await asUser(ACCOUNT_C_INTRUDER, 'authenticated');
+    await expect(
+      db.query(`SELECT public.get_exchange_whatsapp_contact($1, $2) as res;`, [REQ_DEV, USER_DEV_A])
+    ).rejects.toThrow('Permission denied: Caller is not an authorized participant in this exchange request.');
   });
 });

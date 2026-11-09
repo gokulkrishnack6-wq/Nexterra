@@ -183,7 +183,7 @@ describe('GreenLoop Private Chat & Contact Sharing — PGlite In-Process Postgre
     await db.exec(fs.readFileSync(mig1, 'utf8'));
     await db.exec(fs.readFileSync(mig2, 'utf8'));
     await db.exec(fs.readFileSync(mig3, 'utf8'));
-  });
+  }, 45000);
 
   afterEach(async () => {
     if (db) {

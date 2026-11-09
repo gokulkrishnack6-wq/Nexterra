@@ -66,7 +66,7 @@ interface DataContextType {
     participant_id: string;
     whatsapp: string | null;
     has_whatsapp_consent: boolean;
-    contact_state?: 'missing_number' | 'invalid_number' | 'sharing_disabled' | 'sharing_enabled';
+    contact_state?: 'missing_number' | 'invalid_number' | 'sharing_disabled' | 'sharing_enabled' | 'error';
     status?: string;
     notice?: string;
   }>;
@@ -1515,10 +1515,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       participant_id: string;
       whatsapp: string | null;
       has_whatsapp_consent: boolean;
-      contact_state?: 'missing_number' | 'invalid_number' | 'sharing_disabled' | 'sharing_enabled';
+      contact_state?: 'missing_number' | 'invalid_number' | 'sharing_disabled' | 'sharing_enabled' | 'error';
       status?: string;
       notice?: string;
     }> => {
+      if (!exchangeRequestId || !participantId) {
+        return {
+          participant_id: participantId,
+          whatsapp: null,
+          has_whatsapp_consent: false,
+          contact_state: 'missing_number',
+          notice: 'Participant details missing',
+        };
+      }
+
       if (isSupabaseConfigured) {
         try {
           const { data, error } = await supabase.rpc('get_exchange_whatsapp_contact', {
@@ -1529,6 +1539,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (!error && data) {
             return data as any;
           }
+
+          if (error) {
+            console.error('get_exchange_whatsapp_contact RPC error:', error);
+          }
         } catch (err) {
           console.warn('RPC get_exchange_whatsapp_contact unavailable, checking fallback:', err);
         }
@@ -1537,38 +1551,54 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Offline / fallback response
       const req = exchangeRequests.find((r) => r.id === exchangeRequestId);
       if (req && req.status === 'accepted') {
-        const targetUser = req.requester_id === participantId ? req.requester : (req.provider || req.listing?.user);
-        if (!targetUser || !targetUser.whatsapp_number) {
+        // Disallow self-messaging query
+        if (currentUser && participantId === currentUser.id) {
           return {
             participant_id: participantId,
             whatsapp: null,
-            has_whatsapp_consent: Boolean(targetUser?.share_whatsapp_with_exchange),
-            contact_state: 'missing_number',
-            status: req.status,
-            notice: 'Participant has not provided a WhatsApp contact number.',
+            has_whatsapp_consent: false,
+            contact_state: 'error',
+            notice: 'Cannot retrieve WhatsApp contact for self.',
           };
         }
 
-        const digits = targetUser.whatsapp_number.replace(/\D/g, '');
+        const targetUser = req.requester_id === participantId
+          ? req.requester
+          : (req.provider || req.listing?.user);
+
+        const rawWa = targetUser?.whatsapp_number;
+
+        if (!targetUser || !rawWa) {
+          return {
+            participant_id: participantId,
+            whatsapp: null,
+            has_whatsapp_consent: Boolean(targetUser?.share_whatsapp_with_exchange ?? true),
+            contact_state: 'missing_number',
+            status: req.status,
+            notice: 'Partner has not added a WhatsApp number yet.',
+          };
+        }
+
+        const digits = rawWa.replace(/\D/g, '');
         if (digits.length < 10 || digits.length > 15) {
           return {
             participant_id: participantId,
             whatsapp: null,
-            has_whatsapp_consent: Boolean(targetUser.share_whatsapp_with_exchange),
+            has_whatsapp_consent: Boolean(targetUser.share_whatsapp_with_exchange ?? true),
             contact_state: 'invalid_number',
             status: req.status,
-            notice: 'Participant WhatsApp contact number format is invalid.',
+            notice: 'Partner WhatsApp contact number format is invalid.',
           };
         }
 
-        if (!targetUser.share_whatsapp_with_exchange) {
+        if (targetUser.share_whatsapp_with_exchange === false) {
           return {
             participant_id: participantId,
             whatsapp: null,
             has_whatsapp_consent: false,
             contact_state: 'sharing_disabled',
             status: req.status,
-            notice: 'Participant has opted not to share their WhatsApp contact.',
+            notice: 'Partner has opted not to share their WhatsApp contact.',
           };
         }
 
@@ -1579,6 +1609,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           has_whatsapp_consent: true,
           contact_state: 'sharing_enabled',
           status: req.status,
+          notice: 'WhatsApp contact active for exchange coordination.',
         };
       }
 
@@ -1588,9 +1619,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         has_whatsapp_consent: false,
         contact_state: 'missing_number',
         status: req?.status || 'pending',
+        notice: 'WhatsApp contact is only available for accepted requests.',
       };
     },
-    [exchangeRequests]
+    [isSupabaseConfigured, exchangeRequests, currentUser]
   );
 
   // Guarantee every exchange request is paired with an accessible conversation

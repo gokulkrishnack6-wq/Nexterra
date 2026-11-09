@@ -102,14 +102,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const metaWa = metadata.whatsapp_number ? String(metadata.whatsapp_number).trim() : null;
         const resolvedWa = dbWa || metaWa || undefined;
 
-        // Consent resolution: check database column first, fall back to metadata, default false
+        // Consent resolution: check database column first, fall back to metadata, default true if number exists
         const dbShareWa = profileData.share_whatsapp_with_exchange;
         const metaShareWa = metadata.share_whatsapp_with_exchange;
         const resolvedShareWa = typeof dbShareWa === 'boolean'
           ? dbShareWa
           : typeof metaShareWa === 'boolean'
             ? metaShareWa
-            : false;
+            : Boolean(resolvedWa);
 
         const updatedProfile: UserProfile = {
           ...(profileData as UserProfile),
@@ -118,12 +118,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           is_verified: verified,
         };
 
-        // Self-healing synchronization: if auth metadata has the WhatsApp number but the profiles row lacks it,
+        // Self-healing synchronization: if auth metadata has the WhatsApp number or consent but the profiles row lacks it,
         // persist it to public.profiles immediately so it stays authoritative and persistent.
-        if (!dbWa && metaWa) {
+        if ((!dbWa && metaWa) || (profileData.share_whatsapp_with_exchange !== resolvedShareWa)) {
           try {
             await supabase.from('profiles').update({
-              whatsapp_number: metaWa,
+              whatsapp_number: resolvedWa,
               share_whatsapp_with_exchange: resolvedShareWa,
               updated_at: new Date().toISOString(),
             }).eq('id', user.id);
@@ -153,7 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: user.email || '',
         phone: user.phone || metadata.phone || '',
         whatsapp_number: metadata.whatsapp_number || undefined,
-        share_whatsapp_with_exchange: metadata.share_whatsapp_with_exchange ?? false,
+        share_whatsapp_with_exchange: metadata.share_whatsapp_with_exchange ?? Boolean(metadata.whatsapp_number),
         role: (metadata.role as UserRole) || 'individual',
         district: metadata.district || '',
         state: metadata.state || 'Kerala',

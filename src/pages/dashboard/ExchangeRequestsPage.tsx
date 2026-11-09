@@ -38,7 +38,7 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
   const [contactData, setContactData] = useState<{
     whatsapp: string | null;
     has_whatsapp_consent: boolean;
-    contact_state?: 'missing_number' | 'invalid_number' | 'sharing_disabled' | 'sharing_enabled';
+    contact_state?: 'missing_number' | 'invalid_number' | 'sharing_disabled' | 'sharing_enabled' | 'error';
     notice?: string;
   } | null>(null);
 
@@ -60,7 +60,12 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
       .catch((err) => {
         if (isMounted) {
           console.warn('Failed to load WhatsApp contact:', err);
-          setContactData({ whatsapp: null, has_whatsapp_consent: false, contact_state: 'sharing_disabled' });
+          setContactData({
+            whatsapp: null,
+            has_whatsapp_consent: false,
+            contact_state: 'error',
+            notice: 'Unable to connect to WhatsApp contact service',
+          });
           setLoading(false);
         }
       });
@@ -81,18 +86,29 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
     );
   }
 
-  // Explicit state 1: missing_number
-  if (contactData?.contact_state === 'missing_number' || (!contactData?.whatsapp && !contactData?.has_whatsapp_consent && contactData?.contact_state !== 'sharing_disabled')) {
+  if (!otherParticipantId) {
     return (
       <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-xs text-outline border border-outline-variant/40">
         <AlertCircle className="w-3.5 h-3.5 text-outline shrink-0" />
-        <span>{contactData?.notice || 'WhatsApp number not configured'}</span>
+        <span>Exchange partner details unavailable</span>
+      </div>
+    );
+  }
+
+  if (!contactData) return null;
+
+  // Explicit state 1: missing_number
+  if (contactData.contact_state === 'missing_number') {
+    return (
+      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-xs text-outline border border-outline-variant/40">
+        <AlertCircle className="w-3.5 h-3.5 text-outline shrink-0" />
+        <span>{contactData.notice || 'Partner has not added a WhatsApp number yet'}</span>
       </div>
     );
   }
 
   // Explicit state 2: invalid_number
-  if (contactData?.contact_state === 'invalid_number') {
+  if (contactData.contact_state === 'invalid_number') {
     return (
       <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-xs text-outline border border-outline-variant/40">
         <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
@@ -102,51 +118,61 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
   }
 
   // Explicit state 3: sharing_disabled
-  if (contactData?.contact_state === 'sharing_disabled' || !contactData?.has_whatsapp_consent) {
+  if (contactData.contact_state === 'sharing_disabled') {
     return (
       <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-xs text-on-surface-variant/80 border border-outline-variant/40">
         <ShieldAlert className="w-3.5 h-3.5 text-outline shrink-0" />
-        <span>{contactData?.notice || 'WhatsApp contact not shared'}</span>
+        <span>{contactData.notice || 'Partner has not shared WhatsApp contact'}</span>
       </div>
     );
   }
 
-  // Explicit state 4: sharing_enabled
-  if (!contactData.whatsapp) {
+  // Explicit state 4: error
+  if (contactData.contact_state === 'error') {
     return (
       <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-xs text-outline border border-outline-variant/40">
         <AlertCircle className="w-3.5 h-3.5 text-outline shrink-0" />
-        <span>WhatsApp number not configured</span>
+        <span>{contactData.notice || 'Unable to connect to WhatsApp'}</span>
       </div>
     );
   }
 
-  // Generate dynamic WhatsApp Click-to-Chat URL with contextual prefilled message
-  let waUrl = '#';
-  try {
-    const prefilledText = buildExchangeWhatsAppMessage({ listingTitle });
-    waUrl = createWhatsAppLink(contactData.whatsapp, prefilledText);
-  } catch (linkErr) {
-    console.warn('Failed to build WhatsApp link:', linkErr);
+  // Explicit state 5: sharing_enabled
+  if (contactData.contact_state === 'sharing_enabled' && contactData.whatsapp) {
+    // Generate dynamic WhatsApp Click-to-Chat URL with contextual prefilled message
+    let waUrl = '#';
+    try {
+      const prefilledText = buildExchangeWhatsAppMessage({ listingTitle });
+      waUrl = createWhatsAppLink(contactData.whatsapp, prefilledText);
+    } catch (linkErr) {
+      console.warn('Failed to build WhatsApp link:', linkErr);
+      return (
+        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-xs text-outline border border-outline-variant/40">
+          <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+          <span>Invalid WhatsApp number format</span>
+        </div>
+      );
+    }
+
     return (
-      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-xs text-outline border border-outline-variant/40">
-        <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-        <span>Invalid WhatsApp number format</span>
-      </div>
+      <a
+        href={waUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold text-xs sm:text-sm shadow-sm hover:shadow transition-all active:scale-95"
+        title="Open WhatsApp chat with exchange partner"
+      >
+        <MessageCircle className="w-4 h-4 fill-white shrink-0" />
+        <span>Chat on WhatsApp</span>
+      </a>
     );
   }
 
   return (
-    <a
-      href={waUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold text-xs sm:text-sm shadow-sm hover:shadow transition-all active:scale-95"
-      title="Open WhatsApp chat with exchange partner"
-    >
-      <MessageCircle className="w-4 h-4 fill-white shrink-0" />
-      <span>Chat on WhatsApp</span>
-    </a>
+    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-xs text-outline border border-outline-variant/40">
+      <AlertCircle className="w-3.5 h-3.5 text-outline shrink-0" />
+      <span>{contactData.notice || 'WhatsApp contact unavailable'}</span>
+    </div>
   );
 };
 
@@ -364,11 +390,15 @@ export const ExchangeRequestsPage: React.FC = () => {
             const feedback = statusFeedback[req.id];
             const isLoadingAction = Boolean(actionLoading[req.id]);
 
-            // Derive the other participant's ID
-            const isProvider = currentUser?.id === req.provider_id;
-            const otherParticipantId = isProvider
+            // Robust derivation of provider ID and other participant's ID
+            const providerId = req.provider_id || req.listing?.user_id || listing?.user_id || '';
+            const isCurrentUserProvider = Boolean(currentUser?.id && providerId && currentUser.id === providerId);
+            const isCurrentUserRequester = Boolean(currentUser?.id && req.requester_id && currentUser.id === req.requester_id);
+
+            // If current user is provider, target is requester. If current user is requester, target is provider.
+            const otherParticipantId = isCurrentUserProvider
               ? req.requester_id
-              : (req.provider_id || (activeTab === 'incoming' ? req.requester_id : listing?.user_id || ''));
+              : (isCurrentUserRequester ? providerId : (activeTab === 'incoming' ? req.requester_id : providerId));
 
             return (
               <Card
