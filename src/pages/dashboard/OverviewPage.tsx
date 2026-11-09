@@ -97,14 +97,14 @@ export const OverviewPage: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col w-full gap-8 pb-14 max-w-7xl mx-auto text-left">
+    <div className="flex flex-col w-full gap-6 lg:gap-8 pb-14 max-w-7xl mx-auto text-left min-w-0">
 
       {/* 1. MASTHEAD */}
-      <header className="border-b border-gl-border/80 pb-7 pt-1">
-        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+      <header className="border-b border-gl-border/80 pb-6 pt-0">
+        <div className="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-5 min-w-0">
 
           {/* Brand Introduction & Context */}
-          <div className="flex flex-col gap-2.5 max-w-2xl">
+          <div className="flex flex-col gap-2 max-w-2xl min-w-0">
             <div className="inline-flex flex-wrap items-center gap-2 text-xs">
               <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-gl-olive flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-gl-forest" />
@@ -131,10 +131,10 @@ export const OverviewPage: React.FC = () => {
           </div>
 
           {/* Primary Platform Action Dispatch */}
-          <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 shrink-0 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0 w-full xl:w-auto">
             <button
               onClick={() => navigate('/marketplace/new')}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gl-forest hover:bg-gl-dark text-white rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-[0.98]"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gl-forest hover:bg-gl-dark text-white rounded-lg text-sm font-semibold shadow-sm transition-all active:scale-[0.98] w-full sm:w-auto"
             >
               <Plus className="w-4 h-4" />
               <span>Add Listing</span>
@@ -142,7 +142,7 @@ export const OverviewPage: React.FC = () => {
 
             <button
               onClick={() => navigate('/scanner')}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gl-cream hover:bg-white text-gl-forest border border-gl-sand rounded-lg text-sm font-semibold transition-all active:scale-[0.98]"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gl-cream hover:bg-white text-gl-forest border border-gl-sand rounded-lg text-sm font-semibold transition-all active:scale-[0.98] w-full sm:w-auto"
             >
               <ScanLine className="w-4 h-4 text-gl-olive" />
               <span>Waste Scanner</span>
@@ -150,7 +150,7 @@ export const OverviewPage: React.FC = () => {
 
             <button
               onClick={() => navigate('/report-issue')}
-              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-gl-ivory hover:bg-gl-clay-light text-gl-charcoal hover:text-gl-clay border border-gl-border hover:border-gl-clay/40 rounded-lg text-sm font-medium transition-all active:scale-[0.98]"
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-gl-ivory hover:bg-gl-clay-light text-gl-charcoal hover:text-gl-clay border border-gl-border hover:border-gl-clay/40 rounded-lg text-sm font-medium transition-all active:scale-[0.98] w-full sm:w-auto"
               title="Report an Issue"
             >
               <AlertTriangle className="w-4 h-4 text-gl-clay" />
@@ -162,10 +162,10 @@ export const OverviewPage: React.FC = () => {
       </header>
 
       {/* 2. OPERATIONAL TELEMETRY HORIZON (Connected Stat Band with Clear Hierarchy) */}
-      <section className="bg-white border border-gl-border rounded-xl shadow-card overflow-hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-gl-border/70">
+      <section className="bg-gl-border border border-gl-border rounded-xl shadow-card overflow-hidden grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-px">
 
         {/* Metric 1: Verified Material Diverted (The North Star Metric) */}
-        <div className="p-5 sm:p-6 flex flex-col justify-between">
+        <div className="bg-white p-4 sm:p-5 flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between">
             <span className="font-mono text-[11px] uppercase tracking-wider text-gl-charcoal-muted font-bold">
               Verified Diversion
@@ -189,16 +189,16 @@ export const OverviewPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="pt-2.5 border-t border-gl-border-subtle flex items-center justify-between text-xs text-gl-charcoal-muted">
-            <span>Avoided Emissions</span>
-            <span className="font-semibold text-gl-dark">
+          <div className="pt-2.5 border-t border-gl-border-subtle flex flex-wrap items-center justify-between gap-1 text-xs text-gl-charcoal-muted min-w-0">
+            <span className="truncate">Avoided Emissions</span>
+            <span className="font-semibold text-gl-dark shrink-0">
               {metrics.total_co2e_avoided_kg} kg CO₂e
             </span>
           </div>
         </div>
 
         {/* Metric 2: Active Inventory */}
-        <div className="p-5 sm:p-6 flex flex-col justify-between">
+        <div className="bg-white p-4 sm:p-5 flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between">
             <span className="font-mono text-[11px] uppercase tracking-wider text-gl-charcoal-muted font-bold">
               Your Active Listings
@@ -222,16 +222,16 @@ export const OverviewPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="pt-2.5 border-t border-gl-border-subtle flex items-center justify-between text-xs text-gl-charcoal-muted">
-            <span>Statewide Marketplace</span>
-            <span className="font-semibold text-gl-dark">
+          <div className="pt-2.5 border-t border-gl-border-subtle flex flex-wrap items-center justify-between gap-1 text-xs text-gl-charcoal-muted min-w-0">
+            <span className="truncate">Statewide Marketplace</span>
+            <span className="font-semibold text-gl-dark shrink-0">
               {activeMarketplaceCount} available
             </span>
           </div>
         </div>
 
         {/* Metric 3: Active Handovers */}
-        <div className="p-5 sm:p-6 flex flex-col justify-between">
+        <div className="bg-white p-4 sm:p-5 flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between">
             <span className="font-mono text-[11px] uppercase tracking-wider text-gl-charcoal-muted font-bold">
               Custody Handovers
@@ -255,16 +255,16 @@ export const OverviewPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="pt-2.5 border-t border-gl-border-subtle flex items-center justify-between text-xs text-gl-charcoal-muted">
-            <span>Completed Custodies</span>
-            <span className="font-semibold text-gl-dark">
+          <div className="pt-2.5 border-t border-gl-border-subtle flex flex-wrap items-center justify-between gap-1 text-xs text-gl-charcoal-muted min-w-0">
+            <span className="truncate">Completed Custodies</span>
+            <span className="font-semibold text-gl-dark shrink-0">
               {metrics.total_completed_exchanges} verified
             </span>
           </div>
         </div>
 
         {/* Metric 4: EcoPoints Balance */}
-        <div className="p-5 sm:p-6 flex flex-col justify-between">
+        <div className="bg-white p-4 sm:p-5 flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between">
             <span className="font-mono text-[11px] uppercase tracking-wider text-gl-charcoal-muted font-bold">
               EcoPoints Balance
@@ -288,9 +288,9 @@ export const OverviewPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="pt-2.5 border-t border-gl-border-subtle flex items-center justify-between text-xs">
-            <span className="text-gl-charcoal-muted">Account Tier</span>
-            <span className="font-semibold text-gl-forest capitalize">
+          <div className="pt-2.5 border-t border-gl-border-subtle flex flex-wrap items-center justify-between gap-1 text-xs min-w-0">
+            <span className="text-gl-charcoal-muted truncate">Account Tier</span>
+            <span className="font-semibold text-gl-forest capitalize shrink-0">
               {currentUser ? `${currentUser.role} Participant` : 'Public Visitor'}
             </span>
           </div>
@@ -299,13 +299,13 @@ export const OverviewPage: React.FC = () => {
       </section>
 
       {/* 3. MAIN WORKFLOW GRID (8 Cols + 4 Cols) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-8 min-w-0">
 
         {/* Left Column (8 Cols): Material Marketplace & Operational Custody */}
-        <div className="lg:col-span-8 flex flex-col gap-8">
+        <div className="xl:col-span-8 flex flex-col gap-6 lg:gap-8 min-w-0">
 
           {/* Section A: Smart Material Matches (Marketplace Engine) */}
-          <section className="flex flex-col gap-3.5">
+          <section className="flex flex-col gap-3.5 min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 pb-1">
               <div>
                 <div className="flex items-center gap-2">
@@ -343,9 +343,9 @@ export const OverviewPage: React.FC = () => {
                 {suggestedListings.map((listing) => (
                   <article
                     key={listing.id}
-                    className="bg-white rounded-xl p-5 border border-gl-border shadow-card hover:border-gl-sage transition-all flex flex-col justify-between"
+                    className="bg-white rounded-xl p-5 border border-gl-border shadow-card hover:border-gl-sage transition-all flex flex-col justify-between min-w-0"
                   >
-                    <div>
+                    <div className="min-w-0">
                       {/* Material Category & Exchange Terms */}
                       <div className="flex items-start justify-between gap-2">
                         <span className="font-mono text-[11px] font-bold text-gl-forest bg-gl-sage-light px-2.5 py-0.5 rounded uppercase tracking-wider">
@@ -397,7 +397,7 @@ export const OverviewPage: React.FC = () => {
           </section>
 
           {/* Section B: Active Exchanges Pipeline (Chain-of-Custody Manifest) */}
-          <section className="flex flex-col gap-3.5">
+          <section className="flex flex-col gap-3.5 min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 pb-1">
               <div>
                 <div className="flex items-center gap-2">
@@ -435,21 +435,21 @@ export const OverviewPage: React.FC = () => {
                 {activeExchanges.map((req) => (
                   <div
                     key={req.id}
-                    className="bg-white p-4 sm:p-5 rounded-xl border border-gl-border shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4"
+                    className="bg-white p-4 sm:p-5 rounded-xl border border-gl-border shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-4 min-w-0"
                   >
-                    <div className="flex items-start gap-3.5">
+                    <div className="flex items-start gap-3.5 min-w-0 flex-1">
                       <div className="w-10 h-10 rounded-lg bg-gl-sage-light flex items-center justify-center shrink-0 text-gl-forest">
                         <Package className="w-5 h-5" />
                       </div>
-                      <div className="flex flex-col gap-1">
+                      <div className="flex flex-col gap-1 min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <h4 className="font-heading font-bold text-sm text-gl-dark">
+                          <h4 className="font-heading font-bold text-sm text-gl-dark truncate">
                             {req.listing?.title || 'Material Exchange Batch'}
                           </h4>
-                          <span className="text-xs font-semibold text-gl-charcoal-muted">
+                          <span className="text-xs font-semibold text-gl-charcoal-muted shrink-0">
                             ({req.requested_quantity} {req.listing?.unit || 'kg'})
                           </span>
-                          <span className={`font-mono text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
+                          <span className={`font-mono text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded shrink-0 ${
                             req.status === 'accepted'
                               ? 'bg-gl-sage-light text-gl-forest'
                               : 'bg-gl-cream text-gl-charcoal'
@@ -458,14 +458,14 @@ export const OverviewPage: React.FC = () => {
                           </span>
                         </div>
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gl-charcoal-muted">
-                          <span className="flex items-center gap-1 font-mono text-[11px]">
+                          <span className="flex items-center gap-1 font-mono text-[11px] shrink-0">
                             <Clock className="w-3 h-3 text-gl-sand" />
                             <span>{new Date(req.created_at).toLocaleDateString()}</span>
                           </span>
-                          <span className="text-gl-sand">•</span>
-                          <span>
-                            Pickup Verification Code:{' '}
-                            <strong className="font-mono font-bold tracking-widest text-gl-forest bg-gl-cream border border-gl-sand px-2.5 py-0.5 rounded text-xs ml-1">
+                          <span className="text-gl-sand shrink-0">•</span>
+                          <span className="flex flex-wrap items-center gap-1">
+                            <span>Pickup Verification Code:</span>
+                            <strong className="font-mono font-bold tracking-widest text-gl-forest bg-gl-cream border border-gl-sand px-2 py-0.5 rounded text-xs">
                               {req.completion_code}
                             </strong>
                           </span>
@@ -473,7 +473,7 @@ export const OverviewPage: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 self-end md:self-center shrink-0">
+                    <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
                       <button
                         onClick={() => setSelectedExchangeForPass(req)}
                         className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-gl-ivory hover:bg-gl-cream text-gl-forest border border-gl-border text-xs font-semibold shadow-sm transition-colors"
@@ -497,7 +497,7 @@ export const OverviewPage: React.FC = () => {
           </section>
 
           {/* Section C: Audited Stream Diversion (Empirical Climate Accounting) */}
-          <section className="bg-white p-5 sm:p-6 rounded-xl border border-gl-border shadow-card flex flex-col gap-4">
+          <section className="bg-white p-5 sm:p-6 rounded-xl border border-gl-border shadow-card flex flex-col gap-4 min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 pb-3 border-b border-gl-border-subtle">
               <div>
                 <h3 className="font-heading font-bold text-lg text-gl-dark">
@@ -519,7 +519,7 @@ export const OverviewPage: React.FC = () => {
             ) : (
               <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
                 {metrics.category_breakdown.map((cat) => (
-                  <div key={cat.category_name} className="flex flex-col p-3.5 rounded-lg bg-gl-ivory border border-gl-cream">
+                  <div key={cat.category_name} className="flex flex-col p-3.5 rounded-lg bg-gl-ivory border border-gl-cream min-w-0">
                     <span className="text-[11px] font-semibold text-gl-charcoal-muted truncate">
                       {cat.category_name}
                     </span>
@@ -544,11 +544,11 @@ export const OverviewPage: React.FC = () => {
         </div>
 
         {/* Right Column (4 Cols): Regional Mobilization & Civic Surveillance */}
-        <div className="lg:col-span-4 flex flex-col gap-8">
+        <div className="xl:col-span-4 flex flex-col gap-6 lg:gap-8 min-w-0">
 
           {/* Section D: Regional Community Spotlight (Editorial & Human) */}
           {spotlightDrive ? (
-            <aside className="bg-gl-cream border border-gl-sand rounded-xl p-5 sm:p-6 shadow-card flex flex-col gap-4">
+            <aside className="bg-gl-cream border border-gl-sand rounded-xl p-5 sm:p-6 shadow-card flex flex-col gap-4 min-w-0">
               <div className="flex items-center justify-between">
                 <span className="font-mono text-[10px] uppercase tracking-wider text-gl-charcoal-muted font-bold">
                   Regional Mobilization
@@ -568,7 +568,7 @@ export const OverviewPage: React.FC = () => {
               </div>
 
               {/* Reward incentive banner with warm clay accent */}
-              <div className="p-3 rounded-lg bg-gl-clay-light border border-gl-clay/20 flex items-center justify-between">
+              <div className="p-3 rounded-lg bg-gl-clay-light border border-gl-clay/20 flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Award className="w-4 h-4 text-gl-clay" />
                   <span className="text-xs font-semibold text-gl-charcoal">Participation Incentive</span>
@@ -591,7 +591,7 @@ export const OverviewPage: React.FC = () => {
               </button>
             </aside>
           ) : (
-            <aside className="bg-gl-cream border border-gl-sand rounded-xl p-5 shadow-card flex flex-col gap-2">
+            <aside className="bg-gl-cream border border-gl-sand rounded-xl p-5 shadow-card flex flex-col gap-2 min-w-0">
               <span className="font-mono text-[10px] uppercase tracking-wider text-gl-charcoal-muted font-bold">
                 Regional Mobilization
               </span>
@@ -611,7 +611,7 @@ export const OverviewPage: React.FC = () => {
           )}
 
           {/* Section E: Local Civic Environmental Watch */}
-          <aside className="bg-white rounded-xl p-5 sm:p-6 border border-gl-border shadow-card flex flex-col gap-4">
+          <aside className="bg-white rounded-xl p-5 sm:p-6 border border-gl-border shadow-card flex flex-col gap-4 min-w-0">
             <div className="flex items-center justify-between">
               <div>
                 <span className="font-mono text-[10px] uppercase tracking-wider text-gl-charcoal-muted font-bold block">
@@ -641,7 +641,7 @@ export const OverviewPage: React.FC = () => {
                 {recentReports.map((report) => (
                   <div
                     key={report.id}
-                    className="p-3.5 rounded-lg bg-gl-ivory border border-gl-cream flex flex-col gap-1.5"
+                    className="p-3.5 rounded-lg bg-gl-ivory border border-gl-cream flex flex-col gap-1.5 min-w-0"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className={`font-mono text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${
@@ -687,7 +687,7 @@ export const OverviewPage: React.FC = () => {
           </aside>
 
           {/* Section F: Honest Community Verification */}
-          <aside className="bg-gl-ivory rounded-xl p-4 border border-gl-cream flex flex-col gap-1.5">
+          <aside className="bg-gl-ivory rounded-xl p-4 border border-gl-cream flex flex-col gap-1.5 min-w-0">
             <span className="font-heading font-semibold text-xs text-gl-forest flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-gl-forest" />
               Community Circular Verification

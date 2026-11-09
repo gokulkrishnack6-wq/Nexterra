@@ -334,7 +334,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
       {/* Main Content Area */}
       <div className="md:pl-16 lg:pl-64 flex flex-col flex-1 min-w-0 w-full">
         {/* Top Header */}
-        <header className="fixed top-0 left-0 md:left-16 lg:left-64 right-0 h-16 bg-surface/90 backdrop-blur-xl border-b border-outline-variant/50 shadow-[0_1px_8px_rgba(0,0,0,0.03)] z-40 px-2.5 xs:px-4 sm:px-space-lg flex items-center justify-between">
+        <header className="fixed top-0 left-0 md:left-16 lg:left-64 right-0 h-16 bg-surface/90 backdrop-blur-xl border-b border-outline-variant/50 shadow-[0_1px_8px_rgba(0,0,0,0.03)] z-40 px-3 xs:px-4 sm:px-6 lg:px-8 flex items-center justify-between">
           {/* Left: Mobile Toggle + Geolocation Context Pill */}
           <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-space-md min-w-0">
             <button
@@ -739,7 +739,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
         </header>
 
         {/* Dynamic Route Content */}
-        <main className="w-full pt-16 pb-24 md:pb-10 lg:pb-space-lg flex-1 px-3 xs:px-4 sm:px-space-lg py-space-md sm:py-space-lg min-w-0 max-w-full">
+        <main className="w-full flex-1 min-w-0 max-w-full pt-20 sm:pt-24 pb-24 md:pb-12 px-3 xs:px-4 sm:px-6 lg:px-8">
           {children}
         </main>
 
