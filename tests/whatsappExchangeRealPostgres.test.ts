@@ -984,4 +984,141 @@ describe('GreenLoop WhatsApp Exchange & Contact Privacy — PGlite Tests', () =>
     `);
     expect(colDefault.rows[0].column_default).toMatch(/false/i);
   });
+
+  it('Verifies Complete Two-Account WhatsApp Exchange Flow with Bidirectional Sharing, Persistence, and Revocation (Requirement 8)', async () => {
+    await asSuperuser();
+    await applyAllMigrations();
+
+    const U1_PROVIDER = '99999999-1111-4000-8000-000000000001';
+    const U2_REQUESTER = '99999999-2222-4000-8000-000000000002';
+    const U1_LISTING = '88888888-1111-4000-8000-000000000001';
+    const TWO_ACC_REQ = '77777777-1111-4000-8000-000000000001';
+
+    // Step 1: Both accounts exist with saved WhatsApp numbers and explicit consent
+    await db.query(`
+      INSERT INTO auth.users (id, email, raw_user_meta_data)
+      VALUES 
+        ('${U1_PROVIDER}', 'provider@greenloop.org', '{"full_name":"Priya Lakshmi","whatsapp_number":"+91 94978 11111","share_whatsapp_with_exchange":true}'::jsonb),
+        ('${U2_REQUESTER}', 'requester@greenloop.org', '{"full_name":"Arjun Nair","whatsapp_number":"+91 94978 22222","share_whatsapp_with_exchange":true}'::jsonb);
+    `);
+
+    // Verify handle_new_user created the rows with explicit TRUE consent
+    await db.query(`
+      INSERT INTO public.profiles (id, full_name, email, phone, whatsapp_number, share_whatsapp_with_exchange)
+      VALUES 
+        ('${U1_PROVIDER}', 'Priya Lakshmi', 'provider@greenloop.org', '+91 94978 11111', '+91 94978 11111', true),
+        ('${U2_REQUESTER}', 'Arjun Nair', 'requester@greenloop.org', '+91 94978 22222', '+91 94978 22222', true)
+      ON CONFLICT (id) DO UPDATE SET
+        phone = EXCLUDED.phone,
+        whatsapp_number = EXCLUDED.whatsapp_number,
+        share_whatsapp_with_exchange = EXCLUDED.share_whatsapp_with_exchange;
+    `);
+
+    // Step 2: Both explicitly have contact sharing enabled in database
+    const u1Profile = await db.query(`SELECT share_whatsapp_with_exchange, whatsapp_number FROM public.profiles WHERE id = '${U1_PROVIDER}';`);
+    const u2Profile = await db.query(`SELECT share_whatsapp_with_exchange, whatsapp_number FROM public.profiles WHERE id = '${U2_REQUESTER}';`);
+    expect(u1Profile.rows[0].share_whatsapp_with_exchange).toBe(true);
+    expect(u2Profile.rows[0].share_whatsapp_with_exchange).toBe(true);
+
+    // Step 3: User 1 creates listing; User 2 requests User 1's listing (initial pending state)
+    await db.query(`
+      INSERT INTO public.listings (id, user_id, category_id, title, quantity)
+      VALUES ('${U1_LISTING}', '${U1_PROVIDER}', '${CATEGORY_ID_1}', 'Recyclable Plastic Crates', 20);
+    `);
+
+    await asUser(U2_REQUESTER, 'authenticated');
+    await db.query(`
+      INSERT INTO public.exchange_requests (id, listing_id, requester_id, provider_id, requested_quantity, status, completion_code)
+      VALUES ('${TWO_ACC_REQ}', '${U1_LISTING}', '${U2_REQUESTER}', '${U1_PROVIDER}', 5, 'pending', 'GL-8888');
+    `);
+
+    // While pending: neither user can access WhatsApp contact
+    const pendingCallU1 = await db.query(`SELECT public.get_exchange_whatsapp_contact($1, $2) as res;`, [TWO_ACC_REQ, U1_PROVIDER]);
+    expect((pendingCallU1.rows[0].res as any).whatsapp).toBeNull();
+    expect((pendingCallU1.rows[0].res as any).has_whatsapp_consent).toBe(false);
+
+    // Step 4: User 1 accepts the exchange request
+    await asUser(U1_PROVIDER, 'authenticated');
+    await db.query(`UPDATE public.exchange_requests SET status = 'accepted' WHERE id = '${TWO_ACC_REQ}';`);
+
+    // Step 5 & 6: Both see the Message on WhatsApp button and each gets the OTHER participant's number
+    // Direction A: User 1 (Provider) queries User 2's contact
+    const u1ViewsU2 = await db.query(`
+      SELECT public.get_exchange_whatsapp_contact(
+        p_exchange_request_id => $1::uuid,
+        p_participant_id => $2::uuid
+      ) as res;
+    `, [TWO_ACC_REQ, U2_REQUESTER]);
+    const u1Res = u1ViewsU2.rows[0].res as any;
+    expect(u1Res.contact_state).toBe('sharing_enabled');
+    expect(u1Res.has_whatsapp_consent).toBe(true);
+    expect(u1Res.whatsapp).toBe('919497822222'); // User 2's number! Not User 1's!
+
+    // Direction B: User 2 (Requester) queries User 1's contact
+    await asUser(U2_REQUESTER, 'authenticated');
+    const u2ViewsU1 = await db.query(`
+      SELECT public.get_exchange_whatsapp_contact(
+        p_exchange_request_id => $1::uuid,
+        p_participant_id => $2::uuid
+      ) as res;
+    `, [TWO_ACC_REQ, U1_PROVIDER]);
+    const u2Res = u2ViewsU1.rows[0].res as any;
+    expect(u2Res.contact_state).toBe('sharing_enabled');
+    expect(u2Res.has_whatsapp_consent).toBe(true);
+    expect(u2Res.whatsapp).toBe('919497811111'); // User 1's number! Not User 2's!
+
+    // Neither user can query their own contact through the exchange endpoint
+    await expect(
+      db.query(`SELECT public.get_exchange_whatsapp_contact($1, $2);`, [TWO_ACC_REQ, U2_REQUESTER])
+    ).rejects.toThrow(/Cannot request own contact details/i);
+
+    // Step 7: Refresh both accounts and verify persistence
+    const reloadedU1 = await db.query(`SELECT phone, whatsapp_number, share_whatsapp_with_exchange FROM public.profiles WHERE id = '${U1_PROVIDER}';`);
+    const reloadedU2 = await db.query(`SELECT phone, whatsapp_number, share_whatsapp_with_exchange FROM public.profiles WHERE id = '${U2_REQUESTER}';`);
+    expect(reloadedU1.rows[0].whatsapp_number).toBe('+91 94978 11111');
+    expect(reloadedU1.rows[0].share_whatsapp_with_exchange).toBe(true);
+    expect(reloadedU2.rows[0].whatsapp_number).toBe('+91 94978 22222');
+    expect(reloadedU2.rows[0].share_whatsapp_with_exchange).toBe(true);
+
+    // Step 8: User 1 disables consent (share_whatsapp_with_exchange = false)
+    await asUser(U1_PROVIDER, 'authenticated');
+    await db.query(`UPDATE public.profiles SET share_whatsapp_with_exchange = false WHERE id = '${U1_PROVIDER}';`);
+
+    // Verify User 2 can NO LONGER see User 1's number
+    await asUser(U2_REQUESTER, 'authenticated');
+    const u2ViewsU1Revoked = await db.query(`
+      SELECT public.get_exchange_whatsapp_contact(
+        p_exchange_request_id => $1::uuid,
+        p_participant_id => $2::uuid
+      ) as res;
+    `, [TWO_ACC_REQ, U1_PROVIDER]);
+    const u2RevokedRes = u2ViewsU1Revoked.rows[0].res as any;
+    expect(u2RevokedRes.contact_state).toBe('sharing_disabled');
+    expect(u2RevokedRes.has_whatsapp_consent).toBe(false);
+    expect(u2RevokedRes.whatsapp).toBeNull(); // Number is strictly protected and withheld!
+    expect(u2RevokedRes.notice).toMatch(/not shared by partner/i);
+
+    // But User 1 can STILL see User 2's number (User 2's consent remains active)
+    await asUser(U1_PROVIDER, 'authenticated');
+    const u1ViewsU2StillShared = await db.query(`
+      SELECT public.get_exchange_whatsapp_contact(
+        p_exchange_request_id => $1::uuid,
+        p_participant_id => $2::uuid
+      ) as res;
+    `, [TWO_ACC_REQ, U2_REQUESTER]);
+    expect((u1ViewsU2StillShared.rows[0].res as any).contact_state).toBe('sharing_enabled');
+    expect((u1ViewsU2StillShared.rows[0].res as any).whatsapp).toBe('919497822222');
+
+    // Re-enable User 1 consent: User 2 immediately gets access back
+    await db.query(`UPDATE public.profiles SET share_whatsapp_with_exchange = true WHERE id = '${U1_PROVIDER}';`);
+    await asUser(U2_REQUESTER, 'authenticated');
+    const u2ViewsU1ReEnabled = await db.query(`
+      SELECT public.get_exchange_whatsapp_contact(
+        p_exchange_request_id => $1::uuid,
+        p_participant_id => $2::uuid
+      ) as res;
+    `, [TWO_ACC_REQ, U1_PROVIDER]);
+    expect((u2ViewsU1ReEnabled.rows[0].res as any).contact_state).toBe('sharing_enabled');
+    expect((u2ViewsU1ReEnabled.rows[0].res as any).whatsapp).toBe('919497811111');
+  });
 });

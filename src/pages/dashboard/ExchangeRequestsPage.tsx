@@ -8,7 +8,8 @@ import {
   MessageCircle, 
   Clock, 
   ShieldAlert, 
-  AlertCircle 
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -25,6 +26,7 @@ interface WhatsAppActionButtonProps {
   otherParticipantId: string;
   listingTitle: string;
   isAccepted: boolean;
+  onOpenSettings?: () => void;
 }
 
 const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
@@ -32,8 +34,10 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
   otherParticipantId,
   listingTitle,
   isAccepted,
+  onOpenSettings,
 }) => {
   const { getWhatsAppContact } = useData();
+  const { currentUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
   const [contactData, setContactData] = useState<{
@@ -48,6 +52,11 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
   useEffect(() => {
     let isMounted = true;
     if (!isAccepted || !otherParticipantId) {
+      setContactData(null);
+      return;
+    }
+
+    if (currentUser?.id && otherParticipantId === currentUser.id) {
       setContactData(null);
       return;
     }
@@ -79,12 +88,14 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
   }, [requestId, otherParticipantId, isAccepted, getWhatsAppContact, retryKey]);
 
   if (!isAccepted) return null;
+  if (currentUser?.id && otherParticipantId === currentUser.id) return null;
 
-  if (loading) {
+  // Show small loading indicator only while retrieving contact information
+  if (loading && !contactData) {
     return (
-      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-outline animate-pulse">
-        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-        <span>Checking WhatsApp availability...</span>
+      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container-low text-xs text-gl-charcoal-muted border border-outline-variant/30">
+        <Loader2 className="w-3.5 h-3.5 animate-spin text-gl-forest shrink-0" />
+        <span>Checking WhatsApp contact...</span>
       </div>
     );
   }
@@ -103,17 +114,14 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
   // Explicit state 1: missing_number
   if (contactData.contact_state === 'missing_number') {
     return (
-      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-xs text-outline border border-outline-variant/40">
-        <AlertCircle className="w-3.5 h-3.5 text-outline shrink-0" />
-        <span>{contactData.notice || 'Partner has not added a WhatsApp number yet'}</span>
-        <button
-          type="button"
-          onClick={handleRetry}
-          className="text-gl-forest font-semibold hover:underline text-[11px] ml-1"
-          title="Refresh partner contact details"
-        >
-          Check again
-        </button>
+      <div className="p-2.5 rounded-xl bg-surface-container-low text-xs text-on-surface-variant/90 border border-outline-variant/40 space-y-1 max-w-sm">
+        <div className="flex items-center gap-1.5 font-medium">
+          <AlertCircle className="w-3.5 h-3.5 text-outline shrink-0" />
+          <span>Partner has not added a WhatsApp number yet.</span>
+        </div>
+        <p className="text-[11px] text-gl-charcoal-muted">
+          Coordination can continue via the built-in chat or handover verification code.
+        </p>
       </div>
     );
   }
@@ -121,9 +129,9 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
   // Explicit state 2: invalid_number
   if (contactData.contact_state === 'invalid_number') {
     return (
-      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-xs text-outline border border-outline-variant/40">
-        <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-        <span>{contactData.notice || 'Invalid WhatsApp number format'}</span>
+      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-xs text-amber-700 border border-amber-200">
+        <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+        <span>Partner's WhatsApp number is invalid.</span>
       </div>
     );
   }
@@ -131,9 +139,26 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
   // Explicit state 3: sharing_disabled
   if (contactData.contact_state === 'sharing_disabled') {
     return (
-      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-xs text-on-surface-variant/80 border border-outline-variant/40">
-        <ShieldAlert className="w-3.5 h-3.5 text-outline shrink-0" />
-        <span>{contactData.notice || 'Partner has not shared WhatsApp contact'}</span>
+      <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200/80 text-xs text-amber-950 space-y-1.5 max-w-sm">
+        <div className="flex items-center gap-1.5 font-semibold text-amber-900">
+          <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
+          <span>Your partner needs to enable WhatsApp contact sharing.</span>
+        </div>
+        <p className="text-[11px] text-amber-800/90 leading-snug">
+          Their number is saved, but direct sharing is currently turned off in their privacy settings.
+        </p>
+        <div className="pt-0.5 flex items-center justify-between text-[11px]">
+          <span className="text-amber-700/80">Enable yours to share back</span>
+          {onOpenSettings && (
+            <button
+              type="button"
+              onClick={onOpenSettings}
+              className="text-gl-forest font-bold hover:underline ml-2"
+            >
+              Profile Settings
+            </button>
+          )}
+        </div>
       </div>
     );
   }
@@ -141,13 +166,13 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
   // Explicit state 4: error
   if (contactData.contact_state === 'error') {
     return (
-      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-xs text-outline border border-outline-variant/40">
-        <AlertCircle className="w-3.5 h-3.5 text-outline shrink-0" />
-        <span>{contactData.notice || 'Unable to connect to WhatsApp'}</span>
+      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-rose-50 text-xs text-rose-700 border border-rose-200">
+        <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+        <span>{contactData.notice || 'Unable to retrieve WhatsApp contact'}</span>
         <button
           type="button"
           onClick={handleRetry}
-          className="text-gl-forest font-semibold hover:underline text-[11px] ml-1"
+          className="text-gl-forest font-bold hover:underline text-[11px] ml-1"
         >
           Retry
         </button>
@@ -157,19 +182,14 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
 
   // Explicit state 5: sharing_enabled
   if (contactData.contact_state === 'sharing_enabled' && contactData.whatsapp) {
-    // Generate dynamic WhatsApp Click-to-Chat URL with contextual prefilled message
     let waUrl = '#';
     try {
       const prefilledText = buildExchangeWhatsAppMessage({ listingTitle });
       waUrl = createWhatsAppLink(contactData.whatsapp, prefilledText);
     } catch (linkErr) {
       console.warn('Failed to build WhatsApp link:', linkErr);
-      return (
-        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-xs text-outline border border-outline-variant/40">
-          <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-          <span>Invalid WhatsApp number format</span>
-        </div>
-      );
+      const digitsOnly = contactData.whatsapp.replace(/\D/g, '');
+      waUrl = `https://wa.me/${digitsOnly}`;
     }
 
     return (
@@ -177,7 +197,7 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
         href={waUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold text-xs sm:text-sm shadow-sm hover:shadow transition-all active:scale-95"
+        className="inline-flex items-center justify-center gap-2.5 px-5 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-xs sm:text-sm shadow-sm hover:shadow-md transition-all active:scale-95 w-full sm:w-auto"
         title="Open WhatsApp chat with exchange partner"
       >
         <MessageCircle className="w-4 h-4 fill-white shrink-0" />
@@ -186,12 +206,7 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
     );
   }
 
-  return (
-    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-low text-xs text-outline border border-outline-variant/40">
-      <AlertCircle className="w-3.5 h-3.5 text-outline shrink-0" />
-      <span>{contactData.notice || 'WhatsApp contact unavailable'}</span>
-    </div>
-  );
+  return null;
 };
 
 export const ExchangeRequestsPage: React.FC = () => {
@@ -364,6 +379,31 @@ export const ExchangeRequestsPage: React.FC = () => {
         </div>
       )}
 
+      {/* WhatsApp Sharing Disabled Reminder */}
+      {currentUser && (currentUser.whatsapp_number || currentUser.phone) && currentUser.share_whatsapp_with_exchange !== true && (
+        <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-start gap-2.5">
+            <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
+            <div>
+              <h4 className="font-heading font-semibold text-xs sm:text-sm text-amber-950">
+                WhatsApp contact sharing is currently turned off
+              </h4>
+              <p className="text-[11px] sm:text-xs text-amber-800/90 mt-0.5">
+                Your WhatsApp number is saved, but accepted exchange partners cannot message you until you enable contact sharing in Profile Settings.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="primary"
+            onClick={() => setShowProfileSettings(true)}
+            className="shrink-0 text-xs rounded-xl shadow-xs"
+          >
+            Enable Sharing in Settings
+          </Button>
+        </div>
+      )}
+
       {/* Segmented Tabs */}
       <div className="inline-flex p-1 bg-gl-cream/80 border border-gl-border rounded-xl">
         <button
@@ -426,7 +466,7 @@ export const ExchangeRequestsPage: React.FC = () => {
               >
                 <div className="space-y-2.5 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    {getStatusBadge(req.status)}
+                    {req.status !== 'accepted' && getStatusBadge(req.status)}
                     <span className="text-xs text-gl-charcoal-muted font-medium">
                       {new Date(req.created_at).toLocaleDateString()}
                     </span>
@@ -517,14 +557,21 @@ export const ExchangeRequestsPage: React.FC = () => {
                   {/* Status: Accepted (Ready for Handover & WhatsApp Enabled) */}
                   {req.status === 'accepted' && (
                     <div className="space-y-3 w-full md:w-auto flex flex-col items-start md:items-end">
-                      {/* WhatsApp Button (Available ONLY on accepted status) */}
+                      {/* [ Accepted ] Status Badge */}
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(req.status)}
+                      </div>
+
+                      {/* [ Message on WhatsApp ] prominent green button */}
                       <WhatsAppActionButton
                         requestId={req.id}
                         otherParticipantId={otherParticipantId}
                         listingTitle={listing?.title || 'Material Batch'}
                         isAccepted={true}
+                        onOpenSettings={() => setShowProfileSettings(true)}
                       />
 
+                      {/* [ Pickup Verification Code ] */}
                       {activeTab === 'outgoing' ? (
                         <div className="p-3.5 bg-gl-sage-light/70 rounded-xl text-center space-y-1 border border-gl-sage w-full sm:w-auto">
                           <span className="text-[10px] text-gl-dark uppercase tracking-wider block font-bold">

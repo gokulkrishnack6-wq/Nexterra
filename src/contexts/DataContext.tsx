@@ -192,6 +192,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const [exchangeRequests, setExchangeRequests] = useState<ExchangeRequest[]>([]);
+  const exchangeRequestsRef = React.useRef(exchangeRequests);
+  exchangeRequestsRef.current = exchangeRequests;
 
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
     const saved = localStorage.getItem('greenloop_user_transactions');
@@ -1530,7 +1532,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Disallow self-messaging query
-      if (currentUser && participantId === currentUser.id) {
+      if (currentUserRef.current && participantId === currentUserRef.current.id) {
         return {
           participant_id: participantId,
           whatsapp: null,
@@ -1541,7 +1543,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Locate exchange request locally or from database
-      let req = exchangeRequests.find((r) => r.id === exchangeRequestId);
+      let req = exchangeRequestsRef.current.find((r) => r.id === exchangeRequestId);
       if (!req && isSupabaseConfigured) {
         try {
           const { data: dbReq } = await supabase
@@ -1681,7 +1683,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         notice: 'WhatsApp contact active for exchange coordination.',
       };
     },
-    [isSupabaseConfigured, exchangeRequests, currentUser]
+    [isSupabaseConfigured]
   );
 
   // Guarantee every exchange request is paired with an accessible conversation

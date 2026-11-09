@@ -373,6 +373,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             district: newProfile.district,
             state: newProfile.state,
             phone: cleanWa || null,
+            whatsapp_number: cleanWa || null,
+            phone_number: cleanWa || null,
+            share_whatsapp_with_exchange: Boolean(shareWhatsappWithExchange),
             is_verified: true,
             eco_points_balance: 50,
             created_at: newProfile.created_at,
@@ -544,14 +547,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!currentUser) return { success: false, error: 'Not authenticated' };
 
     try {
-      const resolvedPhone = updatedData.whatsapp_number || updatedData.phone || currentUser.whatsapp_number || currentUser.phone;
-      const cleanPhone = resolvedPhone ? resolvedPhone.trim() : undefined;
+      const resolvedPhone = updatedData.whatsapp_number !== undefined
+        ? updatedData.whatsapp_number
+        : (updatedData.phone !== undefined ? updatedData.phone : (currentUser.whatsapp_number || currentUser.phone));
+      const cleanPhone = resolvedPhone ? resolvedPhone.trim() : null;
+
+      const resolvedConsent = updatedData.share_whatsapp_with_exchange !== undefined
+        ? Boolean(updatedData.share_whatsapp_with_exchange)
+        : Boolean(currentUser.share_whatsapp_with_exchange);
+
+      const resolvedSharePhone = updatedData.share_phone_with_exchange !== undefined
+        ? Boolean(updatedData.share_phone_with_exchange)
+        : Boolean(currentUser.share_phone_with_exchange);
 
       const newProfile: UserProfile = {
         ...currentUser,
         ...updatedData,
-        phone: cleanPhone,
-        whatsapp_number: cleanPhone,
+        phone: cleanPhone || undefined,
+        whatsapp_number: cleanPhone || undefined,
+        share_whatsapp_with_exchange: resolvedConsent,
+        share_phone_with_exchange: resolvedSharePhone,
         updated_at: new Date().toISOString(),
       };
 
@@ -567,8 +582,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             phone: cleanPhone,
             phone_number: cleanPhone,
             whatsapp_number: cleanPhone,
-            share_phone_with_exchange: newProfile.share_phone_with_exchange,
-            share_whatsapp_with_exchange: newProfile.share_whatsapp_with_exchange,
+            share_phone_with_exchange: resolvedSharePhone,
+            share_whatsapp_with_exchange: resolvedConsent,
           },
         });
 
@@ -576,45 +591,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.warn('Auth user metadata update notice:', authUpdateError.message);
         }
 
-        // 2. Persist to authoritative public.profiles row
-        // Using base schema columns (phone is guaranteed to exist on public.profiles)
-        const baseDbPayload: any = {
+        // 2. Persist directly to authoritative public.profiles row
+        const dbPayload: any = {
           full_name: newProfile.full_name,
           role: newProfile.role,
           district: newProfile.district,
           state: newProfile.state || 'Kerala',
           bio: newProfile.bio || null,
           avatar_url: newProfile.avatar_url || null,
-          phone: cleanPhone || null,
+          phone: cleanPhone,
+          whatsapp_number: cleanPhone,
+          phone_number: cleanPhone,
+          share_whatsapp_with_exchange: resolvedConsent,
           updated_at: new Date().toISOString(),
         };
 
-        const { error: profileUpdateError } = await supabase
+        if (resolvedSharePhone !== undefined) {
+          dbPayload.share_phone_with_exchange = resolvedSharePhone;
+        }
+
+        let { error: profileUpdateError } = await supabase
           .from('profiles')
-          .update(baseDbPayload)
+          .update(dbPayload)
           .eq('id', currentUser.id);
+
+        if (profileUpdateError && profileUpdateError.message?.includes('share_phone_with_exchange')) {
+          delete dbPayload.share_phone_with_exchange;
+          const retryRes = await supabase
+            .from('profiles')
+            .update(dbPayload)
+            .eq('id', currentUser.id);
+          profileUpdateError = retryRes.error;
+        }
 
         if (profileUpdateError) {
           console.error('Error updating public.profiles row:', profileUpdateError);
           return { success: false, error: profileUpdateError.message || 'Failed to update profile in database' };
         }
-
-        // 3. Optional update for whatsapp_number and share_whatsapp_with_exchange if database migration was executed
-        if (cleanPhone) {
-          Promise.resolve(
-            supabase
-              .from('profiles')
-              .update({
-                whatsapp_number: cleanPhone,
-                share_whatsapp_with_exchange: newProfile.share_whatsapp_with_exchange,
-              })
-              .eq('id', currentUser.id)
-          ).catch(() => {});
-        }
       }
 
       // Update state and localStorage
       setCurrentUser(newProfile);
+      if (typeof window !== 'undefined' && window.localStorage) {
+        try {
+          window.localStorage.setItem(LOCAL_STORAGE_PROFILE_KEY, JSON.stringify(newProfile));
+        } catch {}
+      }
       return { success: true };
     } catch (err: any) {
       console.error('updateProfile exception:', err);
