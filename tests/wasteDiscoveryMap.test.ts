@@ -320,5 +320,41 @@ describe('GreenLoop Kerala Waste Discovery Map — Comprehensive Test Suite', ()
       expect(Number(dupCount.rows[0].count)).toBe(1);
     }, 30000);
   });
+
+  // ============================================================================
+  // 5. TARGETED UI IMPROVEMENTS: LEGEND PLACEMENT & BUTTON RENAMING
+  // ============================================================================
+  describe('5. Targeted UI Improvements: Legend Placement & Add a Waste Location CTA', () => {
+    it('MapPage and KeralaWasteDiscoveryMap render Add a Waste Location and non-overlapping external legend', () => {
+      const mapComponentSrc = fs.readFileSync(
+        'src/components/maps/KeralaWasteDiscoveryMap.tsx',
+        'utf8'
+      );
+      const mapPageSrc = fs.readFileSync(
+        'src/pages/public/MapPage.tsx',
+        'utf8'
+      );
+
+      // Verify button renamed to "Add a Waste Location"
+      expect(mapPageSrc).toContain('Add a Waste Location');
+      expect(mapPageSrc).not.toContain('>Suggest a Location<');
+      expect(mapPageSrc).not.toContain('>+ Suggest a Location Here<');
+
+      // Verify modal title renamed to "Add a Waste Location"
+      expect(mapPageSrc).toContain('title="Add a Waste Location"');
+
+      // Verify legend is placed below the map container (outside map container)
+      expect(mapComponentSrc).not.toContain('absolute top-3 left-3 z-[400]');
+      expect(mapComponentSrc).toContain('Map Legend: Placed directly below the map, outside the map container');
+      expect(mapComponentSrc).toContain('Public Waste Bins');
+      expect(mapComponentSrc).toContain('Available Waste Listings');
+      expect(mapComponentSrc).toContain('Collection & Recycling');
+
+      // Marker colors preserved
+      expect(mapComponentSrc).toContain('#2563A6'); // Blue
+      expect(mapComponentSrc).toContain('#287A45'); // Green
+      expect(mapComponentSrc).toContain('#B66A20'); // Orange
+    });
+  });
 });
 

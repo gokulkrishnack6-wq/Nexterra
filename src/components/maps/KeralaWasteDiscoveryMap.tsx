@@ -292,7 +292,6 @@ export const KeralaWasteDiscoveryMap: React.FC<KeralaWasteDiscoveryMapProps> = (
   showLegend = true,
 }) => {
   const [currentZoom, setCurrentZoom] = useState(zoomLevel);
-  const [legendOpen, setLegendOpen] = useState(true);
 
   // Filter listings to active/reserved only (never completed/deleted)
   const availableListings = useMemo(() => {
@@ -386,7 +385,8 @@ export const KeralaWasteDiscoveryMap: React.FC<KeralaWasteDiscoveryMapProps> = (
   }, [locations, availableListings, shouldCluster, currentZoom]);
 
   return (
-    <div className={`relative w-full ${heightClass} rounded-2xl overflow-hidden border border-[#E6E0D5] shadow-sm select-none`}>
+    <div className="w-full space-y-2.5">
+      <div className={`relative w-full ${heightClass} rounded-2xl overflow-hidden border border-[#E6E0D5] shadow-sm select-none`}>
       {/* Interactive Map */}
       <MapContainer
         center={[defaultCenterLat, defaultCenterLng]}
@@ -680,64 +680,7 @@ export const KeralaWasteDiscoveryMap: React.FC<KeralaWasteDiscoveryMapProps> = (
         )}
       </MapContainer>
 
-      {/* Floating Interactive Map Legend (as specified in User Request) */}
-      {showLegend && (
-        <div className="absolute top-3 left-3 z-[400] max-w-[240px] xs:max-w-[280px]">
-          <div className="bg-white/95 backdrop-blur-md border border-[#E6E0D5] rounded-xl shadow-lg p-3 text-xs select-none transition-all">
-            <div className="flex items-center justify-between pb-1.5 border-b border-[#EFECE4] mb-2">
-              <span className="font-semibold text-[11px] uppercase tracking-wider text-[#103D2A] flex items-center gap-1.5">
-                <Compass className="w-3.5 h-3.5" /> Map Legend
-              </span>
-              <button
-                type="button"
-                onClick={() => setLegendOpen(!legendOpen)}
-                className="text-[10px] font-medium text-[#68736B] hover:text-[#103D2A]"
-              >
-                {legendOpen ? 'Hide' : 'Show'}
-              </button>
-            </div>
-
-            {legendOpen && (
-              <div className="space-y-2">
-                {/* 1. Public Waste Bins */}
-                <div className="flex items-center gap-2.5">
-                  <div className="w-5 h-5 rounded-full bg-[#2563A6] text-white flex items-center justify-center shrink-0 shadow-2xs">
-                    <Trash2 className="w-3 h-3" />
-                  </div>
-                  <div className="truncate">
-                    <span className="font-medium text-[#18251F] block text-xs leading-none">Public Waste Bins</span>
-                    <span className="text-[10px] text-[#68736B]">Public &amp; transit disposal</span>
-                  </div>
-                </div>
-
-                {/* 2. Available Waste Listings */}
-                <div className="flex items-center gap-2.5">
-                  <div className="w-5 h-5 rounded-lg bg-[#287A45] text-white flex items-center justify-center shrink-0 shadow-2xs">
-                    <Package className="w-3 h-3" />
-                  </div>
-                  <div className="truncate">
-                    <span className="font-medium text-[#18251F] block text-xs leading-none">Available Waste Listings</span>
-                    <span className="text-[10px] text-[#68736B]">Materials from GreenLoop users</span>
-                  </div>
-                </div>
-
-                {/* 3. Waste Collection Centres */}
-                <div className="flex items-center gap-2.5">
-                  <div className="w-5 h-5 rounded-md bg-[#B66A20] text-white flex items-center justify-center shrink-0 shadow-2xs">
-                    <Recycle className="w-3 h-3" />
-                  </div>
-                  <div className="truncate">
-                    <span className="font-medium text-[#18251F] block text-xs leading-none">Collection &amp; Recycling</span>
-                    <span className="text-[10px] text-[#68736B]">MCF, RRF, Haritha Karma Sena</span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Pin-Drop Helper Banner (when Suggesting a location) */}
+      {/* Pin-Drop Helper Banner (when Picking a location) */}
       {isPickingLocation && (
         <div className="absolute bottom-4 inset-x-4 z-[400] max-w-md mx-auto">
           <div className="bg-[#103D2A] text-white p-3 rounded-xl shadow-xl flex items-center justify-between gap-3 text-xs">
@@ -754,6 +697,54 @@ export const KeralaWasteDiscoveryMap: React.FC<KeralaWasteDiscoveryMapProps> = (
                 Pinned
               </span>
             )}
+          </div>
+        </div>
+      )}
+      </div>
+
+      {/* Map Legend: Placed directly below the map, outside the map container */}
+      {showLegend && (
+        <div className="bg-[#FFFEFA] border border-[#E6E0D5] rounded-xl px-3.5 py-2.5 shadow-2xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <div className="flex items-center gap-1.5 text-[#103D2A] shrink-0 font-semibold text-[11px] uppercase tracking-wider">
+              <Compass className="w-3.5 h-3.5 text-[#103D2A]" />
+              <span>Map Legend</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:flex sm:flex-wrap sm:items-center gap-2.5 sm:gap-4 lg:gap-6 text-xs">
+              {/* 1. Blue: Public Waste Bins */}
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 rounded-full bg-[#2563A6] text-white flex items-center justify-center shrink-0 shadow-2xs">
+                  <Trash2 className="w-3 h-3" />
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="font-medium text-[#18251F] text-xs">Public Waste Bins</span>
+                  <span className="text-[10.5px] text-[#68736B] hidden md:inline">• Public &amp; transit bins</span>
+                </div>
+              </div>
+
+              {/* 2. Green: Available Waste Listings */}
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 rounded-lg bg-[#287A45] text-white flex items-center justify-center shrink-0 shadow-2xs">
+                  <Package className="w-3 h-3" />
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="font-medium text-[#18251F] text-xs">Available Waste Listings</span>
+                  <span className="text-[10.5px] text-[#68736B] hidden md:inline">• Community materials</span>
+                </div>
+              </div>
+
+              {/* 3. Orange: Collection & Recycling Centres */}
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 rounded-md bg-[#B66A20] text-white flex items-center justify-center shrink-0 shadow-2xs">
+                  <Recycle className="w-3 h-3" />
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="font-medium text-[#18251F] text-xs">Collection &amp; Recycling</span>
+                  <span className="text-[10.5px] text-[#68736B] hidden md:inline">• MCF, RRF, Haritha Karma Sena</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

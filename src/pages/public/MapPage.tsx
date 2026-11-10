@@ -446,14 +446,14 @@ export const MapPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto">
           <button
             type="button"
             onClick={handleOpenSuggestModal}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#103D2A] hover:bg-[#0B3827] text-white text-xs font-semibold shadow-xs transition-colors"
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#103D2A] hover:bg-[#0B3827] text-white text-xs font-semibold shadow-xs transition-colors w-full sm:w-auto"
           >
             <Plus className="w-4 h-4 text-white" />
-            <span>Suggest a Location</span>
+            <span>Add a Waste Location</span>
           </button>
         </div>
       </div>
@@ -668,7 +668,7 @@ export const MapPage: React.FC = () => {
             onClick={handleOpenSuggestModal}
             className="px-3 py-1 bg-[#B66A20] hover:bg-[#9E5A17] text-white rounded-lg text-xs font-semibold shrink-0 transition-colors shadow-2xs"
           >
-            + Suggest Location in {selectedMunicipality}
+            + Add a Waste Location in {selectedMunicipality}
           </button>
         </div>
       )}
@@ -694,12 +694,12 @@ export const MapPage: React.FC = () => {
               setPickedCoords(coords);
               setIsPickingCoordsOnMap(false);
             }}
-            heightClass="h-[440px] sm:h-[540px] lg:h-[660px]"
+            heightClass="h-[440px] sm:h-[540px] lg:h-[600px]"
           />
         </div>
 
         {/* Results & Information Panel (30% on desktop: lg:col-span-3) */}
-        <div className="lg:col-span-3 w-full flex flex-col h-[440px] sm:h-[540px] lg:h-[660px] bg-[#FFFEFA] border border-[#E6E0D5] rounded-2xl shadow-xs overflow-hidden">
+        <div className="lg:col-span-3 w-full flex flex-col h-[440px] sm:h-[540px] lg:h-[655px] bg-[#FFFEFA] border border-[#E6E0D5] rounded-2xl shadow-xs overflow-hidden">
           {/* Panel Header */}
           <div className="p-3.5 bg-[#FAF8F2] border-b border-[#E6E0D5] flex items-center justify-between">
             <div>
@@ -730,7 +730,7 @@ export const MapPage: React.FC = () => {
                   onClick={handleOpenSuggestModal}
                   className="mt-4 px-3.5 py-1.5 bg-[#103D2A] text-white rounded-xl text-xs font-semibold hover:bg-[#0B3827] transition-colors"
                 >
-                  + Suggest a Location Here
+                  + Add a Waste Location Here
                 </button>
               </div>
             ) : (
@@ -922,11 +922,11 @@ export const MapPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. MODAL: Suggest a Community Location */}
+      {/* 4. MODAL: Add a Community Location */}
       <Modal
         isOpen={isSuggestModalOpen}
         onClose={() => setIsSuggestModalOpen(false)}
-        title="Suggest a Waste Bin or Collection Facility"
+        title="Add a Waste Location"
         subtitle="Help map Kerala's circular infrastructure. Submissions enter our verification moderation queue."
         icon={<MapPinned className="w-5 h-5 text-[#103D2A]" />}
         maxWidth="xl"
