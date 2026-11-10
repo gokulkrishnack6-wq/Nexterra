@@ -305,28 +305,28 @@ export const WasteScannerPage: React.FC = () => {
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5 text-secondary font-label-sm text-xs font-semibold">
-            <ShieldCheck className="w-4 h-4 text-primary" />
+          <div className="flex items-center gap-1.5 text-[#103D2A] text-xs font-medium">
+            <ShieldCheck className="w-3.5 h-3.5 text-[#103D2A]" />
             <span>AI Material Detection</span>
           </div>
         </div>
 
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#E8E4DA] pb-5">
           <div className="max-w-3xl">
-            <h1 className="font-heading font-bold text-2xl sm:text-3xl lg:text-[34px] text-[#18251F] tracking-tight">
+            <h1 className="font-serif font-normal text-2xl sm:text-3xl text-[#103D2A] tracking-tight">
               Waste Scanner
             </h1>
-            <p className="font-sans text-sm text-[#6F776F] mt-1 leading-relaxed">
+            <p className="font-sans text-xs sm:text-sm text-[#5C6E66] mt-1 leading-relaxed">
               Take or upload a photo to identify recyclable materials and pre-fill your marketplace listing.
             </p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => navigate('/marketplace')}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-[#F8F6EF] text-[#18251F] font-semibold text-xs transition-colors shadow-xs border border-[#E8E4DA]"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white hover:bg-[#F8F6EF] text-[#1C2826] font-medium text-xs transition-colors shadow-subtle border border-[#E8E4DA]"
               type="button"
             >
-              <Recycle className="w-4 h-4 text-[#103D2A]" />
+              <Recycle className="w-3.5 h-3.5 text-[#103D2A]" />
               <span>Browse Marketplace</span>
             </button>
           </div>
@@ -335,14 +335,14 @@ export const WasteScannerPage: React.FC = () => {
 
       {/* Deployment Alert Box if not deployed */}
       {backendStatus === 'pending' && (
-        <div className="mb-4 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-3 shadow-xs">
-          <AlertCircle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
-          <div className="flex flex-col gap-1">
-            <span className="font-heading font-bold text-sm text-amber-900">
+        <div className="mb-4 p-3.5 rounded-md bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-3 shadow-subtle">
+          <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+          <div className="flex flex-col gap-0.5">
+            <span className="font-sans font-medium text-xs text-amber-900">
               Supabase Edge Function Not Deployed
             </span>
-            <p className="text-amber-800 leading-relaxed">
-              The backend function <code className="bg-amber-100 px-1 py-0.5 rounded font-mono font-semibold">analyze-waste-image</code> is not deployed to Supabase project <code className="bg-amber-100 px-1 py-0.5 rounded font-mono font-semibold">czytsaajiicpivjkrbey</code> yet. Image scans will report that the service is awaiting deployment until Supabase authentication is completed.
+            <p className="text-amber-800 leading-relaxed text-xs">
+              The backend function <code className="bg-amber-100 px-1 py-0.5 rounded font-mono font-medium">analyze-waste-image</code> is not deployed to Supabase project <code className="bg-amber-100 px-1 py-0.5 rounded font-mono font-medium">czytsaajiicpivjkrbey</code> yet. Image scans will report that the service is awaiting deployment until Supabase authentication is completed.
             </p>
           </div>
         </div>
@@ -350,41 +350,41 @@ export const WasteScannerPage: React.FC = () => {
 
       {/* Error Message Alert */}
       {errorMsg && (
-        <div className="mb-4 p-4 rounded-xl bg-error-container/40 border border-error/30 text-on-error-container text-xs flex items-start justify-between gap-3 shadow-xs">
+        <div className="mb-4 p-3.5 rounded-md bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start justify-between gap-3 shadow-subtle">
           <div className="flex items-start gap-2.5">
-            <AlertTriangle className="w-4 h-4 text-error shrink-0 mt-0.5" />
+            <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
             <div className="flex flex-col gap-0.5">
-              <span className="font-heading font-bold text-error">Material Analysis Error</span>
+              <span className="font-sans font-medium text-rose-900">Material Analysis Error</span>
               <p className="leading-relaxed">{errorMsg}</p>
             </div>
           </div>
           <button
             onClick={() => setErrorMsg(null)}
-            className="p-1 hover:bg-error-container rounded text-error"
+            className="p-1 hover:bg-rose-100 rounded text-rose-700"
           >
-            <X className="w-4 h-4" />
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
 
       {/* 2. MAIN 12-COLUMN RESPONSIVE WORKSPACE: Viewport (7 cols) + Diagnostic Output (5 cols) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-space-lg items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
 
         {/* LEFT COLUMN: Diagnostic Capture & Active Viewport (7 Cols) */}
-        <section className="lg:col-span-7 flex flex-col gap-space-md">
+        <section className="lg:col-span-7 flex flex-col gap-3.5">
 
           {/* Ingestion Mode Selector Tabs */}
-          <div className="bg-white rounded-xl p-1.5 border border-gl-border shadow-2xs flex items-center justify-between gap-1">
+          <div className="bg-white rounded-md p-1 border border-[#E8E4DA] shadow-subtle flex items-center justify-between gap-1">
             <button
               onClick={startCamera}
-              className={`flex-1 inline-flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs transition-colors shadow-2xs ${
+              className={`flex-1 inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded text-xs transition-colors ${
                 activeTab === 'live' || cameraActive
-                  ? 'bg-gl-forest text-white font-semibold'
-                  : 'text-gl-charcoal-muted hover:bg-gl-cream hover:text-gl-charcoal'
+                  ? 'bg-[#103D2A] text-white font-medium shadow-subtle'
+                  : 'text-[#5C6E66] hover:bg-[#F8F6EF] hover:text-[#1C2826]'
               }`}
               type="button"
             >
-              <Camera className="w-4 h-4" />
+              <Camera className="w-3.5 h-3.5" />
               <span>Camera Stream</span>
             </button>
 
@@ -394,29 +394,20 @@ export const WasteScannerPage: React.FC = () => {
                 setActiveTab('upload');
                 fileInputRef.current?.click();
               }}
-              className={`flex-1 inline-flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs transition-colors shadow-2xs ${
+              className={`flex-1 inline-flex items-center justify-center gap-1.5 py-1.5 px-3 rounded text-xs transition-colors ${
                 activeTab === 'upload' && !cameraActive
-                  ? 'bg-gl-forest text-white font-semibold'
-                  : 'text-gl-charcoal-muted hover:bg-gl-cream hover:text-gl-charcoal'
+                  ? 'bg-[#103D2A] text-white font-medium shadow-subtle'
+                  : 'text-[#5C6E66] hover:bg-[#F8F6EF] hover:text-[#1C2826]'
               }`}
               type="button"
             >
-              <Upload className="w-4 h-4" />
+              <Upload className="w-3.5 h-3.5" />
               <span>Upload Photo</span>
             </button>
           </div>
 
-          {/* CIRCULARNET HUD VIEWFINDER CONTAINER (Stitch 1:1) */}
-          <div className="relative w-full aspect-[4/3] rounded-2xl bg-[#03150D] overflow-hidden shadow-2xl border border-primary-container/40 flex items-center justify-center">
-
-            {/* Background Reticle Grid Lines */}
-            <div className="absolute inset-0 opacity-15 pointer-events-none bg-[radial-gradient(#174d36_1px,transparent_1px)] [background-size:24px_24px]" />
-
-            {/* Corner Bracket Reticles (Stitch HUD) */}
-            <div className="absolute top-4 left-4 w-7 h-7 border-t-2 border-l-2 border-primary-fixed pointer-events-none z-20" />
-            <div className="absolute top-4 right-4 w-7 h-7 border-t-2 border-r-2 border-primary-fixed pointer-events-none z-20" />
-            <div className="absolute bottom-4 left-4 w-7 h-7 border-b-2 border-l-2 border-primary-fixed pointer-events-none z-20" />
-            <div className="absolute bottom-4 right-4 w-7 h-7 border-b-2 border-r-2 border-primary-fixed pointer-events-none z-20" />
+          {/* VIEWFINDER CONTAINER */}
+          <div className="relative w-full aspect-[4/3] rounded-lg bg-[#18251F] overflow-hidden shadow-subtle border border-[#E8E4DA] flex items-center justify-center">
 
             {/* Viewfinder Content: Live Camera or Static Image Preview */}
             {cameraActive ? (
@@ -433,19 +424,19 @@ export const WasteScannerPage: React.FC = () => {
                 className="w-full h-full object-contain bg-black/40"
               />
             ) : (
-              <div className="flex flex-col items-center justify-center gap-3 p-6 text-center z-10">
-                <div className="w-16 h-16 rounded-2xl bg-surface-container/10 border border-primary-container/30 flex items-center justify-center text-primary-fixed shadow-inner">
-                  <ScanLine className="w-8 h-8 animate-pulse text-secondary-fixed" />
+              <div className="flex flex-col items-center justify-center gap-2.5 p-6 text-center z-10">
+                <div className="w-12 h-12 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center text-white">
+                  <ScanLine className="w-6 h-6 text-emerald-300" />
                 </div>
                 <div className="flex flex-col gap-1 max-w-sm">
-                  <span className="font-heading font-semibold text-sm text-surface-bright">
-                    Viewfinder Idle
+                  <span className="font-sans font-medium text-xs text-white">
+                    Viewfinder Ready
                   </span>
-                  <span className="font-body-sm text-xs text-on-surface-variant text-zinc-400">
-                    Click "Camera Stream" or "Upload Photo" to position waste material within the reticle brackets.
+                  <span className="font-sans text-xs text-zinc-400">
+                    Click "Camera Stream" or "Upload Photo" to position waste material in view.
                   </span>
                 </div>
-                <div className="flex gap-2 pt-2">
+                <div className="flex gap-2 pt-1">
                   <button
                     onClick={startCamera}
                     className="px-4 py-2 rounded-lg bg-primary-container text-on-primary text-xs font-semibold hover:bg-primary transition-colors flex items-center gap-1.5"

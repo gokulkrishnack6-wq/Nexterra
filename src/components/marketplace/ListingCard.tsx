@@ -45,19 +45,19 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, referenceCoor
     switch (listing.listing_type) {
       case 'free':
         return (
-          <span className="text-[11px] text-gl-forest font-bold bg-gl-sage-light px-2.5 py-0.5 rounded-full shadow-xs">
+          <span className="text-[11px] text-[#103D2A] font-medium bg-[#E8EFE9] px-2 py-0.5 rounded-md border border-[#C8D6C9]">
             Free
           </span>
         );
       case 'exchange':
         return (
-          <span className="text-[11px] text-gl-forest font-semibold bg-gl-lime px-2.5 py-0.5 rounded-full shadow-xs">
+          <span className="text-[11px] text-[#103D2A] font-medium bg-[#F0EFE6] px-2 py-0.5 rounded-md border border-[#DCD6CB]">
             Exchange
           </span>
         );
       case 'sale':
         return (
-          <span className="text-[11px] text-gl-forest font-bold bg-white border border-gl-border px-2.5 py-0.5 rounded-full shadow-xs">
+          <span className="text-[11px] text-[#1C2826] font-medium bg-white border border-[#DCD6CB] px-2 py-0.5 rounded-md">
             ₹{listing.price}
           </span>
         );
@@ -67,13 +67,13 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, referenceCoor
   };
 
   return (
-    <div className="bg-white rounded-[18px] border border-[#E8E4DA] hover:border-[#8BA681] transition-all duration-200 flex flex-col justify-between overflow-hidden group shadow-[0_2px_8px_rgba(16,61,42,0.03)] hover:shadow-card-hover text-left">
+    <div className="bg-white rounded-lg border border-[#E8E4DA] hover:border-[#8BA681] transition-all duration-150 flex flex-col justify-between overflow-hidden group shadow-subtle hover:shadow-card text-left">
       {/* Thumbnail */}
-      <div className="relative aspect-[4/3] w-full bg-gl-cream overflow-hidden">
+      <div className="relative aspect-[4/3] w-full bg-[#F4F1EA] overflow-hidden">
         <img
           src={primaryImage}
           alt={listing.title}
-          className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+          className="w-full h-full object-cover group-hover:scale-[1.01] transition-transform duration-200"
           loading="lazy"
         />
 
@@ -81,13 +81,13 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, referenceCoor
         <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
           {getPricingBadge()}
           {listing.status === 'reserved' && (
-            <span className="text-[10px] uppercase font-bold text-amber-900 bg-amber-50/95 border border-amber-300 px-2 py-0.5 rounded-full shadow-xs backdrop-blur-sm">
-              Exchange in progress
+            <span className="text-[11px] font-medium text-amber-900 bg-amber-50/95 border border-amber-300 px-2 py-0.5 rounded-md">
+              In progress
             </span>
           )}
           {listing.is_demo && (
-            <span className="text-[10px] uppercase font-bold text-amber-900 bg-amber-50/95 border border-amber-200 px-2 py-0.5 rounded-full shadow-xs backdrop-blur-sm">
-              Sample Stream
+            <span className="text-[11px] font-medium text-[#5C6E66] bg-white/95 border border-[#DCD6CB] px-2 py-0.5 rounded-md">
+              Sample
             </span>
           )}
         </div>
@@ -98,63 +98,63 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, referenceCoor
             e.preventDefault();
             toggleFavourite(listing.id);
           }}
-          className={`absolute top-2.5 right-2.5 p-1.5 rounded-full bg-white/90 backdrop-blur-sm text-gl-charcoal hover:text-red-500 transition-colors shadow-xs ${
-            isFav ? 'text-red-500' : 'text-gl-charcoal-muted'
+          className={`absolute top-2.5 right-2.5 p-1.5 rounded-md bg-white/90 backdrop-blur-sm text-[#5C6E66] hover:text-red-500 transition-colors ${
+            isFav ? 'text-red-500' : 'text-[#7B8B83]'
           }`}
           title="Save material"
         >
           <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-red-500 text-red-500' : ''}`} />
         </button>
 
-        {/* Status pill if completed/pending */}
-        {listing.status !== 'active' && (
-          <div className="absolute bottom-2.5 left-2.5 bg-gl-charcoal/85 backdrop-blur-sm text-white text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full">
-            {listing.status}
+        {/* Status pill if completed */}
+        {listing.status === 'completed' && (
+          <div className="absolute bottom-2.5 left-2.5 bg-[#1C2826]/85 backdrop-blur-sm text-white text-[11px] font-medium px-2 py-0.5 rounded-md">
+            Completed
           </div>
         )}
       </div>
 
       {/* Info Body */}
-      <div className="p-4 flex-1 flex flex-col justify-between">
+      <div className="p-3.5 sm:p-4 flex-1 flex flex-col justify-between">
         <div>
-          <div className="flex items-center justify-between text-[11px] text-gl-charcoal-muted mb-1 font-medium">
+          <div className="flex items-center justify-between text-xs text-[#5C6E66] mb-1">
             <span className="truncate">{listing.category?.name || 'Recyclable'}</span>
-            <span className="font-semibold text-gl-forest shrink-0 ml-1">{listing.quantity} {listing.unit}</span>
+            <span className="font-medium text-[#103D2A] shrink-0 ml-1">{listing.quantity} {listing.unit}</span>
           </div>
 
-          <h3 className="font-heading font-bold text-base text-gl-charcoal group-hover:text-gl-forest transition-colors line-clamp-1">
+          <h3 className="font-sans font-medium text-[15px] text-[#1C2826] group-hover:text-[#103D2A] transition-colors line-clamp-1">
             {listing.title}
           </h3>
 
-          <div className="flex items-center gap-1.5 mt-1.5 text-[11px]">
+          <div className="flex items-center gap-1.5 mt-1.5 text-xs">
             {listing.status === 'reserved' ? (
               <>
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-                <span className="font-semibold text-amber-800">Exchange in progress</span>
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-600 shrink-0" />
+                <span className="font-medium text-amber-800">Exchange in progress</span>
               </>
             ) : (
               <>
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-gl-fresh shrink-0" />
-                <span className="font-medium text-gl-fresh">Available</span>
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0" />
+                <span className="font-medium text-emerald-700">Available</span>
               </>
             )}
             {listing.condition && (
               <>
-                <span className="text-gl-border">•</span>
-                <span className="truncate text-gl-charcoal-muted font-medium">{listing.condition}</span>
+                <span className="text-[#DCD6CB]">•</span>
+                <span className="truncate text-[#5C6E66]">{listing.condition}</span>
               </>
             )}
           </div>
         </div>
 
-        <div className="mt-3.5 pt-3 border-t border-gl-border/70 flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-gl-charcoal-muted min-w-0 flex-1 pr-2">
-            <MapPin className="w-3.5 h-3.5 text-gl-forest shrink-0" />
-            <div className="text-[11px] truncate leading-tight">
+        <div className="mt-3 pt-3 border-t border-[#E8E4DA] flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-[#5C6E66] min-w-0 flex-1 pr-2">
+            <MapPin className="w-3.5 h-3.5 text-[#103D2A] shrink-0" />
+            <div className="text-xs truncate leading-tight">
               {distanceKm !== null ? (
                 <span>
-                  <strong className="text-gl-forest font-semibold">{distanceKm} km</strong>
-                  <span className="text-gl-border mx-1">•</span>
+                  <strong className="text-[#103D2A] font-medium">{distanceKm} km</strong>
+                  <span className="text-[#DCD6CB] mx-1">•</span>
                   <span>{listing.locality ? `${listing.locality}, ${listing.district}` : listing.district}</span>
                 </span>
               ) : (
@@ -165,7 +165,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, referenceCoor
 
           <Link
             to={`/marketplace/${listing.id}`}
-            className="text-white bg-gl-forest hover:bg-gl-dark px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0 ml-1 inline-flex items-center gap-1 shadow-xs transition-all active:scale-[0.98]"
+            className="text-white bg-[#103D2A] hover:bg-[#0A261A] px-2.5 py-1 rounded-md text-xs font-medium shrink-0 ml-1 inline-flex items-center gap-1 transition-colors"
           >
             <span>Details</span>
             <ArrowRight className="w-3 h-3" />

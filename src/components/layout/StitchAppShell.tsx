@@ -156,24 +156,24 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-[#F8F6EF] font-body text-[#18251F] flex flex-col">
-      {/* Desktop & Tablet Sidebar (w-16 on tablet, w-[270px] on desktop) */}
-      <aside className="fixed left-0 top-0 h-full w-16 lg:w-[270px] bg-[#103D2A] z-50 hidden md:flex flex-col justify-between py-5 border-r border-[#08291D] shadow-sm select-none">
-        <div className="flex flex-col gap-5">
+      {/* Desktop & Tablet Sidebar (w-16 on tablet, w-[250px] on desktop) */}
+      <aside className="fixed left-0 top-0 h-full w-16 lg:w-[250px] bg-[#103D2A] z-50 hidden md:flex flex-col justify-between py-5 border-r border-[#08291D] select-none">
+        <div className="flex flex-col gap-4">
           {/* Logo Brand Header */}
-          <Link to="/" className="px-3 lg:px-6 pb-2 flex items-center justify-center lg:justify-start gap-3 hover:opacity-95 transition-opacity" title="GreenLoop">
-            <img src="/logo.png" alt="GreenLoop" className="w-8 h-8 object-contain shrink-0 brightness-110" />
+          <Link to="/" className="px-3 lg:px-5 pb-2 flex items-center justify-center lg:justify-start gap-2.5 hover:opacity-95 transition-opacity" title="GreenLoop">
+            <img src="/logo.png" alt="GreenLoop" className="w-7 h-7 object-contain shrink-0 brightness-110" />
             <div className="hidden lg:flex flex-col">
-              <span className="font-heading font-bold text-[18px] text-white tracking-tight leading-none">
-                GREENLOOP
+              <span className="font-heading text-[17px] text-white tracking-tight leading-none">
+                GreenLoop
               </span>
-              <span className="font-sans text-[11px] text-[#8BA681] uppercase tracking-wider mt-1 font-semibold">
+              <span className="font-sans text-[10px] text-[#8BA681] tracking-wider mt-0.5 font-medium">
                 Kerala Circular Action
               </span>
             </div>
           </Link>
 
           {/* Nav Item Links */}
-          <nav className="flex flex-col gap-1 px-2 lg:px-3.5 overflow-y-auto max-h-[calc(100vh-160px)]">
+          <nav className="flex flex-col gap-0.5 px-2 lg:px-3 overflow-y-auto max-h-[calc(100vh-150px)]">
             {navLinks.map((item) => {
               const active = isLinkActive(item.path, item.exact);
               const Icon = item.icon;
@@ -182,14 +182,14 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                   key={item.path}
                   to={item.path}
                   title={item.label}
-                  className={`flex items-center justify-center lg:justify-start gap-3 px-3 py-2.5 rounded-xl font-sans text-[14px] transition-all duration-150 ${
+                  className={`flex items-center justify-center lg:justify-start gap-2.5 px-2.5 py-2 rounded-md font-sans text-[13px] transition-colors ${
                     active
-                      ? 'bg-[#315F3B] text-white font-semibold shadow-xs'
-                      : 'text-white/75 hover:bg-white/10 hover:text-white'
+                      ? 'bg-[#315F3B] text-white font-medium'
+                      : 'text-white/70 hover:bg-white/5 hover:text-white'
                   }`}
                 >
-                  <Icon className={`w-[18px] h-[18px] shrink-0 transition-colors ${active ? 'text-white' : 'text-white/80'}`} />
-                  <span className="hidden lg:inline truncate font-medium">{item.label}</span>
+                  <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-white' : 'text-white/70'}`} />
+                  <span className="hidden lg:inline truncate font-normal">{item.label}</span>
                 </Link>
               );
             })}
@@ -197,49 +197,49 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
         </div>
 
         {/* Bottom Profile / Auth Info */}
-        <div className="px-2 lg:px-3.5 pt-3 border-t border-white/10">
+        <div className="px-2 lg:px-3 pt-3 border-t border-white/10">
           {currentUser ? (
-            <div className="flex items-center justify-center lg:justify-between p-2 rounded-xl bg-white/5 border border-white/10">
-              <div className="flex items-center gap-2.5 overflow-hidden">
+            <div className="flex items-center justify-center lg:justify-between p-2 rounded-md bg-white/5 border border-white/10">
+              <div className="flex items-center gap-2 overflow-hidden">
                 {currentUser.avatar_url ? (
                   <img
                     src={currentUser.avatar_url}
                     alt={currentUser.full_name}
-                    className="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-white/20"
+                    className="w-7 h-7 rounded-full object-cover shrink-0 ring-1 ring-white/20"
                     title={currentUser.full_name}
                   />
                 ) : (
                   <div
-                    className="w-8 h-8 rounded-full bg-[#315F3B] text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm"
+                    className="w-7 h-7 rounded-full bg-[#315F3B] text-white font-medium text-xs flex items-center justify-center shrink-0"
                     title={currentUser.full_name}
                   >
                     {getInitial(currentUser.full_name)}
                   </div>
                 )}
                 <div className="hidden lg:flex flex-col truncate">
-                  <span className="text-xs font-semibold text-white truncate leading-tight">
+                  <span className="text-xs font-medium text-white truncate leading-tight">
                     {currentUser.full_name}
                   </span>
-                  <span className="text-[10px] text-[#8BA681] font-medium capitalize truncate">
-                    {currentUser.role} Participant
+                  <span className="text-[10px] text-[#8BA681] capitalize truncate">
+                    {currentUser.role}
                   </span>
                 </div>
               </div>
               <button
                 onClick={() => signOut()}
-                className="hidden lg:block p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                className="hidden lg:block p-1 text-white/50 hover:text-white hover:bg-white/10 rounded transition-colors"
                 title="Sign Out"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-3.5 h-3.5" />
               </button>
             </div>
           ) : (
             <Link
               to="/login"
               title="Sign In to GreenLoop"
-              className="flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-xl bg-[#315F3B] text-white text-xs font-semibold hover:bg-white/15 transition-all shadow-sm"
+              className="flex items-center justify-center gap-2 w-full py-2 px-3 rounded-md bg-[#315F3B] text-white text-xs font-medium hover:bg-white/15 transition-colors"
             >
-              <LogIn className="w-4 h-4 shrink-0 text-white" />
+              <LogIn className="w-3.5 h-3.5 shrink-0 text-white" />
               <span className="hidden lg:inline">Sign In</span>
             </Link>
           )}
@@ -328,41 +328,41 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
       )}
 
       {/* Main Content Area */}
-      <div className="md:pl-16 lg:pl-[270px] flex flex-col flex-1 min-w-0 w-full">
-        {/* Top Header (~68px high, warm ivory or white, subtle bottom border) */}
-        <header className="fixed top-0 left-0 md:left-16 lg:left-[270px] right-0 h-[68px] bg-white/95 backdrop-blur-md border-b border-[#E8E4DA] shadow-[0_1px_2px_rgba(0,0,0,0.03)] z-40 px-3 xs:px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-          {/* Left: Mobile Toggle + Geolocation Context Pill */}
-          <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-space-md min-w-0">
+      <div className="md:pl-16 lg:pl-[250px] flex flex-col flex-1 min-w-0 w-full">
+        {/* Top Header (~60px high, warm ivory background, clean hairline bottom border) */}
+        <header className="fixed top-0 left-0 md:left-16 lg:left-[250px] right-0 h-[60px] bg-[#F8F6EF]/95 backdrop-blur-md border-b border-[#E8E4DA] z-40 px-3 xs:px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+          {/* Left: Mobile Toggle + Geolocation Context */}
+          <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-3 min-w-0">
             <button
               onClick={() => toggleMenu('mobile')}
-              className="md:hidden p-1.5 xs:p-2 rounded-lg text-gl-charcoal-muted hover:bg-gl-cream shrink-0"
+              className="md:hidden p-1.5 rounded-md text-[#6F776F] hover:bg-[#EAE4D8]/50 shrink-0"
               aria-label="Open Navigation Menu"
             >
               <Menu className="w-5 h-5" />
             </button>
 
-            {/* Geolocation Selector Pill */}
+            {/* Geolocation Selector */}
             <div ref={locationRef} className="relative min-w-0">
               <button
                 onClick={() => toggleMenu('location')}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gl-cream hover:bg-gl-cream/80 text-gl-charcoal text-xs font-medium cursor-pointer transition-colors border border-gl-border max-w-full"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white hover:bg-[#FAF8F2] text-[#18251F] text-xs font-medium cursor-pointer transition-colors border border-[#E8E4DA] max-w-full"
                 title="Current Location"
                 aria-expanded={locationMenuOpen}
                 aria-haspopup="true"
               >
                 {geoLoading ? (
-                  <Loader2 className="w-3.5 h-3.5 text-gl-forest animate-spin shrink-0" />
+                  <Loader2 className="w-3.5 h-3.5 text-[#103D2A] animate-spin shrink-0" />
                 ) : (
-                  <Navigation className="w-3.5 h-3.5 text-gl-fresh shrink-0" />
+                  <MapPin className="w-3.5 h-3.5 text-[#103D2A] shrink-0" />
                 )}
-                <span className="truncate max-w-[95px] min-[360px]:max-w-[125px] xs:max-w-[150px] sm:max-w-xs text-[11px] sm:text-xs">
+                <span className="truncate max-w-[100px] min-[360px]:max-w-[140px] xs:max-w-[180px] sm:max-w-xs text-xs font-medium">
                   {geoLoading
                     ? 'Detecting Location...'
                     : (currentLocality
                         ? `${currentLocality}${currentDistrict && currentDistrict !== currentLocality ? `, ${currentDistrict}` : ''}`
-                        : (currentDistrict || (geoSource === 'approximate' ? (geoApproxDistrict ? `Near ${geoApproxDistrict}` : 'GPS Detected') : 'Select Location')))}
+                        : (currentDistrict || 'Select Location'))}
                 </span>
-                <ChevronDown className="w-3 h-3 text-gl-charcoal-muted shrink-0" />
+                <ChevronDown className="w-3 h-3 text-[#6F776F] shrink-0" />
               </button>
 
               {locationMenuOpen && (
@@ -508,14 +508,14 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
             <div ref={createRef} className="relative">
               <button
                 onClick={() => toggleMenu('create')}
-                className="inline-flex items-center gap-1.5 bg-[#103D2A] text-white px-3 sm:px-3.5 py-2 rounded-xl font-sans text-xs sm:text-[13px] font-semibold hover:bg-[#08291D] transition-all shadow-xs"
+                className="inline-flex items-center gap-1.5 bg-[#103D2A] text-white px-3 py-1.5 rounded-md font-sans text-xs font-medium hover:bg-[#08291D] transition-colors"
                 type="button"
                 aria-expanded={createMenuOpen}
                 aria-haspopup="true"
               >
-                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
-                <span className="hidden sm:inline">New Action</span>
-                <span className="hidden xs:inline sm:hidden">New</span>
+                <Plus className="w-3.5 h-3.5 text-white" />
+                <span className="hidden sm:inline">Add Listing</span>
+                <span className="hidden xs:inline sm:hidden">Add</span>
               </button>
 
               {createMenuOpen && (
@@ -735,7 +735,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
         </header>
 
         {/* Dynamic Route Content */}
-        <main className="w-full flex-1 min-w-0 max-w-full pt-20 sm:pt-24 pb-24 md:pb-12 px-3 xs:px-4 sm:px-6 lg:px-8">
+        <main className="w-full flex-1 min-w-0 max-w-full pt-16 sm:pt-20 pb-20 md:pb-12 px-4 sm:px-6 lg:px-8">
           {children}
         </main>
 

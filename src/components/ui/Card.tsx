@@ -14,16 +14,16 @@ export const Card: React.FC<CardProps> = ({
   ...props
 }) => {
   const variantStyles = {
-    elevated: 'bg-white border border-[#E8E4DA] shadow-[0_2px_8px_rgba(16,61,42,0.03)]',
+    elevated: 'bg-white border border-[#E8E4DA] shadow-subtle',
     flat: 'bg-white border border-[#E8E4DA]',
     low: 'bg-[#F8F6EF] border border-[#E8E4DA]',
   };
 
-  const hoverStyles = hoverEffect ? 'hover:shadow-card-hover hover:border-[#8BA681] transition-all duration-200' : '';
+  const hoverStyles = hoverEffect ? 'hover:border-[#8BA681] transition-colors' : '';
 
   return (
     <div
-      className={`rounded-[18px] p-5 sm:p-6 ${variantStyles[variant]} ${hoverStyles} ${className}`}
+      className={`rounded-lg p-4 sm:p-5 ${variantStyles[variant]} ${hoverStyles} ${className}`}
       {...props}
     >
       {children}

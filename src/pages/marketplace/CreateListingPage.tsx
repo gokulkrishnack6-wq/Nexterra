@@ -394,27 +394,28 @@ export const CreateListingPage: React.FC = () => {
 
       <div className="space-y-1">
         <div className="inline-flex items-center gap-1.5 mb-1">
-          <Badge variant="brand">New Listing</Badge>
+          <span className="text-[11px] font-medium text-[#103D2A] bg-[#E8EFE9] border border-[#C8D6C9] px-2 py-0.5 rounded-md">New Listing</span>
           {aiClassified && (
-            <Badge variant="active" icon={<Sparkles className="w-3 h-3" />}>
+            <span className="text-[11px] font-medium text-[#103D2A] bg-[#E8EFE9] border border-[#C8D6C9] px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-[#103D2A]" />
               Scanner Filled
-            </Badge>
+            </span>
           )}
         </div>
-        <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-gl-charcoal tracking-tight">
+        <h1 className="font-serif font-normal text-2xl sm:text-3xl text-[#103D2A] tracking-tight">
           Add a Listing
         </h1>
-        <p className="text-sm text-gl-charcoal-muted">
+        <p className="font-sans text-xs sm:text-sm text-[#5C6E66]">
           Share recyclable materials or reusable items with verified partners nearby.
         </p>
 
         {!currentUser && (
-          <div className="mt-2 p-3 bg-gl-sage-light/40 rounded-xl text-xs text-gl-charcoal flex items-center justify-between border border-gl-border">
+          <div className="mt-2 p-2.5 bg-[#F8F6EF] rounded-md text-xs text-[#5C6E66] flex items-center justify-between border border-[#E8E4DA]">
             <span>Listing as guest. Sign in to link this to your account and earn EcoPoints.</span>
             <Link
               to="/login"
               state={{ from: '/marketplace/new' }}
-              className="font-bold text-gl-forest underline hover:opacity-80 shrink-0 ml-2"
+              className="font-medium text-[#103D2A] underline hover:opacity-80 shrink-0 ml-2"
             >
               Sign In
             </Link>
@@ -422,17 +423,17 @@ export const CreateListingPage: React.FC = () => {
         )}
       </div>
 
-      <Card variant="elevated" className="p-6 sm:p-8 space-y-6 bg-white border border-gl-border rounded-2xl shadow-card">
-        <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="p-5 sm:p-7 space-y-5 bg-white border border-[#E8E4DA] rounded-lg shadow-subtle">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {error && (
-            <div className="p-3.5 bg-error-container text-on-error-container rounded-xl text-sm font-medium border border-error/20 flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-error" />
+            <div className="p-3 bg-rose-50 text-rose-800 rounded-md text-xs font-medium border border-rose-200 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
               <span>{error}</span>
             </div>
           )}
 
           {/* Material Name, Type & Category */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
             <Input
               label="Item Title *"
               required
@@ -792,7 +793,7 @@ export const CreateListingPage: React.FC = () => {
             </Button>
           </div>
         </form>
-      </Card>
+      </div>
     </div>
   );
 };

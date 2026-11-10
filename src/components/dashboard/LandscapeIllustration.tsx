@@ -134,3 +134,4 @@ export const LandscapeIllustration: React.FC<LandscapeIllustrationProps> = ({ cl
     </div>
   );
 };
+

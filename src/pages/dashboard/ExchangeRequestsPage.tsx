@@ -198,10 +198,10 @@ const WhatsAppActionButton: React.FC<WhatsAppActionButtonProps> = ({
         href={waUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center justify-center gap-2.5 px-5 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-xs sm:text-sm shadow-sm hover:shadow-md transition-all active:scale-95 w-full sm:w-auto"
+        className="inline-flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-md bg-[#25D366] hover:bg-[#20bd5a] text-white font-medium text-xs shadow-subtle transition-colors w-full sm:w-auto"
         title="Open WhatsApp chat with exchange partner"
       >
-        <MessageCircle className="w-4 h-4 fill-white shrink-0" />
+        <MessageCircle className="w-3.5 h-3.5 fill-white shrink-0" />
         <span>Message on WhatsApp</span>
       </a>
     );
@@ -321,35 +321,35 @@ export const ExchangeRequestsPage: React.FC = () => {
   const getStatusBadge = (status: ExchangeStatus) => {
     switch (status) {
       case 'pending':
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">Pending</span>;
+        return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-amber-50 text-amber-800 border border-amber-200">Pending</span>;
       case 'accepted':
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gl-sage-light text-gl-dark border border-gl-sage">Accepted</span>;
+        return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-[#E8EFE9] text-[#103D2A] border border-[#C8D6C9]">Accepted</span>;
       case 'completed':
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">Completed</span>;
+        return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-emerald-50 text-emerald-800 border border-emerald-200">Completed</span>;
       case 'rejected':
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-800 border border-rose-200">Declined</span>;
+        return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-rose-50 text-rose-800 border border-rose-200">Declined</span>;
       case 'cancelled':
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">Cancelled</span>;
+        return <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-100 text-gray-700 border border-gray-200">Cancelled</span>;
     }
   };
 
   const currentList = activeTab === 'incoming' ? incomingRequests : outgoingRequests;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 space-y-6 text-left">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 space-y-5 text-left">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E8E4DA] pb-5">
         <div>
-          <h1 className="font-heading font-bold text-2xl sm:text-3xl lg:text-[34px] text-[#18251F] tracking-tight">
+          <h1 className="font-serif font-normal text-2xl sm:text-3xl text-[#103D2A] tracking-tight">
             My Exchanges
           </h1>
-          <p className="font-sans text-sm text-[#6F776F] mt-1">
+          <p className="font-sans text-xs sm:text-sm text-[#5C6E66] mt-1">
             Coordinate pickups on WhatsApp and verify material handovers with secure completion codes.
           </p>
         </div>
 
         <Link to="/marketplace/new">
-          <Button variant="primary" size="md" icon={<Plus className="w-4 h-4" />} className="rounded-xl shadow-sm">
+          <Button variant="primary" size="sm" icon={<Plus className="w-3.5 h-3.5" />}>
             Add Listing
           </Button>
         </Link>
@@ -357,48 +357,47 @@ export const ExchangeRequestsPage: React.FC = () => {
 
       {/* Graceful WhatsApp Prompt for Existing Users without WhatsApp Number */}
       {currentUser && (!currentUser.whatsapp_number || !currentUser.whatsapp_number.trim()) && (
-        <div className="p-4 rounded-2xl bg-gl-sage-light/50 border border-gl-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+        <div className="p-3.5 rounded-lg bg-[#F8F6EF] border border-[#E8E4DA] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-subtle">
           <div className="flex items-start gap-2.5">
-            <MessageCircle className="w-5 h-5 text-[#25D366] shrink-0 mt-0.5 sm:mt-0" />
+            <MessageCircle className="w-4 h-4 text-[#25D366] shrink-0 mt-0.5 sm:mt-0" />
             <div>
-              <h4 className="font-heading font-semibold text-xs sm:text-sm text-gl-charcoal">
+              <h4 className="font-sans font-medium text-xs sm:text-sm text-[#1C2826]">
                 Add your WhatsApp number for easy pickup coordination
               </h4>
-              <p className="text-[11px] sm:text-xs text-gl-charcoal-muted mt-0.5">
+              <p className="text-xs text-[#5C6E66] mt-0.5">
                 Connecting your WhatsApp allows accepted exchange partners to contact you directly. Your number is never shown publicly.
               </p>
             </div>
           </div>
           <Button
             size="sm"
-            variant="primary"
+            variant="secondary"
             onClick={() => setShowProfileSettings(true)}
-            className="shrink-0 text-xs rounded-xl"
+            className="shrink-0 text-xs"
           >
             Add WhatsApp Number
           </Button>
         </div>
       )}
 
-
       {/* Segmented Tabs */}
-      <div className="inline-flex p-1 bg-gl-cream/80 border border-gl-border rounded-xl">
+      <div className="inline-flex p-0.5 bg-white border border-[#E8E4DA] rounded-md">
         <button
           onClick={() => setActiveTab('incoming')}
-          className={`px-4 py-2 text-xs sm:text-sm rounded-lg transition-all text-center ${
+          className={`px-3 py-1.5 text-xs rounded transition-colors text-center ${
             activeTab === 'incoming'
-              ? 'bg-gl-forest text-white font-semibold shadow-sm'
-              : 'text-gl-charcoal-muted hover:text-gl-charcoal'
+              ? 'bg-[#103D2A] text-white font-medium shadow-subtle'
+              : 'text-[#5C6E66] hover:text-[#1C2826]'
           }`}
         >
           Requests Received ({incomingRequests.length})
         </button>
         <button
           onClick={() => setActiveTab('outgoing')}
-          className={`px-4 py-2 text-xs sm:text-sm rounded-lg transition-all text-center ${
+          className={`px-3 py-1.5 text-xs rounded transition-colors text-center ${
             activeTab === 'outgoing'
-              ? 'bg-gl-forest text-white font-semibold shadow-sm'
-              : 'text-gl-charcoal-muted hover:text-gl-charcoal'
+              ? 'bg-[#103D2A] text-white font-medium shadow-subtle'
+              : 'text-[#5C6E66] hover:text-[#1C2826]'
           }`}
         >
           My Requests ({outgoingRequests.length})
@@ -406,10 +405,10 @@ export const ExchangeRequestsPage: React.FC = () => {
       </div>
 
       {/* Requests Pipeline */}
-      <div className="space-y-4">
+      <div className="space-y-3.5">
         {currentList.length === 0 ? (
           <EmptyState
-            icon={<Repeat className="w-6 h-6 text-gl-charcoal-muted" />}
+            icon={<Repeat className="w-6 h-6 text-[#7B8B83]" />}
             title={`No ${activeTab === 'incoming' ? 'incoming' : 'outgoing'} requests`}
             description={
               activeTab === 'incoming'
@@ -429,47 +428,46 @@ export const ExchangeRequestsPage: React.FC = () => {
             const otherParticipantId = getExchangePartnerId(req, currentUserId, listings);
 
             return (
-              <Card
+              <div
                 key={req.id}
-                variant="elevated"
-                className="p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-5 bg-white border border-gl-border rounded-2xl shadow-card hover:shadow-card-hover transition-all"
+                className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-[#E8E4DA] rounded-lg shadow-subtle hover:border-[#103D2A]/30 transition-all"
               >
-                <div className="space-y-2.5 flex-1">
+                <div className="space-y-2 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     {req.status !== 'accepted' && getStatusBadge(req.status)}
-                    <span className="text-xs text-gl-charcoal-muted font-medium">
+                    <span className="text-xs text-[#5C6E66]">
                       {new Date(req.created_at).toLocaleDateString()}
                     </span>
                   </div>
 
-                  <h3 className="font-heading font-bold text-lg text-gl-charcoal">
+                  <h3 className="font-sans font-medium text-base text-[#1C2826]">
                     {listing?.title || 'Material Batch'}
                   </h3>
 
-                  <div className="p-3.5 rounded-xl bg-gl-cream/50 text-xs text-gl-charcoal space-y-1.5 border border-gl-border">
-                    <div className="flex flex-wrap items-center gap-x-3 text-gl-charcoal">
+                  <div className="p-3 rounded-md bg-[#F8F6EF] text-xs text-[#1C2826] space-y-1 border border-[#E8E4DA]">
+                    <div className="flex flex-wrap items-center gap-x-3">
                       <span><strong>Quantity:</strong> {req.requested_quantity} {listing?.unit || 'units'}</span>
-                      <span className="text-gl-charcoal-muted">•</span>
+                      <span className="text-[#DCD6CB]">•</span>
                       <span><strong>Purpose:</strong> {req.proposed_action}</span>
                     </div>
                     {req.message && (
-                      <p className="text-gl-charcoal-muted text-xs italic">
+                      <p className="text-[#5C6E66] text-xs italic">
                         "{req.message}"
                       </p>
                     )}
                   </div>
 
-                  <div className="text-xs text-gl-charcoal-muted">
+                  <div className="text-xs text-[#5C6E66]">
                     {activeTab === 'incoming' ? (
-                      <span>Requester: <strong className="text-gl-charcoal">{req.requester?.full_name || 'Buyer'}</strong></span>
+                      <span>Requester: <strong className="text-[#1C2826] font-medium">{req.requester?.full_name || 'Buyer'}</strong></span>
                     ) : (
-                      <span>Owner: <strong className="text-gl-charcoal">{req.provider?.full_name || listing?.user?.full_name || 'Seller'}</strong></span>
+                      <span>Owner: <strong className="text-[#1C2826] font-medium">{req.provider?.full_name || listing?.user?.full_name || 'Seller'}</strong></span>
                     )}
                   </div>
 
                   {feedback && (
-                    <div className={`p-3 rounded-xl text-xs font-semibold ${
-                      feedback.success ? 'bg-gl-sage-light text-gl-dark border border-gl-sage' : 'bg-rose-50 text-rose-700 border border-rose-200'
+                    <div className={`p-2.5 rounded-md text-xs font-medium ${
+                      feedback.success ? 'bg-[#E8EFE9] text-[#103D2A] border border-[#C8D6C9]' : 'bg-rose-50 text-rose-700 border border-rose-200'
                     }`}>
                       {feedback.msg}
                     </div>
@@ -477,13 +475,13 @@ export const ExchangeRequestsPage: React.FC = () => {
                 </div>
 
                 {/* Actions & Verification */}
-                <div className="flex flex-col items-start md:items-end gap-3 shrink-0 border-t md:border-t-0 pt-3 md:pt-0">
+                <div className="flex flex-col items-start md:items-end gap-2.5 shrink-0 border-t md:border-t-0 pt-3 md:pt-0">
                   {/* Status: Pending */}
                   {req.status === 'pending' && (
                     <div className="flex flex-col items-start md:items-end gap-2">
-                      <div className="flex items-center gap-1.5 text-xs text-gl-charcoal-muted italic">
-                        <Clock className="w-3.5 h-3.5 text-gl-charcoal-muted" />
-                        <span>Waiting for owner approval</span>
+                      <div className="flex items-center gap-1.5 text-xs text-[#5C6E66]">
+                        <Clock className="w-3.5 h-3.5 text-[#7B8B83]" />
+                        <span>Waiting for approval</span>
                       </div>
 
                       {activeTab === 'incoming' && (
@@ -494,7 +492,6 @@ export const ExchangeRequestsPage: React.FC = () => {
                             onClick={() => handleAccept(req.id)}
                             disabled={isLoadingAction}
                             icon={<Check className="w-3.5 h-3.5" />}
-                            className="rounded-xl shadow-sm"
                           >
                             {isLoadingAction ? 'Processing...' : 'Accept'}
                           </Button>
@@ -503,7 +500,6 @@ export const ExchangeRequestsPage: React.FC = () => {
                             variant="danger"
                             onClick={() => handleReject(req.id)}
                             disabled={isLoadingAction}
-                            className="rounded-xl"
                           >
                             {isLoadingAction ? 'Processing...' : 'Decline'}
                           </Button>
@@ -516,7 +512,6 @@ export const ExchangeRequestsPage: React.FC = () => {
                           variant="outline"
                           onClick={() => handleCancel(req.id)}
                           disabled={isLoadingAction}
-                          className="rounded-xl"
                         >
                           {isLoadingAction ? 'Cancelling...' : 'Cancel Request'}
                         </Button>
@@ -526,7 +521,7 @@ export const ExchangeRequestsPage: React.FC = () => {
 
                   {/* Status: Accepted (Ready for Handover & WhatsApp Enabled) */}
                   {req.status === 'accepted' && (
-                    <div className="space-y-3 w-full md:w-auto flex flex-col items-start md:items-end">
+                    <div className="space-y-2.5 w-full md:w-auto flex flex-col items-start md:items-end">
                       {/* [ Accepted ] Status Badge */}
                       <div className="flex items-center gap-2">
                         {getStatusBadge(req.status)}
@@ -543,20 +538,20 @@ export const ExchangeRequestsPage: React.FC = () => {
 
                       {/* [ Pickup Verification Code ] */}
                       {activeTab === 'outgoing' ? (
-                        <div className="p-3.5 bg-gl-sage-light/70 rounded-xl text-center space-y-1 border border-gl-sage w-full sm:w-auto">
-                          <span className="text-[10px] text-gl-dark uppercase tracking-wider block font-bold">
+                        <div className="p-3 bg-[#E8EFE9] rounded-md text-center space-y-0.5 border border-[#C8D6C9] w-full sm:w-auto">
+                          <span className="text-[10px] text-[#103D2A] uppercase tracking-wider block font-medium">
                             Pickup Verification Code
                           </span>
-                          <span className="font-heading font-extrabold text-2xl text-gl-forest tracking-widest block font-mono">
+                          <span className="font-mono font-bold text-xl text-[#103D2A] tracking-widest block">
                             {req.completion_code}
                           </span>
-                          <span className="text-[11px] text-gl-charcoal-muted block">
-                            Share this code with the owner at pickup to confirm handover.
+                          <span className="text-[11px] text-[#5C6E66] block">
+                            Share this code at pickup to confirm handover.
                           </span>
                         </div>
                       ) : (
-                        <div className="space-y-2 w-full sm:w-auto">
-                          <span className="text-xs text-gl-charcoal-muted block font-medium">
+                        <div className="space-y-1.5 w-full sm:w-auto">
+                          <span className="text-xs text-[#5C6E66] block font-normal">
                             Enter pickup code from buyer:
                           </span>
                           <div className="flex items-center gap-2">
@@ -566,14 +561,13 @@ export const ExchangeRequestsPage: React.FC = () => {
                               placeholder="Code"
                               value={codeInput[req.id] || ''}
                               onChange={(e) => setCodeInput({ ...codeInput, [req.id]: e.target.value })}
-                              className="w-28 px-3 py-1.5 bg-white border border-gl-border rounded-xl text-center font-mono font-bold tracking-widest text-gl-forest focus:outline-none focus:border-gl-forest focus:ring-2 focus:ring-gl-forest/20 text-sm shadow-2xs"
+                              className="w-28 px-2.5 py-1.5 bg-white border border-[#DCD6CB] rounded-md text-center font-mono font-bold tracking-widest text-[#103D2A] focus:outline-none focus:border-[#103D2A] focus:ring-1 focus:ring-[#103D2A]/20 text-xs shadow-subtle"
                             />
                             <Button
                               size="sm"
                               variant="primary"
                               onClick={() => handleConfirmHandover(req.id)}
                               disabled={isLoadingAction}
-                              className="rounded-xl shadow-sm"
                             >
                               Verify & Complete
                             </Button>
@@ -585,12 +579,12 @@ export const ExchangeRequestsPage: React.FC = () => {
 
                   {/* Status: Completed */}
                   {req.status === 'completed' && (
-                    <div className="flex items-center gap-1.5 text-gl-forest font-semibold text-xs bg-gl-sage-light border border-gl-sage px-3 py-1.5 rounded-full">
-                      <CheckCircle2 className="w-4 h-4 text-gl-fresh" /> Handover Completed
+                    <div className="flex items-center gap-1.5 text-[#103D2A] font-medium text-xs bg-[#E8EFE9] border border-[#C8D6C9] px-2.5 py-1 rounded-md">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" /> Handover Completed
                     </div>
                   )}
                 </div>
-              </Card>
+              </div>
             );
           })
         )}

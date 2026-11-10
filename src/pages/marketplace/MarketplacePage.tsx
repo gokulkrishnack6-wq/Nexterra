@@ -239,23 +239,23 @@ export const MarketplacePage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E8E4DA] pb-5">
         <div>
-          <h1 className="font-heading font-bold text-2xl sm:text-3xl lg:text-[34px] text-[#18251F] tracking-tight">
+          <h1 className="font-serif font-normal text-2xl sm:text-3xl text-[#103D2A] tracking-tight">
             Waste Marketplace
           </h1>
-          <p className="font-sans text-sm text-[#6F776F] mt-1">
-            Browse recyclable and reusable materials available across Kerala.
+          <p className="font-sans text-xs sm:text-sm text-[#5C6E66] mt-1">
+            Browse recyclable and reusable secondary materials available across Kerala.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           {/* View Mode Toggle: Grid vs Map */}
-          <div className="inline-flex p-1 bg-[#F8F6EF] rounded-xl border border-[#E8E4DA]">
+          <div className="inline-flex p-0.5 bg-[#F8F6EF] rounded-md border border-[#E8E4DA]">
             <button
               onClick={() => setViewMode('grid')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
                 viewMode === 'grid'
-                  ? 'bg-white text-[#103D2A] shadow-xs'
-                  : 'text-[#6F776F] hover:text-[#18251F]'
+                  ? 'bg-white text-[#103D2A] shadow-subtle'
+                  : 'text-[#5C6E66] hover:text-[#1C2826]'
               }`}
               title="Grid View"
             >
@@ -264,10 +264,10 @@ export const MarketplacePage: React.FC = () => {
             </button>
             <button
               onClick={() => setViewMode('map')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
                 viewMode === 'map'
-                  ? 'bg-white text-[#103D2A] shadow-xs'
-                  : 'text-[#6F776F] hover:text-[#18251F]'
+                  ? 'bg-white text-[#103D2A] shadow-subtle'
+                  : 'text-[#5C6E66] hover:text-[#1C2826]'
               }`}
               title="Map View"
             >
@@ -277,15 +277,15 @@ export const MarketplacePage: React.FC = () => {
           </div>
 
           <Link to="/smart-match" className="flex-1 sm:flex-initial">
-            <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-[#F8F6EF] text-[#18251F] border border-[#E8E4DA] rounded-xl text-sm font-semibold shadow-xs transition-all active:scale-[0.98]">
-              <Sparkles className="w-4 h-4 text-[#315F3B]" />
+            <button className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white hover:bg-[#F8F6EF] text-[#1C2826] border border-[#E8E4DA] rounded-md text-xs font-medium shadow-subtle transition-colors">
+              <Sparkles className="w-3.5 h-3.5 text-[#103D2A]" />
               <span>Smart Matches</span>
             </button>
           </Link>
 
           <Link to="/marketplace/new" className="flex-1 sm:flex-initial">
-            <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#103D2A] hover:bg-[#08291D] text-white rounded-xl text-sm font-semibold shadow-xs transition-all active:scale-[0.98]">
-              <Plus className="w-4 h-4 text-white" />
+            <button className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 bg-[#103D2A] hover:bg-[#0A261A] text-white rounded-md text-xs font-medium shadow-subtle transition-colors">
+              <Plus className="w-3.5 h-3.5 text-white" />
               <span>Add Listing</span>
             </button>
           </Link>
@@ -294,11 +294,11 @@ export const MarketplacePage: React.FC = () => {
 
       {/* Sync Error Alert Banner */}
       {dataError && (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-center justify-between">
+        <div className="p-3 bg-red-50 border border-red-200 rounded-md text-xs text-red-700 flex items-center justify-between">
           <span>{dataError}</span>
           <button
             onClick={() => refreshData()}
-            className="underline font-semibold ml-2 hover:opacity-80 shrink-0"
+            className="underline font-medium ml-2 hover:opacity-80 shrink-0"
           >
             Retry
           </button>
@@ -306,13 +306,13 @@ export const MarketplacePage: React.FC = () => {
       )}
 
       {/* Filter Toolbar */}
-      <div className="bg-white border border-gl-border rounded-2xl p-4 sm:p-5 shadow-card space-y-4">
+      <div className="bg-white border border-[#E8E4DA] rounded-lg p-3.5 sm:p-4 shadow-subtle space-y-3">
         {/* Row 1: Location Filter */}
-        <div className="p-3 bg-gl-cream/60 rounded-xl border border-gl-border/70 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+        <div className="p-2.5 bg-[#F8F6EF] rounded-md border border-[#E8E4DA] flex flex-col md:flex-row md:items-center justify-between gap-2.5 text-xs">
           <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-2">
-            <div className="flex items-center gap-1.5 text-gl-forest font-semibold shrink-0">
-              <MapPin className="w-4 h-4 text-gl-forest" />
-              <span className="font-sans">Location:</span>
+            <div className="flex items-center gap-1.5 text-[#103D2A] font-medium shrink-0">
+              <MapPin className="w-3.5 h-3.5 text-[#103D2A]" />
+              <span className="font-sans">Reference:</span>
             </div>
 
             <div className="flex-1 max-w-sm">
@@ -326,17 +326,17 @@ export const MarketplacePage: React.FC = () => {
             <button
               onClick={handleUseGps}
               disabled={isDetectingGps}
-              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white hover:bg-gl-cream border border-gl-border text-gl-charcoal rounded-xl text-xs font-semibold transition-colors shrink-0 disabled:opacity-50 shadow-xs"
+              className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-white hover:bg-[#F8F6EF] border border-[#DCD6CB] text-[#1C2826] rounded-md text-xs font-medium transition-colors shrink-0 disabled:opacity-50"
               title="Use current location"
             >
-              <Navigation className={`w-3.5 h-3.5 text-gl-forest ${isDetectingGps ? 'animate-spin' : ''}`} />
-              <span>{isDetectingGps ? 'Locating...' : 'Use current location'}</span>
+              <Navigation className={`w-3.5 h-3.5 text-[#103D2A] ${isDetectingGps ? 'animate-spin' : ''}`} />
+              <span>{isDetectingGps ? 'Locating...' : 'Use current GPS'}</span>
             </button>
           </div>
 
           <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-gl-sage-light text-gl-forest rounded-full text-xs font-semibold border border-gl-sage/40">
-              <CheckCircle2 className="w-3.5 h-3.5 text-gl-fresh" />
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#E8EFE9] text-[#103D2A] rounded-md text-xs font-medium border border-[#C8D6C9]">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
               <span>Near: {activeReferenceLabel}</span>
               {customRefLocation && (
                 <button
@@ -352,29 +352,29 @@ export const MarketplacePage: React.FC = () => {
         </div>
 
         {gpsNotice && (
-          <div className="text-xs text-amber-900 bg-amber-50 p-2.5 rounded-xl border border-amber-200">
+          <div className="text-xs text-amber-900 bg-amber-50 p-2.5 rounded-md border border-amber-200">
             {gpsNotice}
           </div>
         )}
 
         {/* Row 2: Standard Filtering & Sorting */}
-        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 text-xs">
           {/* Keyword Search */}
           <div className="sm:col-span-3 relative">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-gl-charcoal-muted" />
+            <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#7B8B83]" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search materials (e.g. bottles, cartons)..."
-              className="w-full pl-9 pr-8 py-2.5 bg-white border border-gl-border hover:border-gl-sage focus:border-gl-forest focus:ring-2 focus:ring-gl-forest/20 rounded-xl text-xs text-gl-charcoal focus:outline-none transition-all placeholder:text-gl-charcoal-muted"
+              placeholder="Search materials (e.g. cartons, glass)..."
+              className="w-full pl-8 pr-7 py-1.5 bg-white border border-[#DCD6CB] focus:border-[#103D2A] focus:ring-1 focus:ring-[#103D2A]/20 rounded-md text-xs text-[#1C2826] focus:outline-none transition-all placeholder:text-[#7B8B83]"
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm('')}
-                className="absolute right-2.5 top-2.5 text-gl-charcoal-muted hover:text-gl-charcoal"
+                className="absolute right-2.5 top-2 text-[#7B8B83] hover:text-[#1C2826]"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-3 h-3" />
               </button>
             )}
           </div>
@@ -384,7 +384,7 @@ export const MarketplacePage: React.FC = () => {
             <select
               value={selectedDistrict}
               onChange={(e) => setSelectedDistrict(e.target.value)}
-              className="w-full px-3 py-2.5 bg-white border border-gl-border hover:border-gl-sage focus:border-gl-forest focus:ring-2 focus:ring-gl-forest/20 rounded-xl text-xs text-gl-charcoal focus:outline-none transition-all"
+              className="w-full px-2.5 py-1.5 bg-white border border-[#DCD6CB] focus:border-[#103D2A] focus:ring-1 focus:ring-[#103D2A]/20 rounded-md text-xs text-[#1C2826] focus:outline-none transition-all"
             >
               <option value="All Kerala">All Kerala</option>
               {keralaDistricts.map((d) => (
@@ -400,10 +400,10 @@ export const MarketplacePage: React.FC = () => {
             <select
               value={selectedRadius}
               onChange={(e) => setSelectedRadius(e.target.value)}
-              className="w-full px-3 py-2.5 bg-white border border-gl-border hover:border-gl-sage focus:border-gl-forest focus:ring-2 focus:ring-gl-forest/20 rounded-xl text-xs text-gl-charcoal focus:outline-none transition-all"
+              className="w-full px-2.5 py-1.5 bg-white border border-[#DCD6CB] focus:border-[#103D2A] focus:ring-1 focus:ring-[#103D2A]/20 rounded-md text-xs text-[#1C2826] focus:outline-none transition-all"
               title="Search radius"
             >
-              <option value="all">All Kerala</option>
+              <option value="all">Any Distance</option>
               <option value="5">Within 5 km</option>
               <option value="10">Within 10 km</option>
               <option value="25">Within 25 km</option>
@@ -416,10 +416,10 @@ export const MarketplacePage: React.FC = () => {
             <select
               value={selectedPricing}
               onChange={(e) => setSelectedPricing(e.target.value)}
-              className="w-full px-3 py-2.5 bg-white border border-gl-border hover:border-gl-sage focus:border-gl-forest focus:ring-2 focus:ring-gl-forest/20 rounded-xl text-xs text-gl-charcoal focus:outline-none transition-all"
+              className="w-full px-2.5 py-1.5 bg-white border border-[#DCD6CB] focus:border-[#103D2A] focus:ring-1 focus:ring-[#103D2A]/20 rounded-md text-xs text-[#1C2826] focus:outline-none transition-all"
             >
               <option value="all">All Types</option>
-              <option value="free">Free Only</option>
+              <option value="free">Free</option>
               <option value="exchange">Exchange</option>
               <option value="sale">For Sale</option>
             </select>
@@ -430,7 +430,7 @@ export const MarketplacePage: React.FC = () => {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="w-full px-3 py-2.5 bg-white border border-gl-border hover:border-gl-sage focus:border-gl-forest focus:ring-2 focus:ring-gl-forest/20 rounded-xl text-xs text-gl-charcoal focus:outline-none transition-all"
+              className="w-full px-2.5 py-1.5 bg-white border border-[#DCD6CB] focus:border-[#103D2A] focus:ring-1 focus:ring-[#103D2A]/20 rounded-md text-xs text-[#1C2826] focus:outline-none transition-all"
             >
               <option value="nearest">Nearest First</option>
               <option value="newest">Newest First</option>
@@ -440,16 +440,16 @@ export const MarketplacePage: React.FC = () => {
         </div>
 
         {/* Category Horizontal Scrolling Chips */}
-        <div className="pt-2 border-t border-gl-border/70 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <div className="pt-2 border-t border-[#E8E4DA] flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
           <button
             onClick={() => handleCategoryChange('all')}
-            className={`px-3.5 py-1.5 rounded-full text-xs whitespace-nowrap transition-all font-semibold ${
+            className={`px-2.5 py-1 rounded-md text-xs whitespace-nowrap transition-colors font-medium ${
               selectedCategory === 'all'
-                ? 'bg-gl-forest text-white shadow-xs'
-                : 'bg-gl-cream hover:bg-gl-cream/80 text-gl-charcoal border border-gl-border'
+                ? 'bg-[#103D2A] text-white shadow-subtle'
+                : 'bg-white hover:bg-[#F8F6EF] text-[#5C6E66] border border-[#E8E4DA]'
             }`}
           >
-            All Categories ({sourceListings.length})
+            All Materials ({sourceListings.length})
           </button>
 
           {categories.map((cat) => {
@@ -466,10 +466,10 @@ export const MarketplacePage: React.FC = () => {
               <button
                 key={cat.id}
                 onClick={() => handleCategoryChange(cat.slug)}
-                className={`px-3.5 py-1.5 rounded-full text-xs whitespace-nowrap transition-all ${
+                className={`px-2.5 py-1 rounded-md text-xs whitespace-nowrap transition-colors font-medium ${
                   isSelected
-                    ? 'bg-gl-forest text-white font-semibold shadow-xs'
-                    : 'bg-gl-cream hover:bg-gl-cream/80 text-gl-charcoal border border-gl-border font-medium'
+                    ? 'bg-[#103D2A] text-white shadow-subtle'
+                    : 'bg-white hover:bg-[#F8F6EF] text-[#5C6E66] border border-[#E8E4DA]'
                 }`}
               >
                 {cat.name} ({count})

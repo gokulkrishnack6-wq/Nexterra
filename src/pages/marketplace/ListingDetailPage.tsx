@@ -209,38 +209,38 @@ export const ListingDetailPage: React.FC = () => {
   const ownerInitial = ownerName.trim().charAt(0).toUpperCase();
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 space-y-6 text-left">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 space-y-5 text-left">
       {/* Top Breadcrumb */}
-      <div className="flex items-center justify-between border-b border-gl-border/70 pb-4">
+      <div className="flex items-center justify-between border-b border-[#E8E4DA] pb-4">
         <button
           onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-1.5 text-xs text-gl-charcoal-muted hover:text-gl-forest font-semibold transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs text-[#5C6E66] hover:text-[#103D2A] font-medium transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back to Marketplace</span>
         </button>
 
         <button
           onClick={() => toggleFavourite(listing.id)}
-          className={`px-3.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs ${
+          className={`px-3 py-1.5 rounded-md border text-xs font-medium flex items-center gap-1.5 transition-colors shadow-subtle ${
             isFav 
-              ? 'bg-white text-red-500 border-red-200' 
-              : 'bg-white text-gl-charcoal-muted border-gl-border hover:text-gl-charcoal'
+              ? 'bg-white text-red-600 border-red-200' 
+              : 'bg-white text-[#5C6E66] border-[#DCD6CB] hover:text-[#1C2826]'
           }`}
         >
-          <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-red-500 text-red-500' : ''}`} />
+          <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-red-600 text-red-600' : ''}`} />
           <span>{isFav ? 'Saved' : 'Save Material'}</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Col (7 cols): Images & Description */}
-        <div className="lg:col-span-7 space-y-6">
+        <div className="lg:col-span-7 space-y-5">
           {listing.status === 'reserved' && (
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 text-xs text-amber-950 shadow-xs">
-              <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div className="bg-amber-50/80 border border-amber-200 rounded-lg p-3.5 flex items-start gap-3 text-xs text-amber-950">
+              <Clock className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
               <div>
-                <h4 className="font-heading font-bold text-sm text-amber-900">Exchange in Progress</h4>
+                <h4 className="font-sans font-medium text-xs text-amber-900">Exchange in Progress</h4>
                 <p className="mt-0.5 text-amber-800 leading-relaxed">
                   This material batch has an accepted exchange request and is currently reserved for pickup. It remains visible in the marketplace until handover verification is completed.
                 </p>
@@ -249,91 +249,91 @@ export const ListingDetailPage: React.FC = () => {
           )}
 
           {listing.is_demo && (
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3.5 flex items-center gap-2.5 text-xs text-amber-900">
-              <span className="font-bold uppercase tracking-wider text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">Sample</span>
-              <span>This is a sample listing to demonstrate how materials are shared on GreenLoop.</span>
+            <div className="bg-[#F8F6EF] border border-[#E8E4DA] rounded-lg p-3 flex items-center gap-2 text-xs text-[#5C6E66]">
+              <span className="font-medium text-[11px] bg-[#E8EFE9] text-[#103D2A] px-2 py-0.5 rounded-md">Sample</span>
+              <span>Demonstration listing illustrating material lifecycle on GreenLoop.</span>
             </div>
           )}
 
-          <div className="bg-white rounded-2xl border border-gl-border overflow-hidden shadow-card">
-            <div className="aspect-[16/10] w-full bg-gl-cream overflow-hidden relative">
+          <div className="bg-white rounded-lg border border-[#E8E4DA] overflow-hidden shadow-subtle">
+            <div className="aspect-[16/10] w-full bg-[#F4F1EA] overflow-hidden relative">
               <img
                 src={images[0]}
                 alt={listing.title}
                 className="w-full h-full object-cover"
               />
               <div className="absolute top-3 left-3 flex gap-2 flex-wrap">
-                <span className="text-xs text-gl-forest font-bold bg-white/95 backdrop-blur-xs px-3 py-1 rounded-full shadow-xs border border-gl-border/70">
+                <span className="text-xs text-[#103D2A] font-medium bg-white/95 px-2.5 py-1 rounded-md shadow-subtle border border-[#E8E4DA]">
                   {listing.listing_type === 'free' ? 'Free' : listing.listing_type === 'exchange' ? 'Exchange' : `₹${listing.price}`}
                 </span>
                 {listing.is_demo && (
-                  <span className="text-xs font-bold text-amber-900 bg-amber-50/95 border border-amber-200 px-2.5 py-1 rounded-full shadow-xs">
+                  <span className="text-xs font-medium text-[#5C6E66] bg-white/95 border border-[#E8E4DA] px-2.5 py-1 rounded-md shadow-subtle">
                     Sample Stream
                   </span>
                 )}
               </div>
             </div>
 
-            <div className="p-6 sm:p-7 space-y-5">
+            <div className="p-5 sm:p-6 space-y-4">
               <div>
-                <span className="text-[11px] text-gl-forest uppercase tracking-wider block font-semibold bg-gl-sage-light px-2.5 py-0.5 rounded-full w-fit">
+                <span className="text-[11px] text-[#103D2A] font-medium bg-[#E8EFE9] px-2 py-0.5 rounded-md w-fit inline-block">
                   {category?.name || 'Recyclable Material'}
                 </span>
-                <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-gl-charcoal tracking-tight mt-2">
+                <h1 className="font-serif font-normal text-2xl sm:text-3xl text-[#103D2A] tracking-tight mt-2">
                   {listing.title}
                 </h1>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-gl-charcoal-muted font-body text-xs mt-2.5">
-                  <span className="flex items-center gap-1 font-semibold text-gl-forest">
-                    <MapPin className="w-3.5 h-3.5 text-gl-forest" />
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[#5C6E66] font-sans text-xs mt-2">
+                  <span className="flex items-center gap-1 font-medium text-[#103D2A]">
+                    <MapPin className="w-3.5 h-3.5 text-[#103D2A]" />
                     {distanceKm !== null ? `${distanceKm} km • ` : ''}
                     {listing.locality ? `${listing.locality}, ` : ''}{listing.district}
                   </span>
                   <span>•</span>
-                  <span className="flex items-center gap-1 text-gl-charcoal-muted">
-                    <Calendar className="w-3.5 h-3.5" /> Listed on {new Date(listing.created_at).toLocaleDateString()}
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5 text-[#7B8B83]" /> Listed on {new Date(listing.created_at).toLocaleDateString()}
                   </span>
                 </div>
               </div>
 
               {/* Material Specs */}
-              <div className="grid grid-cols-1 xs:grid-cols-3 gap-3 p-4 bg-gl-cream/60 rounded-xl border border-gl-border/70">
+              <div className="grid grid-cols-1 xs:grid-cols-3 gap-3 p-3.5 bg-[#F8F6EF] rounded-lg border border-[#E8E4DA]">
                 <div>
-                  <span className="text-xs text-gl-charcoal-muted block font-medium">Quantity</span>
-                  <span className="font-heading font-bold text-base text-gl-forest">{listing.quantity} {listing.unit}</span>
+                  <span className="text-xs text-[#5C6E66] block font-normal">Quantity</span>
+                  <span className="font-sans font-medium text-sm text-[#103D2A]">{listing.quantity} {listing.unit}</span>
                 </div>
                 <div>
-                  <span className="text-xs text-gl-charcoal-muted block font-medium">Condition</span>
-                  <span className="font-heading font-semibold text-base text-gl-charcoal capitalize">{listing.condition}</span>
+                  <span className="text-xs text-[#5C6E66] block font-normal">Condition</span>
+                  <span className="font-sans font-medium text-sm text-[#1C2826] capitalize">{listing.condition}</span>
                 </div>
                 <div>
-                  <span className="text-xs text-gl-charcoal-muted block font-medium">Listing Type</span>
-                  <span className="font-heading font-semibold text-base text-gl-charcoal capitalize">
+                  <span className="text-xs text-[#5C6E66] block font-normal">Listing Type</span>
+                  <span className="font-sans font-medium text-sm text-[#1C2826] capitalize">
                     {listing.listing_type === 'free' ? 'Free' : listing.listing_type === 'exchange' ? 'Exchange' : 'For Sale'}
                   </span>
                 </div>
               </div>
 
               <div>
-                <h3 className="font-heading font-bold text-base text-gl-charcoal mb-1.5">
+                <h3 className="font-sans font-medium text-sm text-[#1C2826] mb-1">
                   Material Details
                 </h3>
-                <p className="font-body text-sm text-gl-charcoal-muted leading-relaxed">
+                <p className="font-sans text-xs text-[#5C6E66] leading-relaxed">
                   {listing.description}
                 </p>
               </div>
 
               {/* Circular Guidance if present */}
               {listing.suggested_action && (
-                <div className="p-4 rounded-xl bg-gl-sage-light/60 border border-gl-sage/50 flex items-start gap-3">
-                  <div className="p-2 rounded-xl bg-white text-gl-forest mt-0.5 shadow-xs">
-                    <Sparkles className="w-4 h-4 text-gl-fresh" />
+                <div className="p-3.5 rounded-lg bg-[#E8EFE9] border border-[#C8D6C9] flex items-start gap-3">
+                  <div className="p-1.5 rounded-md bg-white text-[#103D2A] mt-0.5 shadow-subtle">
+                    <Sparkles className="w-3.5 h-3.5 text-[#103D2A]" />
                   </div>
                   <div>
-                    <span className="font-heading font-semibold text-sm text-gl-forest block">
-                      Smart Circular Suggestion
+                    <span className="font-sans font-medium text-xs text-[#103D2A] block">
+                      Circular Action
                     </span>
-                    <p className="font-body text-xs text-gl-charcoal-muted mt-0.5">
-                      Suggested Action: <strong className="capitalize text-gl-charcoal">{listing.suggested_action.replace('_', ' ')}</strong>
+                    <p className="font-sans text-xs text-[#5C6E66] mt-0.5">
+                      Suggested: <strong className="capitalize text-[#1C2826] font-medium">{listing.suggested_action.replace('_', ' ')}</strong>
                       {listing.ai_confidence ? ` • Confidence ${Math.round(listing.ai_confidence * 100)}%` : ''}
                     </p>
                   </div>
@@ -347,74 +347,74 @@ export const ListingDetailPage: React.FC = () => {
         <div className="lg:col-span-5 space-y-4">
           
           {/* Generator Info */}
-          <div className="bg-white rounded-2xl border border-gl-border shadow-card p-5 space-y-3">
+          <div className="bg-white rounded-lg border border-[#E8E4DA] shadow-subtle p-4 space-y-3">
             <div className="flex items-center gap-3">
               {listing.user?.avatar_url ? (
                 <img
                   src={listing.user.avatar_url}
                   alt={ownerName}
-                  className="w-12 h-12 rounded-full object-cover ring-1 ring-gl-border"
+                  className="w-10 h-10 rounded-md object-cover ring-1 ring-[#E8E4DA]"
                 />
               ) : (
-                <div className="w-12 h-12 rounded-full bg-gl-forest text-white font-bold text-base flex items-center justify-center shadow-xs">
+                <div className="w-10 h-10 rounded-md bg-[#103D2A] text-white font-medium text-sm flex items-center justify-center">
                   {ownerInitial}
                 </div>
               )}
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="font-heading font-bold text-base text-gl-charcoal">
+                  <span className="font-sans font-medium text-sm text-[#1C2826]">
                     {ownerName}
                   </span>
-                  <ShieldCheck className="w-4 h-4 text-gl-fresh" />
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
                 </div>
-                <span className="text-xs text-gl-charcoal-muted block capitalize font-medium">
+                <span className="text-xs text-[#5C6E66] block capitalize">
                   {listing.user?.role || 'Community Member'} • {listing.district}
                 </span>
               </div>
             </div>
 
-            <div className="pt-3 border-t border-gl-border/70 flex items-center justify-between text-xs text-gl-charcoal-muted">
+            <div className="pt-2.5 border-t border-[#E8E4DA] flex items-center justify-between text-xs text-[#5C6E66]">
               <span>Location:</span>
-              <span className="font-semibold text-gl-forest">{listing.locality ? `${listing.locality}, ` : ''}{listing.district}</span>
+              <span className="font-medium text-[#103D2A]">{listing.locality ? `${listing.locality}, ` : ''}{listing.district}</span>
             </div>
           </div>
 
           {/* Request Form or Owner Controls */}
           {isOwner ? (
-            <Card variant="flat" className="space-y-4 p-4 border border-outline-variant/60">
+            <div className="bg-white rounded-lg border border-[#E8E4DA] shadow-subtle p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="font-label-sm text-xs text-outline uppercase tracking-wider font-semibold">
+                <span className="text-xs text-[#5C6E66] font-medium">
                   Your Listing
                 </span>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-semibold">
+                <span className="px-2 py-0.5 rounded-md bg-[#E8EFE9] text-[#103D2A] text-xs font-medium">
                   Active
                 </span>
               </div>
-              <p className="font-body-sm text-xs text-on-surface-variant leading-relaxed">
+              <p className="text-xs text-[#5C6E66] leading-relaxed">
                 You created this listing. Requests from people nearby will appear here and in your exchanges page.
               </p>
 
               {/* Incoming proposals quick access */}
               {incomingRequests.length > 0 && (
-                <div className="p-3 bg-surface-container rounded-lg space-y-2 border border-outline-variant/50">
+                <div className="p-3 bg-[#F8F6EF] rounded-md space-y-2 border border-[#E8E4DA]">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-primary">
+                    <span className="text-xs font-medium text-[#103D2A]">
                       {incomingRequests.length} Request{incomingRequests.length > 1 ? 's' : ''} Received
                     </span>
-                    <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-1">
+                    <span className="text-[11px] text-emerald-700 font-medium flex items-center gap-1">
                       <MessageCircle className="w-3 h-3 text-[#25D366]" />
                       WhatsApp
                     </span>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     {incomingRequests.slice(0, 3).map((req) => (
-                      <div key={req.id} className="flex items-center justify-between gap-2 text-xs bg-surface-container-lowest p-2 rounded-lg border border-outline-variant/40">
+                      <div key={req.id} className="flex items-center justify-between gap-2 text-xs bg-white p-2 rounded-md border border-[#E8E4DA]">
                         <div className="min-w-0 pr-2">
-                          <p className="font-semibold text-on-surface truncate">
+                          <p className="font-medium text-[#1C2826] truncate">
                             {req.requester?.full_name || 'Buyer'}
                           </p>
-                          <p className="text-[10px] text-on-surface-variant">
-                            {req.requested_quantity} {listing.unit} • <span className="capitalize font-medium">{req.status}</span>
+                          <p className="text-[11px] text-[#5C6E66]">
+                            {req.requested_quantity} {listing.unit} • <span className="capitalize">{req.status}</span>
                           </p>
                         </div>
                         <Button
@@ -472,7 +472,7 @@ export const ListingDetailPage: React.FC = () => {
                         setIsRegeneratingImage(false);
                       }
                     }}
-                    icon={<Sparkles className={`w-4 h-4 text-secondary ${isRegeneratingImage ? 'animate-spin' : ''}`} />}
+                    icon={<Sparkles className={`w-3.5 h-3.5 text-[#103D2A] ${isRegeneratingImage ? 'animate-spin' : ''}`} />}
                   >
                     {isRegeneratingImage ? 'Regenerating Photo...' : 'Regenerate Photo'}
                   </Button>
@@ -480,6 +480,7 @@ export const ListingDetailPage: React.FC = () => {
 
                 <Button
                   variant="secondary"
+                  size="sm"
                   fullWidth
                   onClick={() => navigate('/exchanges')}
                 >
@@ -497,25 +498,25 @@ export const ListingDetailPage: React.FC = () => {
                       }
                     }
                   }}
-                  className="w-full py-2 px-3 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 text-xs font-semibold transition-colors"
+                  className="w-full py-1.5 px-3 rounded-md border border-red-200 text-red-600 hover:bg-red-50 text-xs font-medium transition-colors"
                 >
                   Delete Listing
                 </button>
               </div>
-            </Card>
+            </div>
           ) : (
-            <Card variant="elevated" className="space-y-4 p-5">
-              <h3 className="font-heading font-semibold text-base text-primary">
+            <div className="bg-white rounded-lg border border-[#E8E4DA] shadow-subtle p-4 sm:p-5 space-y-3.5">
+              <h3 className="font-sans font-medium text-sm text-[#103D2A]">
                 Request this Item
               </h3>
 
               {!currentUser && (
-                <div className="p-3 bg-secondary-container/40 rounded-lg text-xs text-primary flex items-center justify-between border border-primary/20">
-                  <span>Sign in to request this item and earn EcoPoints.</span>
+                <div className="p-2.5 bg-[#F8F6EF] rounded-md text-xs text-[#5C6E66] flex items-center justify-between border border-[#E8E4DA]">
+                  <span>Sign in to request this item and coordinate pickup.</span>
                   <Link
                     to="/login"
                     state={{ from: `/marketplace/${listing.id}` }}
-                    className="font-bold underline hover:opacity-80 shrink-0 ml-2"
+                    className="font-medium text-[#103D2A] underline hover:opacity-80 shrink-0 ml-2"
                   >
                     Sign In
                   </Link>
@@ -523,12 +524,12 @@ export const ListingDetailPage: React.FC = () => {
               )}
 
               {successMessage ? (
-                <div className="p-4 bg-secondary-container text-primary rounded-xl text-body-sm font-medium border border-primary/20 space-y-3">
-                  <div className="flex items-center gap-2 font-bold text-sm">
-                    <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                <div className="p-3.5 bg-[#E8EFE9] text-[#103D2A] rounded-md text-xs font-medium border border-[#C8D6C9] space-y-2">
+                  <div className="flex items-center gap-1.5 font-medium text-xs">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
                     <span>Request Sent</span>
                   </div>
-                  <p className="text-xs text-on-surface-variant leading-relaxed">
+                  <p className="text-xs text-[#5C6E66] leading-relaxed">
                     {successMessage}
                   </p>
                   <div className="flex flex-col sm:flex-row gap-2 pt-1">
@@ -544,16 +545,16 @@ export const ListingDetailPage: React.FC = () => {
                 </div>
               ) : existingRequest ? (
                 existingRequest.status === 'accepted' ? (
-                  <div className="p-4 bg-gl-sage-light/70 rounded-xl border border-gl-sage text-gl-dark space-y-3">
+                  <div className="p-3.5 bg-[#E8EFE9] rounded-md border border-[#C8D6C9] text-[#103D2A] space-y-2.5">
                     <div className="flex items-center justify-between">
-                      <span className="font-heading font-semibold text-xs text-gl-forest flex items-center gap-1.5">
-                        <CheckCircle2 className="w-4 h-4 text-gl-fresh" /> Request Accepted!
+                      <span className="font-medium text-xs text-[#103D2A] flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-700" /> Request Accepted
                       </span>
-                      <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase bg-[#25D366] text-white">
+                      <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-[#25D366] text-white">
                         Accepted
                       </span>
                     </div>
-                    <p className="text-xs text-gl-charcoal leading-relaxed">
+                    <p className="text-xs text-[#5C6E66] leading-relaxed">
                       Your request has been accepted. Coordinate pickup on WhatsApp and provide your verification code at handover.
                     </p>
                     <Button
@@ -567,16 +568,16 @@ export const ListingDetailPage: React.FC = () => {
                     </Button>
                   </div>
                 ) : (
-                  <div className="p-4 bg-surface-container rounded-xl border border-outline-variant/60 space-y-3">
+                  <div className="p-3.5 bg-[#F8F6EF] rounded-md border border-[#E8E4DA] space-y-2.5">
                     <div className="flex items-center justify-between">
-                      <span className="font-heading font-semibold text-xs text-primary flex items-center gap-1.5">
-                        <Repeat className="w-4 h-4 text-secondary" /> Active Request
+                      <span className="font-medium text-xs text-[#103D2A] flex items-center gap-1.5">
+                        <Repeat className="w-3.5 h-3.5 text-[#103D2A]" /> Active Request
                       </span>
-                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize bg-secondary-container text-primary">
+                      <span className="text-[11px] font-medium px-2 py-0.5 rounded-md capitalize bg-[#E8EFE9] text-[#103D2A]">
                         {existingRequest.status}
                       </span>
                     </div>
-                    <p className="text-xs text-on-surface-variant leading-relaxed">
+                    <p className="text-xs text-[#5C6E66] leading-relaxed">
                       You have requested <strong>{existingRequest.requested_quantity} {listing.unit}</strong>. When the owner accepts, you can coordinate pickup on WhatsApp.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-2 pt-1">
@@ -592,9 +593,9 @@ export const ListingDetailPage: React.FC = () => {
                   </div>
                 )
               ) : listing.status === 'reserved' ? (
-                <div className="p-4 bg-amber-50/80 rounded-xl border border-amber-200 text-amber-950 space-y-2.5">
-                  <div className="flex items-center gap-2 font-bold text-xs text-amber-900">
-                    <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                <div className="p-3.5 bg-amber-50/80 rounded-md border border-amber-200 text-amber-950 space-y-2">
+                  <div className="flex items-center gap-1.5 font-medium text-xs text-amber-900">
+                    <Clock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
                     <span>Material Batch Reserved</span>
                   </div>
                   <p className="text-xs text-amber-800 leading-relaxed">
@@ -607,7 +608,7 @@ export const ListingDetailPage: React.FC = () => {
                     onClick={() => navigate('/marketplace')}
                     className="w-full text-xs"
                   >
-                    Browse Other Available Materials
+                    Browse Other Materials
                   </Button>
                 </div>
               ) : (
@@ -623,13 +624,13 @@ export const ListingDetailPage: React.FC = () => {
                   />
 
                   <div>
-                    <label className="block font-label-md text-xs text-on-surface mb-1 font-semibold">
+                    <label className="block text-xs text-[#1C2826] mb-1 font-medium">
                       Intended Use *
                     </label>
                     <select
                       value={proposedAction}
                       onChange={(e) => setProposedAction(e.target.value)}
-                      className="w-full bg-surface-container-lowest text-on-surface font-body-md text-xs rounded-lg border border-outline-variant hover:border-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 py-2.5 px-3 transition-all"
+                      className="w-full bg-white text-[#1C2826] text-xs rounded-md border border-[#DCD6CB] hover:border-[#103D2A] focus:outline-none focus:border-[#103D2A] focus:ring-1 focus:ring-[#103D2A]/20 py-1.5 px-2.5 transition-all"
                     >
                       <option value="Composting & organic soil amendment">Composting & soil amendment</option>
                       <option value="Direct reuse or packaging">Reuse or packaging</option>
@@ -651,15 +652,15 @@ export const ListingDetailPage: React.FC = () => {
                     type="submit"
                     variant="primary"
                     fullWidth
-                    size="lg"
+                    size="md"
                     loading={submitting}
-                    icon={<Send className="w-4 h-4" />}
+                    icon={<Send className="w-3.5 h-3.5" />}
                   >
                     {submitting ? 'Sending Request...' : 'Send Request'}
                   </Button>
                 </form>
               )}
-            </Card>
+            </div>
           )}
 
         </div>

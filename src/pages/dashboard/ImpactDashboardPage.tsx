@@ -69,43 +69,43 @@ export const ImpactDashboardPage: React.FC = () => {
   // -------------------------------------------------------------
   if (!currentUser) {
     return (
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-8 text-center">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6 text-center">
         {/* Brand Hero Icon */}
-        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-secondary-container/80 text-primary border border-primary/20 flex items-center justify-center mx-auto shadow-md ring-8 ring-secondary-container/30">
-          <Award className="w-8 h-8 sm:w-10 sm:h-10 text-primary" />
+        <div className="w-14 h-14 rounded-lg bg-[#E8EFE9] text-[#103D2A] border border-[#C8D6C9] flex items-center justify-center mx-auto shadow-subtle">
+          <Award className="w-7 h-7 text-[#103D2A]" />
         </div>
 
         {/* Required Headline & Supporting Text */}
-        <div className="space-y-3 max-w-2xl mx-auto">
-          <Badge variant="brand" className="mb-1">
-            GreenLoop Circular Rewards
-          </Badge>
-          <h1 className="font-heading font-bold text-3xl sm:text-4xl lg:text-5xl text-primary tracking-tight">
+        <div className="space-y-2.5 max-w-xl mx-auto">
+          <span className="inline-block px-2.5 py-0.5 rounded-md bg-[#E8EFE9] text-[#103D2A] text-xs font-medium border border-[#C8D6C9]">
+            Circular Rewards &amp; Telemetry
+          </span>
+          <h1 className="font-serif font-normal text-3xl sm:text-4xl text-[#103D2A] tracking-tight">
             Your actions deserve rewards.
           </h1>
-          <p className="font-body-lg text-body-md sm:text-lg text-on-surface-variant leading-relaxed">
-            Sign in to view your EcoPoints, track your environmental contributions, and discover your rewards.
+          <p className="font-sans text-xs sm:text-sm text-[#5C6E66] leading-relaxed">
+            Sign in to view your EcoPoints, track your environmental contributions, and discover community rewards.
           </p>
         </div>
 
         {/* Primary Action Buttons */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-2">
           <Button
             variant="primary"
-            size="lg"
+            size="md"
             onClick={() => navigate('/login', { state: { from: '/impact' } })}
-            icon={<LogIn className="w-4 h-4" />}
+            icon={<LogIn className="w-3.5 h-3.5" />}
             iconPosition="right"
-            className="w-full sm:w-auto shadow-sm"
+            className="w-full sm:w-auto"
           >
             Sign In to View EcoPoints
           </Button>
 
           <Button
             variant="outline"
-            size="lg"
+            size="md"
             onClick={() => navigate('/register', { state: { from: '/impact' } })}
-            icon={<ArrowRight className="w-4 h-4" />}
+            icon={<ArrowRight className="w-3.5 h-3.5" />}
             iconPosition="right"
             className="w-full sm:w-auto"
           >
@@ -113,127 +113,112 @@ export const ImpactDashboardPage: React.FC = () => {
           </Button>
         </div>
 
-        {/* Visual Showcase: Subtle EcoPoints Reward Concept Card */}
-        <div className="pt-6">
-          <div className="max-w-xl mx-auto relative rounded-3xl p-6 sm:p-8 bg-gradient-to-br from-emerald-900 via-teal-950 to-emerald-950 text-white shadow-xl border border-emerald-700/40 overflow-hidden text-left">
-            {/* Subtle background graphic */}
-            <div className="absolute -right-12 -bottom-12 w-48 h-48 rounded-full bg-emerald-500/10 blur-2xl pointer-events-none" />
-            <div className="absolute right-6 top-6 opacity-20">
-              <Leaf className="w-24 h-24 text-emerald-300" />
+        {/* Visual Showcase: EcoPoints Reward Concept Card */}
+        <div className="pt-4">
+          <div className="max-w-md mx-auto rounded-lg p-5 bg-[#103D2A] text-white shadow-subtle border border-[#0A261A] text-left space-y-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded bg-[#E8EFE9] text-[#103D2A] flex items-center justify-center font-medium text-xs">
+                  GL
+                </div>
+                <span className="font-serif text-xs text-white">
+                  GreenLoop EcoPass
+                </span>
+              </div>
+              <span className="px-2 py-0.5 rounded bg-white/10 text-emerald-200 text-[10px] font-medium">
+                Kerala Circular Ledger
+              </span>
             </div>
 
-            <div className="relative z-10 space-y-6">
-              <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-400 text-teal-950 flex items-center justify-center font-bold text-xs">
-                    GL
-                  </div>
-                  <span className="font-heading font-bold text-sm tracking-wider uppercase text-emerald-200">
-                    GreenLoop EcoPass
-                  </span>
-                </div>
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 text-[11px] font-semibold">
-                  Kerala Circular Ledger
+            <div>
+              <span className="text-xs text-emerald-200/70 block">
+                Verified Member Balance
+              </span>
+              <div className="flex items-baseline gap-2 mt-0.5">
+                <span className="font-mono font-bold text-3xl text-white">
+                  120
+                </span>
+                <span className="text-xs text-emerald-200 font-medium">
+                  EcoPoints
                 </span>
               </div>
+              <p className="text-xs text-emerald-200/80 mt-1">
+                Earned through verified material diverts and completed circular handovers.
+              </p>
+            </div>
 
-              <div>
-                <span className="text-xs uppercase tracking-wider text-emerald-300/80 block font-medium">
-                  Verified Member Balance
-                </span>
-                <div className="flex items-baseline gap-2 mt-1">
-                  <span className="font-heading font-extrabold text-4xl sm:text-5xl text-white tracking-tight">
-                    120
-                  </span>
-                  <span className="font-heading font-semibold text-lg text-emerald-300">
-                    EcoPoints
-                  </span>
-                </div>
-                <p className="text-xs text-emerald-200/80 mt-1">
-                  Earned through verified material diverts and completed circular handovers.
-                </p>
+            <div className="pt-2 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs text-emerald-200/90">
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                <span>KAU Nursery Vouchers</span>
               </div>
-
-              <div className="pt-2 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs text-emerald-200/90">
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  <span>KAU Organic Nursery Vouchers</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  <span>Haritha Sahayi Civic Certificate</span>
-                </div>
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Civic Eco-Certificate</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Small Explanation: How EcoPoints Are Earned */}
-        <div className="pt-8 space-y-4 max-w-4xl mx-auto text-left">
+        <div className="pt-6 space-y-4 max-w-3xl mx-auto text-left">
           <div className="text-center space-y-1">
-            <h2 className="font-heading font-bold text-xl sm:text-2xl text-primary tracking-tight">
+            <h2 className="font-serif font-normal text-xl sm:text-2xl text-[#103D2A]">
               How EcoPoints Are Earned
             </h2>
-            <p className="font-body-sm text-body-sm text-on-surface-variant max-w-lg mx-auto">
+            <p className="font-sans text-xs text-[#5C6E66] max-w-md mx-auto">
               Every point represents a real, verifiable action that diverts waste from Kerala's landfills and waterbodies.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-2">
-            <Card variant="elevated" className="p-4 space-y-2 border-outline-variant/60">
-              <div className="w-9 h-9 rounded-lg bg-secondary-container text-primary flex items-center justify-center font-bold text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+            <div className="bg-white rounded-lg border border-[#E8E4DA] p-3.5 space-y-1.5 shadow-subtle">
+              <div className="w-7 h-7 rounded bg-[#E8EFE9] text-[#103D2A] flex items-center justify-center font-medium text-xs">
                 +10
               </div>
-              <h3 className="font-heading font-semibold text-sm text-on-surface">
+              <h3 className="font-sans font-medium text-xs text-[#1C2826]">
                 List Reusable Waste
               </h3>
-              <p className="font-body-sm text-xs text-on-surface-variant leading-relaxed">
+              <p className="font-sans text-xs text-[#5C6E66] leading-relaxed">
                 Post segregated plastics, coconut biomass, or food surplus on the circular marketplace.
               </p>
-            </Card>
+            </div>
 
-            <Card variant="elevated" className="p-4 space-y-2 border-outline-variant/60">
-              <div className="w-9 h-9 rounded-lg bg-primary-container text-on-primary flex items-center justify-center font-bold text-sm">
+            <div className="bg-white rounded-lg border border-[#E8E4DA] p-3.5 space-y-1.5 shadow-subtle">
+              <div className="w-7 h-7 rounded bg-[#103D2A] text-white flex items-center justify-center font-medium text-xs">
                 +25
               </div>
-              <h3 className="font-heading font-semibold text-sm text-on-surface">
+              <h3 className="font-sans font-medium text-xs text-[#1C2826]">
                 Complete Handover
               </h3>
-              <p className="font-body-sm text-xs text-on-surface-variant leading-relaxed">
+              <p className="font-sans text-xs text-[#5C6E66] leading-relaxed">
                 Verify material collection with secure completion codes between generator and recipient.
               </p>
-            </Card>
+            </div>
 
-            <Card variant="elevated" className="p-4 space-y-2 border-outline-variant/60">
-              <div className="w-9 h-9 rounded-lg bg-secondary-container text-primary flex items-center justify-center font-bold text-sm">
+            <div className="bg-white rounded-lg border border-[#E8E4DA] p-3.5 space-y-1.5 shadow-subtle">
+              <div className="w-7 h-7 rounded bg-[#E8EFE9] text-[#103D2A] flex items-center justify-center font-medium text-xs">
                 +15
               </div>
-              <h3 className="font-heading font-semibold text-sm text-on-surface">
+              <h3 className="font-sans font-medium text-xs text-[#1C2826]">
                 Report Civic Dumping
               </h3>
-              <p className="font-body-sm text-xs text-on-surface-variant leading-relaxed">
+              <p className="font-sans text-xs text-[#5C6E66] leading-relaxed">
                 Geotag and photograph overflowing bins or illegal dump sites to assist civic cleanup teams.
               </p>
-            </Card>
+            </div>
 
-            <Card variant="elevated" className="p-4 space-y-2 border-outline-variant/60">
-              <div className="w-9 h-9 rounded-lg bg-primary-container text-on-primary flex items-center justify-center font-bold text-sm">
+            <div className="bg-white rounded-lg border border-[#E8E4DA] p-3.5 space-y-1.5 shadow-subtle">
+              <div className="w-7 h-7 rounded bg-[#103D2A] text-white flex items-center justify-center font-medium text-xs">
                 +50
               </div>
-              <h3 className="font-heading font-semibold text-sm text-on-surface">
+              <h3 className="font-sans font-medium text-xs text-[#1C2826]">
                 Join Community Drive
               </h3>
-              <p className="font-body-sm text-xs text-on-surface-variant leading-relaxed">
+              <p className="font-sans text-xs text-[#5C6E66] leading-relaxed">
                 Participate in local beach cleanups, canal restoration, and neighborhood collection events.
               </p>
-            </Card>
-          </div>
-
-          <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/40 flex items-center gap-2.5 text-xs text-on-surface-variant">
-            <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
-            <span>
-              <strong>Verified Points:</strong> EcoPoints are credited directly to your account when material pickups and reports are completed.
-            </span>
+            </div>
           </div>
         </div>
       </div>
@@ -327,33 +312,33 @@ export const ImpactDashboardPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 space-y-6 text-left">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 space-y-5 text-left">
       {/* Header & Personal Identity Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E8E4DA] pb-5">
         <div>
-          <h1 className="font-heading font-bold text-2xl sm:text-3xl lg:text-[34px] text-[#18251F] tracking-tight">
+          <h1 className="font-serif font-normal text-2xl sm:text-3xl text-[#103D2A] tracking-tight">
             EcoPoints &amp; Impact
           </h1>
-          <p className="font-sans text-sm text-[#6F776F] mt-1">
+          <p className="font-sans text-xs sm:text-sm text-[#5C6E66] mt-1">
             Track your waste diverted, emissions saved, and EcoPoints earned.
           </p>
         </div>
 
         {/* User Identity Chip */}
-        <div className="bg-white p-3 rounded-2xl border border-gl-border shadow-2xs flex items-center gap-3 self-start sm:self-auto">
-          <div className="w-11 h-11 rounded-xl bg-gl-forest text-white flex items-center justify-center font-heading font-extrabold text-base shadow-sm">
+        <div className="bg-white p-2.5 rounded-lg border border-[#E8E4DA] shadow-subtle flex items-center gap-3 self-start sm:self-auto">
+          <div className="w-10 h-10 rounded-md bg-[#103D2A] text-white flex items-center justify-center font-mono font-bold text-sm">
             {userBalance}
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-heading font-bold text-xs text-gl-charcoal">
+              <span className="font-sans font-medium text-xs text-[#1C2826]">
                 {currentUser.full_name}
               </span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold ${tier.color}`}>
+              <span className={`text-[10px] px-2 py-0.5 rounded-md border font-medium ${tier.color}`}>
                 {tier.badge}
               </span>
             </div>
-            <span className="text-[11px] text-gl-charcoal-muted block capitalize mt-0.5 font-medium">
+            <span className="text-xs text-[#5C6E66] block capitalize mt-0.5">
               {currentUser.district} • {currentUser.role}
             </span>
           </div>
@@ -361,13 +346,13 @@ export const ImpactDashboardPage: React.FC = () => {
       </div>
 
       {/* 4 PRIMARY METRIC CARDS */}
-      <div className="grid grid-cols-1 min-[360px]:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 min-[360px]:grid-cols-2 lg:grid-cols-4 gap-3">
         <MetricCard
           label="Current Balance"
           value={userBalance}
           unit="PTS"
           subtext="Available for rewards"
-          icon={<Coins className="w-5 h-5 text-primary" />}
+          icon={<Coins className="w-4 h-4 text-[#103D2A]" />}
         />
 
         <MetricCard
@@ -375,7 +360,7 @@ export const ImpactDashboardPage: React.FC = () => {
           value={totalEarned}
           unit="PTS"
           subtext="Lifetime verified credits"
-          icon={<Award className="w-5 h-5 text-secondary" />}
+          icon={<Award className="w-4 h-4 text-[#103D2A]" />}
         />
 
         <MetricCard
@@ -383,55 +368,55 @@ export const ImpactDashboardPage: React.FC = () => {
           value={completedActivitiesCount}
           unit="actions"
           subtext={`${userListings.length} listings, ${userTransactions.length} exchanges, ${userResolvedReports.length} reports`}
-          icon={<CheckCircle2 className="w-5 h-5 text-primary" />}
+          icon={<CheckCircle2 className="w-4 h-4 text-emerald-700" />}
         />
 
         <MetricCard
           label="Current Tier"
           value={tier.badge}
           subtext={`${Math.max(0, tier.next - totalEarned)} PTS to next tier`}
-          icon={<Shield className="w-5 h-5 text-secondary" />}
+          icon={<Shield className="w-4 h-4 text-[#103D2A]" />}
         />
       </div>
 
       {/* Navigation Tabs */}
-      <div className="inline-flex p-1 bg-gl-cream/80 border border-gl-border rounded-xl overflow-x-auto scrollbar-none whitespace-nowrap">
+      <div className="inline-flex p-0.5 bg-white border border-[#E8E4DA] rounded-md overflow-x-auto scrollbar-none whitespace-nowrap">
         <button
           onClick={() => setActiveTab('overview')}
-          className={`px-4 py-2 text-xs rounded-lg transition-all whitespace-nowrap ${
+          className={`px-3 py-1.5 text-xs rounded transition-colors whitespace-nowrap ${
             activeTab === 'overview'
-              ? 'bg-gl-forest text-white font-semibold shadow-sm'
-              : 'text-gl-charcoal-muted hover:text-gl-charcoal'
+              ? 'bg-[#103D2A] text-white font-medium shadow-subtle'
+              : 'text-[#5C6E66] hover:text-[#1C2826]'
           }`}
         >
           Overview
         </button>
         <button
           onClick={() => setActiveTab('points')}
-          className={`px-4 py-2 text-xs rounded-lg transition-all whitespace-nowrap ${
+          className={`px-3 py-1.5 text-xs rounded transition-colors whitespace-nowrap ${
             activeTab === 'points'
-              ? 'bg-gl-forest text-white font-semibold shadow-sm'
-              : 'text-gl-charcoal-muted hover:text-gl-charcoal'
+              ? 'bg-[#103D2A] text-white font-medium shadow-subtle'
+              : 'text-[#5C6E66] hover:text-[#1C2826]'
           }`}
         >
           EcoPoints Ledger ({userPointsHistory.length})
         </button>
         <button
           onClick={() => setActiveTab('rewards')}
-          className={`px-4 py-2 text-xs rounded-lg transition-all whitespace-nowrap ${
+          className={`px-3 py-1.5 text-xs rounded transition-colors whitespace-nowrap ${
             activeTab === 'rewards'
-              ? 'bg-gl-forest text-white font-semibold shadow-sm'
-              : 'text-gl-charcoal-muted hover:text-gl-charcoal'
+              ? 'bg-[#103D2A] text-white font-medium shadow-subtle'
+              : 'text-[#5C6E66] hover:text-[#1C2826]'
           }`}
         >
           Rewards ({AVAILABLE_REWARDS.length})
         </button>
         <button
           onClick={() => setActiveTab('factors')}
-          className={`px-4 py-2 text-xs rounded-lg transition-all whitespace-nowrap ${
+          className={`px-3 py-1.5 text-xs rounded transition-colors whitespace-nowrap ${
             activeTab === 'factors'
-              ? 'bg-gl-forest text-white font-semibold shadow-sm'
-              : 'text-gl-charcoal-muted hover:text-gl-charcoal'
+              ? 'bg-[#103D2A] text-white font-medium shadow-subtle'
+              : 'text-[#5C6E66] hover:text-[#1C2826]'
           }`}
         >
           How to Earn
