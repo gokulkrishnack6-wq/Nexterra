@@ -282,6 +282,49 @@ export interface SmartMatchResult {
   recommendation_reason: string;
 }
 
+export type WasteLocationType = 'public_bin' | 'collection_centre';
+
+export type LocationFacilityType =
+  | 'mcf'
+  | 'rrf'
+  | 'haritha_karma_sena_hub'
+  | 'segregated_smart_bin'
+  | 'e_waste_kiosk'
+  | 'public_litter_bin'
+  | 'scrap_recycling_centre'
+  | 'compost_station'
+  | 'community_drop_point';
+
+export type LocationVerificationStatus =
+  | 'officially_verified'
+  | 'community_verified'
+  | 'community_reported'
+  | 'pending_verification'
+  | 'unverified';
+
+export interface WasteLocation {
+  id: string;
+  name: string;
+  location_type: WasteLocationType;
+  facility_type: LocationFacilityType | string;
+  accepted_waste_categories: string[];
+  description?: string;
+  address: string;
+  district: string;
+  municipality: string;
+  pincode?: string;
+  latitude: number;
+  longitude: number;
+  contact_number?: string;
+  opening_hours?: string;
+  source: string;
+  source_reference?: string;
+  verification_status: LocationVerificationStatus;
+  submitted_by?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface PublicWasteBin {
   id: string;
   name: string;

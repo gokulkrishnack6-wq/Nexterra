@@ -15,9 +15,11 @@ import {
   ScanPrefillData,
   Conversation,
   ChatMessage,
-  ParticipantContact
+  ParticipantContact,
+  WasteLocation
 } from '../types';
 import { INITIAL_CATEGORIES } from '../lib/mockData';
+import { KERALA_WASTE_LOCATIONS_SEED } from '../data/keralaWasteLocationsSeed';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { useLocationContext } from './LocationContext';
@@ -39,6 +41,7 @@ interface DataContextType {
   conversations: Conversation[];
   metrics: SustainabilityMetrics;
   wasteBins: PublicWasteBin[];
+  wasteLocations: WasteLocation[];
   reports: EnvironmentalReport[];
   isLoading: boolean;
   dataError: string | null;
@@ -52,6 +55,8 @@ interface DataContextType {
   addListing: (listing: Omit<WasteListing, 'id' | 'created_at' | 'user' | 'category'>) => Promise<string>;
   updateListing: (id: string, updates: Partial<WasteListing>) => Promise<void>;
   deleteListing: (id: string) => Promise<void>;
+  addWasteLocation: (locationData: Omit<WasteLocation, 'id' | 'created_at' | 'updated_at'>) => Promise<string>;
+  reportWasteLocation: (locationId: string, reason: string, details?: string) => Promise<void>;
   createExchangeRequest: (listingId: string, requestedQuantity: number, proposedAction: string, message: string) => Promise<string>;
   acceptExchangeRequest: (requestId: string) => Promise<void>;
   rejectExchangeRequest: (requestId: string) => Promise<void>;
@@ -245,6 +250,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return [];
   });
 
+  const [wasteLocations, setWasteLocations] = useState<WasteLocation[]>(() => {
+    const saved = localStorage.getItem('greenloop_waste_locations');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) { /* fallback */ }
+    }
+    return KERALA_WASTE_LOCATIONS_SEED;
+  });
+
   const [reports, setReports] = useState<EnvironmentalReport[]>(() => {
     const saved = localStorage.getItem('greenloop_user_reports');
     if (saved) {
@@ -285,6 +301,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     localStorage.setItem('greenloop_user_waste_bins', JSON.stringify(wasteBins));
   }, [wasteBins]);
+
+  useEffect(() => {
+    localStorage.setItem('greenloop_waste_locations', JSON.stringify(wasteLocations));
+  }, [wasteLocations]);
 
   useEffect(() => {
     localStorage.setItem('greenloop_user_reports', JSON.stringify(reports));
@@ -394,6 +414,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           return newCentres;
         });
+      }
+
+      // 3b. Fetch waste discovery locations (Public Bins & Collection Centres)
+      try {
+        const { data: dbLocations, error: locError } = await supabase
+          .from('waste_locations')
+          .select('*')
+          .order('name');
+        if (!locError && dbLocations && dbLocations.length > 0) {
+          setWasteLocations(dbLocations as WasteLocation[]);
+        }
+      } catch (locErr) {
+        console.warn('Notice: waste_locations fetch fallback to seed:', locErr);
       }
 
       // 4. Fetch exchange requests
@@ -831,6 +864,89 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await fetchData();
     } else {
       setListings((prev) => prev.filter((l) => l.id !== id));
+    }
+  };
+
+  // Action: Add Community Waste Location (Public Bin or Collection Centre)
+  const addWasteLocation = async (
+    locationData: Omit<WasteLocation, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<string> => {
+    const id = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : 'loc-' + Math.random().toString(36).substring(2, 9);
+
+    const newLocation: WasteLocation = {
+      ...locationData,
+      id,
+      verification_status: locationData.verification_status || 'pending_verification',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      submitted_by: currentUser?.id,
+    };
+
+    // Optimistically update local state
+    setWasteLocations((prev) => [newLocation, ...prev]);
+
+    // Persist to Supabase if configured
+    if (isSupabaseConfigured) {
+      try {
+        const { error: insertErr } = await supabase.from('waste_locations').insert({
+          id,
+          name: newLocation.name,
+          location_type: newLocation.location_type,
+          facility_type: newLocation.facility_type,
+          accepted_waste_categories: newLocation.accepted_waste_categories,
+          description: newLocation.description,
+          address: newLocation.address,
+          district: newLocation.district,
+          municipality: newLocation.municipality,
+          pincode: newLocation.pincode,
+          latitude: newLocation.latitude,
+          longitude: newLocation.longitude,
+          contact_number: newLocation.contact_number,
+          opening_hours: newLocation.opening_hours,
+          source: newLocation.source || 'community_submission',
+          source_reference: newLocation.source_reference || `COMMUNITY-${id.slice(0, 8)}`,
+          verification_status: 'pending_verification',
+          submitted_by: currentUser?.id || null,
+        });
+        if (insertErr) {
+          console.warn('Supabase waste_locations insert notice:', insertErr.message);
+        }
+      } catch (err) {
+        console.warn('Could not insert waste location to Supabase:', err);
+      }
+    }
+
+    return id;
+  };
+
+  // Action: Report incorrect information or closure of a waste location
+  const reportWasteLocation = async (
+    locationId: string,
+    reason: string,
+    details?: string
+  ): Promise<void> => {
+    if (!currentUser) {
+      throw new Error('Please sign in to report an issue with this location.');
+    }
+
+    if (isSupabaseConfigured) {
+      try {
+        const { error: reportErr } = await supabase.from('reports').insert({
+          reporter_id: currentUser.id,
+          reported_item_type: 'location',
+          reported_item_id: locationId,
+          reason,
+          details: details || `Community report for waste location ${locationId}`,
+          status: 'pending',
+        });
+        if (reportErr) {
+          console.warn('Supabase location report notice:', reportErr.message);
+        }
+      } catch (err) {
+        console.warn('Notice: Location report persistence notice:', err);
+      }
     }
   };
 
@@ -1873,6 +1989,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       conversations: allConversations,
       metrics,
       wasteBins,
+      wasteLocations,
       reports,
       isLoading,
       dataError,
@@ -1882,6 +1999,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addListing,
       updateListing,
       deleteListing,
+      addWasteLocation,
+      reportWasteLocation,
       createExchangeRequest,
       acceptExchangeRequest,
       rejectExchangeRequest,
@@ -1915,6 +2034,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       allConversations,
       metrics,
       wasteBins,
+      wasteLocations,
       reports,
       isLoading,
       dataError,
@@ -1923,6 +2043,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addListing,
       updateListing,
       deleteListing,
+      addWasteLocation,
+      reportWasteLocation,
       createExchangeRequest,
       acceptExchangeRequest,
       rejectExchangeRequest,
