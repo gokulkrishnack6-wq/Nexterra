@@ -24,7 +24,8 @@ import {
   Compass,
   MapPin,
   Check,
-  Calendar
+  Calendar,
+  CameraOff
 } from 'lucide-react';
 
 export const OverviewPage: React.FC = () => {
@@ -257,9 +258,8 @@ export const OverviewPage: React.FC = () => {
           ) : (
             <div className="flex flex-col gap-3">
               {suggestedListings.map((listing) => {
-                const primaryImage = listing.images && listing.images.length > 0 
-                  ? listing.images[0] 
-                  : 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=400&q=80';
+                const hasValidImage = Boolean(listing.images && listing.images.length > 0 && listing.images[0]);
+                const primaryImage = hasValidImage ? listing.images![0] : null;
 
                 return (
                   <article
@@ -268,12 +268,19 @@ export const OverviewPage: React.FC = () => {
                   >
                     <div className="flex items-start sm:items-center gap-4 min-w-0 flex-1">
                       {/* Product Thumbnail */}
-                      <img
-                        src={primaryImage}
-                        alt={listing.title}
-                        className="w-20 h-20 sm:w-24 sm:h-20 object-cover rounded-xl shrink-0 border border-[#E9E2D5] bg-[#F7F4EC]"
-                        loading="lazy"
-                      />
+                      {hasValidImage ? (
+                        <img
+                          src={primaryImage!}
+                          alt={listing.title}
+                          className="w-20 h-20 sm:w-24 sm:h-20 object-cover rounded-xl shrink-0 border border-[#E9E2D5] bg-[#F7F4EC]"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-20 h-20 sm:w-24 sm:h-20 rounded-xl shrink-0 border border-[#E9E2D5] bg-[#FAF8F2] flex flex-col items-center justify-center text-[#68736B]">
+                          <CameraOff className="w-6 h-6 text-[#8C958E] opacity-70 mb-0.5" />
+                          <span className="text-[10px] text-[#7A857D]">No photo</span>
+                        </div>
+                      )}
 
                       <div className="flex flex-col gap-1.5 min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">

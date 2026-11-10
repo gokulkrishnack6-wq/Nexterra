@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, ArrowRight, Sparkles, Award } from 'lucide-react';
+import { MapPin, ArrowRight, Sparkles, Award, CameraOff } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { calculateSmartMatches } from '../../lib/smartMatch';
@@ -73,11 +73,18 @@ export const SmartMatchPage: React.FC = () => {
               className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left bg-white border border-[#E8E4DA] rounded-lg shadow-subtle hover:border-[#103D2A]/30 transition-all"
             >
               <div className="flex flex-col min-[380px]:flex-row items-start gap-3 sm:gap-4 flex-1">
-                <img
-                  src={match.listing.images?.[0] || 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=300&q=80'}
-                  alt=""
-                  className="w-16 h-16 rounded-md object-cover border border-[#E8E4DA] shrink-0 bg-[#F4F1EA]"
-                />
+                {match.listing.images && match.listing.images.length > 0 && match.listing.images[0] ? (
+                  <img
+                    src={match.listing.images[0]}
+                    alt=""
+                    className="w-16 h-16 rounded-md object-cover border border-[#E8E4DA] shrink-0 bg-[#F4F1EA]"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-md border border-[#E8E4DA] bg-[#FAF8F2] flex flex-col items-center justify-center shrink-0 text-[#68736B]">
+                    <CameraOff className="w-5 h-5 text-[#8C958E] opacity-70" />
+                    <span className="text-[9px] text-[#7A857D] mt-0.5">No photo</span>
+                  </div>
+                )}
 
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">

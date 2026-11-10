@@ -97,6 +97,14 @@ export const App: React.FC = () => {
               }
             />
             <Route
+              path="/marketplace/:id/edit"
+              element={
+                <StitchAppShell>
+                  <CreateListingPage isEdit={true} />
+                </StitchAppShell>
+              }
+            />
+            <Route
               path="/marketplace/:id"
               element={
                 <StitchAppShell>

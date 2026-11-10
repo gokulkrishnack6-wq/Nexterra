@@ -1,10 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Heart, ArrowRight, Sparkles } from 'lucide-react';
+import { MapPin, Heart, ArrowRight, CameraOff } from 'lucide-react';
 import { WasteListing } from '../../types';
 import { useData } from '../../contexts/DataContext';
 import { useGeolocation, calculateDistanceKm } from '../../hooks/useGeolocation';
-import { isAiGeneratedImage } from '../../services/imageGeneration';
 
 interface ListingCardProps {
   listing: WasteListing;
@@ -16,9 +15,8 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, referenceCoor
   const { coords } = useGeolocation();
   const isFav = favourites.includes(listing.id);
 
-  const primaryImage = listing.images && listing.images.length > 0 
-    ? listing.images[0] 
-    : 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=600&q=80';
+  const hasValidImage = Boolean(listing.images && listing.images.length > 0 && listing.images[0]);
+  const primaryImage = hasValidImage ? listing.images![0] : null;
 
   const effectiveRefCoords = referenceCoords || coords;
   const hasValidListingCoords =
@@ -70,12 +68,19 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, referenceCoor
     <div className="bg-white rounded-lg border border-[#E8E4DA] hover:border-[#8BA681] transition-all duration-150 flex flex-col justify-between overflow-hidden group shadow-subtle hover:shadow-card text-left">
       {/* Thumbnail */}
       <div className="relative aspect-[4/3] w-full bg-[#F4F1EA] overflow-hidden">
-        <img
-          src={primaryImage}
-          alt={listing.title}
-          className="w-full h-full object-cover group-hover:scale-[1.01] transition-transform duration-200"
-          loading="lazy"
-        />
+        {hasValidImage ? (
+          <img
+            src={primaryImage!}
+            alt={listing.title}
+            className="w-full h-full object-cover group-hover:scale-[1.01] transition-transform duration-200"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-[#FAF8F2] text-[#68736B]">
+            <CameraOff className="w-7 h-7 text-[#8C958E] mb-1 opacity-70" />
+            <span className="text-[11px] font-medium text-[#7A857D]">No photo</span>
+          </div>
+        )}
 
         {/* Pricing & Status tags */}
         <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">

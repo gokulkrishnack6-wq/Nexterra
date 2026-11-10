@@ -13,7 +13,10 @@ import {
   MessageSquare,
   MessageCircle,
   Repeat,
-  Clock
+  Clock,
+  Edit3,
+  CameraOff,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -24,7 +27,6 @@ import { Input, Textarea } from '../../components/ui/Input';
 import { supabase } from '../../lib/supabase';
 import { WasteListing } from '../../types';
 import { ListingCardSkeleton } from '../../components/ui/Skeleton';
-import { isAiGeneratedImage, generateListingImage } from '../../services/imageGeneration';
 
 export const ListingDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -50,7 +52,7 @@ export const ListingDetailPage: React.FC = () => {
   const [directListing, setDirectListing] = useState<WasteListing | null>(null);
   const [directLoading, setDirectLoading] = useState(false);
   const [createdRequestId, setCreatedRequestId] = useState<string | null>(null);
-  const [isRegeneratingImage, setIsRegeneratingImage] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   useEffect(() => {
     if (!inMemoryListing && id) {
@@ -201,9 +203,9 @@ export const ListingDetailPage: React.FC = () => {
     }
   };
 
-  const images = listing.images && listing.images.length > 0
-    ? listing.images
-    : ['https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=800&q=80'];
+  const images = listing.images && listing.images.length > 0 ? listing.images : [];
+  const hasImages = images.length > 0;
+  const activeImage = hasImages ? images[Math.min(selectedImageIndex, images.length - 1)] : null;
 
   const ownerName = listing.user?.full_name || 'Community Member';
   const ownerInitial = ownerName.trim().charAt(0).toUpperCase();
@@ -256,23 +258,60 @@ export const ListingDetailPage: React.FC = () => {
           )}
 
           <div className="bg-white rounded-lg border border-[#E8E4DA] overflow-hidden shadow-subtle">
-            <div className="aspect-[16/10] w-full bg-[#F4F1EA] overflow-hidden relative">
-              <img
-                src={images[0]}
-                alt={listing.title}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute top-3 left-3 flex gap-2 flex-wrap">
-                <span className="text-xs text-[#103D2A] font-medium bg-white/95 px-2.5 py-1 rounded-md shadow-subtle border border-[#E8E4DA]">
-                  {listing.listing_type === 'free' ? 'Free' : listing.listing_type === 'exchange' ? 'Exchange' : `₹${listing.price}`}
-                </span>
-                {listing.is_demo && (
-                  <span className="text-xs font-medium text-[#5C6E66] bg-white/95 border border-[#E8E4DA] px-2.5 py-1 rounded-md shadow-subtle">
-                    Sample Stream
+            {hasImages ? (
+              <div className="aspect-[16/10] w-full bg-[#F4F1EA] overflow-hidden relative">
+                <img
+                  src={activeImage || images[0]}
+                  alt={listing.title}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute top-3 left-3 flex gap-2 flex-wrap">
+                  <span className="text-xs text-[#103D2A] font-medium bg-white/95 px-2.5 py-1 rounded-md shadow-subtle border border-[#E8E4DA]">
+                    {listing.listing_type === 'free' ? 'Free' : listing.listing_type === 'exchange' ? 'Exchange' : `₹${listing.price}`}
                   </span>
-                )}
+                  {listing.is_demo && (
+                    <span className="text-xs font-medium text-[#5C6E66] bg-white/95 border border-[#E8E4DA] px-2.5 py-1 rounded-md shadow-subtle">
+                      Sample Stream
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="aspect-[16/10] w-full bg-[#FAF8F2] border-b border-[#E8E4DA] flex flex-col items-center justify-center p-6 text-center text-[#68736B] relative">
+                <div className="w-12 h-12 rounded-full bg-[#EAE5D9] flex items-center justify-center mb-2">
+                  <CameraOff className="w-6 h-6 text-[#7A857D]" />
+                </div>
+                <p className="text-xs font-semibold text-[#18251F]">No photograph provided</p>
+                <p className="text-[11px] text-[#7A857D] mt-0.5">This listing has no attached images.</p>
+                <div className="absolute top-3 left-3 flex gap-2 flex-wrap">
+                  <span className="text-xs text-[#103D2A] font-medium bg-white/95 px-2.5 py-1 rounded-md shadow-subtle border border-[#E8E4DA]">
+                    {listing.listing_type === 'free' ? 'Free' : listing.listing_type === 'exchange' ? 'Exchange' : `₹${listing.price}`}
+                  </span>
+                  {listing.is_demo && (
+                    <span className="text-xs font-medium text-[#5C6E66] bg-white/95 border border-[#E8E4DA] px-2.5 py-1 rounded-md shadow-subtle">
+                      Sample Stream
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {images.length > 1 && (
+              <div className="px-4 py-2.5 bg-[#FAF8F2] border-b border-[#E8E4DA] flex items-center gap-2 overflow-x-auto">
+                {images.map((imgUrl, idx) => (
+                  <button
+                    key={`${imgUrl}-${idx}`}
+                    type="button"
+                    onClick={() => setSelectedImageIndex(idx)}
+                    className={`w-14 h-14 rounded-lg overflow-hidden border-2 shrink-0 transition-all ${
+                      selectedImageIndex === idx ? 'border-[#103D2A] shadow-xs ring-1 ring-[#103D2A]' : 'border-[#E6E0D5] opacity-70 hover:opacity-100'
+                    }`}
+                  >
+                    <img src={imgUrl} alt={`Photo ${idx + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
 
             <div className="p-5 sm:p-6 space-y-4">
               <div>
@@ -432,51 +471,16 @@ export const ListingDetailPage: React.FC = () => {
               )}
 
               <div className="flex flex-col gap-2 pt-1">
-                {isAiGeneratedImage(listing) && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    fullWidth
-                    disabled={isRegeneratingImage}
-                    onClick={async () => {
-                      if (!listing || !currentUser || listing.user_id !== currentUser.id) return;
-                      setIsRegeneratingImage(true);
-                      try {
-                        const res = await generateListingImage({
-                          title: listing.title,
-                          material_type: listing.material_type,
-                          category_slug: listing.category?.slug,
-                          category_id: listing.category_id,
-                          description: listing.description,
-                          listing_id: listing.id,
-                          user_id: currentUser.id,
-                        });
-
-                        if (res.image_url) {
-                          await updateListing(listing.id, {
-                            images: [res.image_url],
-                            is_ai_image: true,
-                          });
-                          if (directListing) {
-                            setDirectListing({
-                              ...directListing,
-                              images: [res.image_url],
-                              is_ai_image: true,
-                            });
-                          }
-                        }
-                      } catch (err: any) {
-                        alert(err.message || 'Failed to regenerate image');
-                      } finally {
-                        setIsRegeneratingImage(false);
-                      }
-                    }}
-                    icon={<Sparkles className={`w-3.5 h-3.5 text-[#103D2A] ${isRegeneratingImage ? 'animate-spin' : ''}`} />}
-                  >
-                    {isRegeneratingImage ? 'Regenerating Photo...' : 'Regenerate Photo'}
-                  </Button>
-                )}
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  fullWidth
+                  onClick={() => navigate(`/marketplace/${listing.id}/edit`)}
+                  icon={<Edit3 className="w-3.5 h-3.5 text-white" />}
+                >
+                  Edit Listing &amp; Photos
+                </Button>
 
                 <Button
                   variant="secondary"

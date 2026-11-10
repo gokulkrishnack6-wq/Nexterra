@@ -760,6 +760,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Authentication required: You must be signed in to publish a waste listing.');
     }
 
+    // MANDATORY PHOTO VALIDATION
+    if (!listingData.images || listingData.images.length === 0) {
+      throw new Error('Upload at least one photo of the waste material to continue.');
+    }
+
     const id = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
       ? crypto.randomUUID()
       : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -792,7 +797,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ai_classified: Boolean(listingData.ai_classified),
         ai_confidence: listingData.ai_confidence || null,
         suggested_action: listingData.suggested_action || '',
-        images: listingData.images && listingData.images.length > 0 ? listingData.images : [],
+        images: listingData.images,
         is_demo: false,
       };
 
@@ -814,7 +819,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         created_at: new Date().toISOString(),
         user: currentUser,
         is_demo: false,
-        is_ai_image: Boolean(listingData.is_ai_image || isAiGeneratedImage(listingData)),
+        is_ai_image: false,
       };
       setListings((prev) => [offlineListing, ...prev]);
     }
@@ -855,6 +860,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const target = listings.find((l) => l.id === id);
     if (target && target.user_id && target.user_id !== currentUser.id) {
       throw new Error('Unauthorized: Only the creator of this listing can edit it.');
+    }
+
+    // MANDATORY PHOTO VALIDATION: A listing must retain at least one photograph
+    if (updates.images !== undefined && updates.images.length === 0) {
+      throw new Error('Upload at least one photo of the waste material to continue.');
     }
 
     if (isSupabaseConfigured) {

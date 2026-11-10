@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, useLocation, useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft,
   Plus,
@@ -11,31 +11,33 @@ import {
   Edit3,
   X,
   Loader2,
+  Save,
 } from 'lucide-react';
 import { useData, resolveCategoryId } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGeolocation, KERALA_DISTRICT_COORDS, findNearestDistrict } from '../../hooks/useGeolocation';
 import { LocationAutocomplete } from '../../components/ui/LocationAutocomplete';
 import { LocationSuggestion, reverseGeocodeCoordinates } from '../../services/geocoding';
-import { 
-  generateListingImage, 
-  isAiGeneratedImage, 
-  CATEGORY_ILLUSTRATIVE_FALLBACKS,
-  NEUTRAL_MATERIAL_PLACEHOLDER,
-  matchCuratedItemFallback 
-} from '../../services/imageGeneration';
-import { ListingPricing, ScanPrefillData } from '../../types';
+import { WastePhotoUploader } from '../../components/marketplace/WastePhotoUploader';
+import { cleanupListingPhotos } from '../../services/listingImageStorage';
+import { ListingPricing, ScanPrefillData, WasteListing } from '../../types';
 import { Button } from '../../components/ui/Button';
-import { Card } from '../../components/ui/Card';
-import { Badge } from '../../components/ui/Badge';
 import { Input, Textarea } from '../../components/ui/Input';
 
-export const CreateListingPage: React.FC = () => {
+interface CreateListingPageProps {
+  isEdit?: boolean;
+}
+
+export const CreateListingPage: React.FC<CreateListingPageProps> = ({ isEdit: isEditProp }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { categories, addListing, pendingScanPrefill, setPendingScanPrefill } = useData();
+  const params = useParams<{ id: string }>();
+  const { categories, addListing, updateListing, listings, allMarketplaceListings, pendingScanPrefill, setPendingScanPrefill } = useData();
   const { currentUser } = useAuth();
   const { district: geoDistrict, locality: geoLocality, coords } = useGeolocation();
+
+  const isEdit = Boolean(isEditProp || params.id || location.pathname.endsWith('/edit'));
+  const editListingId = params.id;
 
   const keralaDistricts = Object.keys(KERALA_DISTRICT_COORDS);
 
@@ -66,34 +68,66 @@ export const CreateListingPage: React.FC = () => {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isEditingLocationDetails, setIsEditingLocationDetails] = useState(false);
 
-  const [imageUrl, setImageUrl] = useState('');
-  const [isAiImage, setIsAiImage] = useState(false);
-  const [publishingStage, setPublishingStage] = useState<'idle' | 'generating_image' | 'publishing'>('idle');
-  const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
+  // Mandatory Waste Photographs State
+  const [images, setImages] = useState<string[]>([]);
+  const [newlyUploadedPaths, setNewlyUploadedPaths] = useState<string[]>([]);
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+
   const [aiClassified, setAiClassified] = useState(false);
   const [aiConfidence, setAiConfidence] = useState<number | undefined>(undefined);
   const [suggestedAction, setSuggestedAction] = useState<string | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [prefillApplied, setPrefillApplied] = useState(false);
-  const latestJobIdRef = useRef<string>('');
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
 
-  // Synchronize asynchronous GPS / district detection when available on mobile/desktop
+  const photoUploaderRef = useRef<HTMLDivElement>(null);
+
+  // Populate data when in Edit Mode
   useEffect(() => {
-    if (locationSource === null && coords && latitude === null && longitude === null) {
+    if (isEdit && editListingId && !initialLoadDone) {
+      const allList = allMarketplaceListings || listings;
+      const target = allList.find((l) => l.id === editListingId);
+
+      if (target) {
+        setTitle(target.title || '');
+        setDescription(target.description || '');
+        setMaterialType(target.material_type || '');
+        setQuantity(Number(target.quantity) || 1);
+        setUnit(target.unit || 'kg');
+        setListingType(target.listing_type || 'free');
+        setPrice(Number(target.price) || 0);
+        setCondition(target.condition || 'clean/dry');
+        setDistrict(target.district || '');
+        setLocality(target.locality || '');
+        setFormattedAddress(target.formatted_address || target.address || '');
+        setLatitude(target.latitude);
+        setLongitude(target.longitude);
+        setImages(target.images && target.images.length > 0 ? target.images : []);
+
+        const resolved = resolveCategoryId(target.category_id || (target as any).category?.slug, categories);
+        if (resolved) setCategoryId(resolved);
+
+        setInitialLoadDone(true);
+      }
+    }
+  }, [isEdit, editListingId, listings, allMarketplaceListings, categories, initialLoadDone]);
+
+  // Synchronize asynchronous GPS / district detection when available on mobile/desktop (create mode only)
+  useEffect(() => {
+    if (!isEdit && locationSource === null && coords && latitude === null && longitude === null) {
       setLatitude(coords.latitude);
       setLongitude(coords.longitude);
       if (geoDistrict && !district) setDistrict(geoDistrict);
       if (geoLocality && !locality) setLocality(geoLocality);
       setLocationSource('current');
     }
-  }, [coords, geoDistrict, geoLocality, locationSource, latitude, longitude, district, locality]);
+  }, [isEdit, coords, geoDistrict, geoLocality, locationSource, latitude, longitude, district, locality]);
 
-  // Robust multi-tier scan data ingestion:
-  // 1. React Router route state (location.state.prefillScan)
-  // 2. Shared React in-memory context state (pendingScanPrefill)
-  // 3. Browser sessionStorage fallback (greenloop_prefill_scan)
+  // Multi-tier scan data ingestion (for new listings coming from Waste Scanner)
   useEffect(() => {
+    if (isEdit) return;
+
     let scanData: ScanPrefillData | null = null;
 
     if (location.state && (location.state as any).prefillScan) {
@@ -116,19 +150,22 @@ export const CreateListingPage: React.FC = () => {
       setAiClassified(true);
       if (scanData.ai_confidence !== undefined) setAiConfidence(scanData.ai_confidence);
       if (scanData.suggested_action) setSuggestedAction(scanData.suggested_action);
-      if (scanData.image_url) setImageUrl(scanData.image_url);
+
+      // If scanner provided an authentic photo capture, populate it
+      if (scanData.image_url) {
+        setImages([scanData.image_url]);
+      }
 
       const resolved = resolveCategoryId(scanData.category_slug, categories);
       if (resolved) setCategoryId(resolved);
 
-      // Suggest circular pricing based on suggested recovery action
       if (scanData.suggested_action === 'upcycling' || scanData.suggested_action === 'composting') {
         setListingType('free');
       }
 
       setPrefillApplied(true);
     }
-  }, [location.state, pendingScanPrefill, categories, prefillApplied]);
+  }, [isEdit, location.state, pendingScanPrefill, categories, prefillApplied]);
 
   // Option A: Use My Current Location (Browser GPS)
   const handleUseCurrentLocation = () => {
@@ -218,43 +255,8 @@ export const CreateListingPage: React.FC = () => {
     setLocationSource(null);
   };
 
-    // Manual trigger for previewing AI image before publishing
-  const handleGenerateAiPreview = async () => {
-    if (!title || !title.trim()) {
-      setError('Please enter a Material Title before generating an AI illustration.');
-      return;
-    }
-    setError('');
-    const jobId = `preview-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
-    latestJobIdRef.current = jobId;
-    setIsGeneratingPreview(true);
-    try {
-      const selectedCat = categories.find((c) => c.id === categoryId);
-      const res = await generateListingImage({
-        title: title.trim(),
-        category_id: categoryId,
-        category_slug: selectedCat?.slug || 'other',
-        material_type: materialType || title,
-        condition,
-        description: description.trim(),
-        job_id: jobId,
-      });
-
-      // Avoid stale React state and race conditions
-      if (latestJobIdRef.current !== jobId) return;
-
-      if (res.image_url) {
-        setImageUrl(res.image_url);
-        setIsAiImage(true);
-      }
-    } catch (e: any) {
-      if (latestJobIdRef.current !== jobId) return;
-      setError('Could not generate AI preview image. A neutral placeholder or matching circular asset will be used upon publishing.');
-    } finally {
-      if (latestJobIdRef.current === jobId) {
-        setIsGeneratingPreview(false);
-      }
-    }
+  const handleStoragePathAdded = (path: string) => {
+    setNewlyUploadedPaths((prev) => [...prev, path]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -262,112 +264,107 @@ export const CreateListingPage: React.FC = () => {
     setError('');
 
     if (!currentUser) {
-      setError('Please sign in to publish your material listing to the marketplace.');
+      setError('Please sign in to publish or update a waste material listing.');
       return;
     }
 
-    if (!title || !description || quantity <= 0) {
+    // SECTION 1 & 3: Validate mandatory waste photographs
+    if (!images || images.length === 0) {
+      setHasAttemptedSubmit(true);
+      setError('Upload at least one photo of the waste material to continue.');
+      if (photoUploaderRef.current) {
+        photoUploaderRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+
+    if (!title.trim() || !description.trim() || quantity <= 0) {
       setError('Please fill all required material fields.');
       return;
     }
 
-    // Strict location validation
     if (!district || !locality || latitude === null || longitude === null) {
-      setError('Please provide a valid pickup location in Kerala using either "Use My Current Location" or "Search for a Location".');
+      setError('Please provide a valid pickup location in Kerala using either "Use current location" or "Search town or locality".');
       return;
     }
 
     setSubmitting(true);
 
+    const finalAddress = landmarkAddress.trim()
+      ? `${landmarkAddress.trim()}, ${formattedAddress || locality}`
+      : (formattedAddress || `${locality}, ${district}, Kerala`);
+
     try {
-      let finalImages: string[] = [];
-      let listingIsAiImage = isAiImage;
+      if (isEdit && editListingId) {
+        // Edit existing listing
+        await updateListing(editListingId, {
+          title: title.trim(),
+          description: description.trim(),
+          material_type: materialType || title,
+          category_id: categoryId || categories[0]?.id || 'cat-plastics',
+          quantity,
+          unit,
+          listing_type: listingType,
+          price: listingType === 'sale' ? price : 0,
+          condition,
+          district: district.trim(),
+          locality: locality.trim(),
+          address: finalAddress,
+          formatted_address: finalAddress,
+          latitude,
+          longitude,
+          images,
+          is_ai_image: false,
+        });
 
-      // FEATURE 1: Check whether user uploaded / provided an image
-      if (imageUrl && imageUrl.trim()) {
-        // User provided an image (uploaded photo, camera snapshot, or valid URL)
-        // Never replace user uploaded image
-        finalImages = [imageUrl.trim()];
+        navigate(`/marketplace/${editListingId}`);
       } else {
-        // Automatically generate AI illustrative image
-        setPublishingStage('generating_image');
-        const selectedCat = categories.find((c) => c.id === categoryId);
-        const jobId = `publish-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+        // Create new listing
+        const newId = await addListing({
+          user_id: currentUser.id,
+          category_id: categoryId || categories[0]?.id || 'cat-plastics',
+          title: title.trim(),
+          description: description.trim(),
+          material_type: materialType || title,
+          quantity,
+          unit,
+          listing_type: listingType,
+          price: listingType === 'sale' ? price : 0,
+          condition,
+          district: district.trim(),
+          locality: locality.trim(),
+          address: finalAddress,
+          city: city || locality,
+          state: state || 'Kerala',
+          pincode: pincode || undefined,
+          formatted_address: finalAddress,
+          latitude,
+          longitude,
+          status: 'active',
+          ai_classified: aiClassified,
+          ai_confidence: aiConfidence,
+          suggested_action: suggestedAction,
+          images,
+          is_ai_image: false,
+        });
 
+        // Clear prefill caches upon confirmed successful creation
+        setPendingScanPrefill(null);
         try {
-          const aiImageResult = await generateListingImage({
-            title: title.trim(),
-            category_id: categoryId,
-            category_slug: selectedCat?.slug || 'other',
-            material_type: materialType || title,
-            condition,
-            description: description.trim(),
-            user_id: currentUser.id,
-            job_id: jobId,
-          });
+          sessionStorage.removeItem('greenloop_prefill_scan');
+        } catch (_) {}
 
-          if (aiImageResult.image_url) {
-            finalImages = [aiImageResult.image_url];
-            listingIsAiImage = true;
-          } else {
-            const itemFallback = matchCuratedItemFallback(title.trim(), materialType, description.trim());
-            finalImages = [itemFallback?.imageUrl || CATEGORY_ILLUSTRATIVE_FALLBACKS[selectedCat?.slug || 'other'] || NEUTRAL_MATERIAL_PLACEHOLDER];
-            listingIsAiImage = true;
-          }
-        } catch (genErr) {
-          console.warn('AI image generation fallback during publishing:', genErr);
-          const itemFallback = matchCuratedItemFallback(title.trim(), materialType, description.trim());
-          finalImages = [itemFallback?.imageUrl || CATEGORY_ILLUSTRATIVE_FALLBACKS[selectedCat?.slug || 'other'] || NEUTRAL_MATERIAL_PLACEHOLDER];
-          listingIsAiImage = true;
-        }
+        navigate(`/marketplace/${newId}`);
       }
-
-      setPublishingStage('publishing');
-
-      const finalAddress = landmarkAddress.trim()
-        ? `${landmarkAddress.trim()}, ${formattedAddress || locality}`
-        : (formattedAddress || `${locality}, ${district}, Kerala`);
-
-      const newId = await addListing({
-        user_id: currentUser.id,
-        category_id: categoryId || categories[0]?.id || 'cat-plastics',
-        title: title.trim(),
-        description: description.trim(),
-        material_type: materialType || title,
-        quantity,
-        unit,
-        listing_type: listingType,
-        price: listingType === 'sale' ? price : 0,
-        condition,
-        district: district.trim(),
-        locality: locality.trim(),
-        address: finalAddress,
-        city: city || locality,
-        state: state || 'Kerala',
-        pincode: pincode || undefined,
-        formatted_address: finalAddress,
-        latitude,
-        longitude,
-        status: 'active',
-        ai_classified: aiClassified,
-        ai_confidence: aiConfidence,
-        suggested_action: suggestedAction,
-        images: finalImages,
-        is_ai_image: listingIsAiImage,
-      });
-
-      // Clear prefill caches ONLY after confirmed successful insert in Supabase
-      setPendingScanPrefill(null);
-      try {
-        sessionStorage.removeItem('greenloop_prefill_scan');
-      } catch (_) {}
-
-      navigate(`/marketplace/${newId}`);
     } catch (err: any) {
-      setError(err?.message || 'Failed to create listing. Please try again.');
+      console.error('Listing submission error:', err);
+      // Clean up orphaned uploaded files if listing creation fails
+      if (!isEdit && newlyUploadedPaths.length > 0) {
+        cleanupListingPhotos(newlyUploadedPaths);
+      }
+      setError(err?.message || 'Failed to save listing. Please try again.');
     } finally {
       setSubmitting(false);
-      setPublishingStage('idle');
     }
   };
 
@@ -382,20 +379,24 @@ export const CreateListingPage: React.FC = () => {
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-gl-charcoal-muted hover:text-gl-forest transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back to Marketplace</span>
+          <span>{isEdit ? 'Back to Listing' : 'Back to Marketplace'}</span>
         </button>
 
-        <Link to="/scanner">
-          <Button variant="secondary" size="sm" icon={<Sparkles className="w-4 h-4 text-gl-forest" />} fullWidth className="xs:w-auto rounded-xl">
-            Scan Material
-          </Button>
-        </Link>
+        {!isEdit && (
+          <Link to="/scanner">
+            <Button variant="secondary" size="sm" icon={<Sparkles className="w-4 h-4 text-gl-forest" />} fullWidth className="xs:w-auto rounded-xl">
+              Scan Material
+            </Button>
+          </Link>
+        )}
       </div>
 
       <div className="space-y-1">
         <div className="inline-flex items-center gap-1.5 mb-1">
-          <span className="text-[11px] font-medium text-[#103D2A] bg-[#E8EFE9] border border-[#C8D6C9] px-2 py-0.5 rounded-md">New Listing</span>
-          {aiClassified && (
+          <span className="text-[11px] font-medium text-[#103D2A] bg-[#E8EFE9] border border-[#C8D6C9] px-2 py-0.5 rounded-md">
+            {isEdit ? 'Edit Mode' : 'New Listing'}
+          </span>
+          {aiClassified && !isEdit && (
             <span className="text-[11px] font-medium text-[#103D2A] bg-[#E8EFE9] border border-[#C8D6C9] px-2 py-0.5 rounded-md inline-flex items-center gap-1">
               <Sparkles className="w-3 h-3 text-[#103D2A]" />
               Scanner Filled
@@ -403,18 +404,20 @@ export const CreateListingPage: React.FC = () => {
           )}
         </div>
         <h1 className="font-serif font-normal text-2xl sm:text-3xl text-[#103D2A] tracking-tight">
-          Add a Listing
+          {isEdit ? 'Edit Material Listing' : 'Add a Listing'}
         </h1>
         <p className="font-sans text-xs sm:text-sm text-[#5C6E66]">
-          Share recyclable materials or reusable items with verified partners nearby.
+          {isEdit
+            ? 'Update your material details or replace photographs for verified recycling partners.'
+            : 'Share recyclable materials or reusable items with verified partners nearby.'}
         </p>
 
         {!currentUser && (
           <div className="mt-2 p-2.5 bg-[#F8F6EF] rounded-md text-xs text-[#5C6E66] flex items-center justify-between border border-[#E8E4DA]">
-            <span>Listing as guest. Sign in to link this to your account and earn EcoPoints.</span>
+            <span>Sign in to link this listing to your account and earn EcoPoints.</span>
             <Link
               to="/login"
-              state={{ from: '/marketplace/new' }}
+              state={{ from: location.pathname }}
               className="font-medium text-[#103D2A] underline hover:opacity-80 shrink-0 ml-2"
             >
               Sign In
@@ -423,17 +426,35 @@ export const CreateListingPage: React.FC = () => {
         )}
       </div>
 
-      <div className="p-5 sm:p-7 space-y-5 bg-white border border-[#E8E4DA] rounded-lg shadow-subtle">
-        <form onSubmit={handleSubmit} className="space-y-5">
+      <div className="p-5 sm:p-7 space-y-5 bg-white border border-[#E8E4DA] rounded-xl shadow-subtle">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <div className="p-3 bg-rose-50 text-rose-800 rounded-md text-xs font-medium border border-rose-200 flex items-start gap-2">
+            <div className="p-3.5 bg-rose-50 text-rose-800 rounded-xl text-xs font-medium border border-rose-200 flex items-start gap-2.5 shadow-2xs">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
               <span>{error}</span>
             </div>
           )}
 
+          {/* 1. MANDATORY WASTE PHOTOGRAPH FIELD */}
+          <div ref={photoUploaderRef} className="pb-2">
+            <WastePhotoUploader
+              images={images}
+              onChange={(nextImages) => {
+                setImages(nextImages);
+                if (nextImages.length > 0 && error.includes('photo')) {
+                  setError('');
+                }
+              }}
+              userId={currentUser?.id || 'guest'}
+              listingId={editListingId}
+              isEdit={isEdit}
+              hasAttemptedSubmit={hasAttemptedSubmit}
+              onNewStoragePathAdded={handleStoragePathAdded}
+            />
+          </div>
+
           {/* Material Name, Type & Category */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-4 border-t border-[#E8E4DA]">
             <Input
               label="Item Title *"
               required
@@ -679,82 +700,6 @@ export const CreateListingPage: React.FC = () => {
             )}
           </div>
 
-          {/* Optional Photo or Scanned / AI Material Photograph */}
-          <div>
-            {imageUrl ? (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="block font-label-md text-label-md text-on-surface font-semibold">
-                    Photo Preview
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setImageUrl('');
-                      setIsAiImage(false);
-                    }}
-                    className="text-xs font-semibold text-error hover:underline flex items-center gap-1"
-                  >
-                    <X className="w-3.5 h-3.5" /> Remove photo
-                  </button>
-                </div>
-                <div className="relative inline-flex items-center gap-3.5 p-3 rounded-xl border border-outline-variant bg-surface-container-lowest shadow-xs">
-                  <img
-                    src={imageUrl}
-                    alt="Material preview"
-                    className="w-20 h-20 rounded-lg object-cover border border-outline-variant/60 shrink-0"
-                  />
-                  <div className="flex flex-col gap-1 min-w-0">
-                    <span className="font-semibold text-xs text-primary flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-secondary shrink-0" />
-                      Listing Photo
-                    </span>
-                    <span className="text-[11px] text-on-surface-variant leading-relaxed">
-                      Photo will be displayed on the marketplace card and details page.
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <Input
-                  label="Photo (optional)"
-                  placeholder="https://... (or leave empty to auto-generate a photo)"
-                  value={imageUrl}
-                  onChange={(e) => {
-                    setImageUrl(e.target.value);
-                    setIsAiImage(false);
-                  }}
-                  helperText="Leave empty to automatically generate a photo based on your item title, or preview one below."
-                />
-
-                <div className="flex flex-wrap items-center gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={handleGenerateAiPreview}
-                    disabled={isGeneratingPreview || !title.trim()}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-label-md text-xs font-semibold border border-outline-variant/60 transition-colors disabled:opacity-50"
-                  >
-                    {isGeneratingPreview ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Generating preview...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-3.5 h-3.5 text-secondary" />
-                        <span>Generate Photo Preview</span>
-                      </>
-                    )}
-                  </button>
-                  <span className="text-[11px] text-on-surface-variant">
-                    (Auto-generated if left empty)
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-
           <div className="pt-4 border-t border-gl-border flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3 w-full">
             <Button
               type="button"
@@ -775,21 +720,11 @@ export const CreateListingPage: React.FC = () => {
               className="sm:w-auto rounded-xl"
               loading={submitting}
               disabled={submitting}
-              icon={
-                publishingStage === 'generating_image' ? (
-                  <Sparkles className="w-4 h-4 text-white animate-spin" />
-                ) : (
-                  <Plus className="w-4 h-4" />
-                )
-              }
+              icon={isEdit ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
             >
-              {publishingStage === 'generating_image'
-                ? 'Generating photo...'
-                : publishingStage === 'publishing'
-                ? 'Publishing listing...'
-                : submitting
-                ? 'Publishing...'
-                : 'Publish Listing'}
+              {submitting
+                ? isEdit ? 'Updating...' : 'Publishing...'
+                : isEdit ? 'Save Changes' : 'Publish Listing'}
             </Button>
           </div>
         </form>
