@@ -8,6 +8,7 @@ import { LandscapeIllustration } from '../../components/dashboard/LandscapeIllus
 import { BotanicalWatermark } from '../../components/ui/BotanicalWatermark';
 import { Modal } from '../../components/ui/Modal';
 import { ExchangeRequest } from '../../types';
+import { getIssueTypeLabel } from '../../lib/reportCategories';
 import {
   Package,
   Repeat,
@@ -495,7 +496,9 @@ export const OverviewPage: React.FC = () => {
                 {recentReports.map((report) => (
                   <div key={report.id} className="py-2.5 first:pt-0 last:pb-0 space-y-1 text-xs">
                     <div className="flex items-center justify-between text-[#6F776F]">
-                      <span className="capitalize">{report.status.replace('_', ' ')}</span>
+                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#E8EFE9] text-[#103D2A] border border-[#C8D6C9]">
+                        {getIssueTypeLabel(report.issue_type)}
+                      </span>
                       <span>{new Date(report.created_at).toLocaleDateString()}</span>
                     </div>
                     <p className="font-medium text-[#18251F] line-clamp-1">{report.title}</p>

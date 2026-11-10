@@ -340,12 +340,20 @@ export interface PublicWasteBin {
   managed_by: string;
 }
 
+export type EnvironmentalIssueType =
+  | 'overflowing_bin'
+  | 'illegal_dumping'
+  | 'plastic_burning'
+  | 'water_pollution'
+  | 'other';
+
 export interface EnvironmentalReport {
   id: string;
   ticket_number: string;
   reporter_id: string;
   reporter_name: string;
-  issue_type: 'overflowing_bin' | 'illegal_dumping' | 'plastic_burning' | 'water_pollution';
+  issue_type: EnvironmentalIssueType;
+  other_description?: string;
   title: string;
   description: string;
   district: string;

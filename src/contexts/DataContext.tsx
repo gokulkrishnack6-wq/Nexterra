@@ -495,7 +495,40 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!repError && dbReports) {
         setReports((prev) => {
           const map = new Map<string, EnvironmentalReport>();
-          dbReports.forEach((item: any) => map.set(item.id, item as EnvironmentalReport));
+          dbReports.forEach((item: any) => {
+            let detailsObj: any = {};
+            if (item.details) {
+              try {
+                detailsObj = typeof item.details === 'string' ? JSON.parse(item.details) : item.details;
+              } catch {
+                detailsObj = {};
+              }
+            }
+            const reportObj: EnvironmentalReport = {
+              id: item.id,
+              ticket_number: detailsObj.ticket_number || item.ticket_number || `GL-REP-${String(item.id).slice(0, 6)}`,
+              reporter_id: item.reporter_id,
+              reporter_name: detailsObj.reporter_name || item.reporter_name || 'Community Citizen',
+              issue_type: item.reason || item.issue_type || detailsObj.issue_type || 'other',
+              other_description: detailsObj.other_description || item.other_description,
+              title: detailsObj.title || item.title || item.reason || 'Environmental Report',
+              description: detailsObj.description || item.description || (typeof item.details === 'string' && !detailsObj.description ? item.details : ''),
+              district: detailsObj.district || item.district || 'Kerala',
+              ward: detailsObj.ward || item.ward || 'Ward 01',
+              locality: detailsObj.locality || item.locality || 'Kerala',
+              landmark: detailsObj.landmark || item.landmark || '',
+              latitude: Number(detailsObj.latitude ?? item.latitude ?? 10.0),
+              longitude: Number(detailsObj.longitude ?? item.longitude ?? 76.2),
+              photo_url: detailsObj.photo_url || item.photo_url,
+              status: item.status || 'pending',
+              assigned_team: detailsObj.assigned_team || item.assigned_team,
+              assigned_vehicle: detailsObj.assigned_vehicle || item.assigned_vehicle,
+              resolution_notes: item.action_taken || detailsObj.resolution_notes || item.resolution_notes,
+              created_at: item.created_at || new Date().toISOString(),
+              updated_at: item.updated_at || item.created_at || new Date().toISOString(),
+            };
+            map.set(item.id, reportObj);
+          });
           prev.forEach((item) => {
             if (!map.has(item.id)) map.set(item.id, item);
           });
@@ -1905,10 +1938,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const randomTicket = `GL-REP-${Math.floor(1000 + Math.random() * 9000)}`;
     const reporterId = currentUser ? currentUser.id : 'guest-reporter';
     const reporterName = currentUser ? currentUser.full_name : 'Community Citizen';
+    const reportUuid = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : '00000000-0000-4000-8000-' + Date.now().toString().padStart(12, '0');
 
     const newReport: EnvironmentalReport = {
       ...reportData,
-      id: `rep-${Date.now()}`,
+      id: reportUuid,
       ticket_number: randomTicket,
       reporter_id: reporterId,
       reporter_name: reporterName,
@@ -1930,15 +1966,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           details: JSON.stringify({
             title: newReport.title,
             description: newReport.description,
+            other_description: newReport.other_description || null,
             district: newReport.district,
+            ward: newReport.ward,
             locality: newReport.locality,
+            landmark: newReport.landmark,
             latitude: newReport.latitude,
             longitude: newReport.longitude,
+            photo_url: newReport.photo_url || null,
             ticket_number: randomTicket,
+            issue_type: newReport.issue_type,
           }),
           status: 'pending',
         }
-      ]).then();
+      ]).then(({ error }) => {
+        if (error) {
+          console.warn('Notice: Supabase report persistence notice:', error.message);
+        }
+      });
     }
 
     setNotifications((prev) => [

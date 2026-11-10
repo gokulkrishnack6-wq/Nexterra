@@ -15,6 +15,7 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/Skeleton';
+import { getIssueTypeLabel } from '../../lib/reportCategories';
 
 export const ReportTrackingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -120,6 +121,14 @@ export const ReportTrackingPage: React.FC = () => {
                       </span>
                     )}
 
+                    <span className={`text-[11px] font-medium px-2 py-0.5 rounded-md inline-flex items-center gap-1 border ${
+                      ticket.issue_type === 'other'
+                        ? 'bg-[#F4EFE6] text-[#785418] border-[#DFC9A5]'
+                        : 'bg-[#F0F5F1] text-[#103D2A] border-[#C8D6C9]'
+                    }`}>
+                      {getIssueTypeLabel(ticket.issue_type)}
+                    </span>
+
                     <span className="font-mono text-xs font-medium text-[#103D2A]">
                       #{ticket.ticket_number}
                     </span>
@@ -132,6 +141,17 @@ export const ReportTrackingPage: React.FC = () => {
                   <h3 className="font-sans font-medium text-sm text-[#1C2826]">
                     {ticket.title}
                   </h3>
+
+                  {ticket.issue_type === 'other' && ticket.other_description && (
+                    <div className="p-2.5 rounded-md bg-[#FAF8F2] border border-[#DFC9A5] text-xs">
+                      <span className="font-medium text-[#785418] block text-[11px] uppercase tracking-wider">
+                        Reported Issue Description:
+                      </span>
+                      <p className="text-xs text-[#1C2826] mt-0.5 font-medium leading-relaxed">
+                        {ticket.other_description}
+                      </p>
+                    </div>
+                  )}
 
                   <p className="text-xs text-[#5C6E66] leading-relaxed">
                     {ticket.description}

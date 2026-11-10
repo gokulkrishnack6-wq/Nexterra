@@ -321,3 +321,4 @@ describe('GreenLoop Kerala Waste Discovery Map — Comprehensive Test Suite', ()
     });
   });
 });
+

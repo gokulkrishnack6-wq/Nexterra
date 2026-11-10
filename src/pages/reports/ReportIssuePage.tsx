@@ -18,6 +18,8 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Input, Textarea } from '../../components/ui/Input';
+import { EnvironmentalIssueType } from '../../types';
+import { ENVIRONMENTAL_ISSUE_CATEGORIES, getIssueTypeLabel } from '../../lib/reportCategories';
 
 export const ReportIssuePage: React.FC = () => {
   const navigate = useNavigate();
@@ -27,7 +29,9 @@ export const ReportIssuePage: React.FC = () => {
 
   const keralaDistricts = Object.keys(KERALA_DISTRICT_COORDS);
 
-  const [issueType, setIssueType] = useState<'overflowing_bin' | 'illegal_dumping' | 'plastic_burning' | 'water_pollution'>('overflowing_bin');
+  const [issueType, setIssueType] = useState<EnvironmentalIssueType>('overflowing_bin');
+  const [otherDescription, setOtherDescription] = useState('');
+  const [otherDescriptionError, setOtherDescriptionError] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [district, setDistrict] = useState(currentUser?.district || geoDistrict || '');
@@ -64,6 +68,14 @@ export const ReportIssuePage: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Required description when Other is selected
+    if (issueType === 'other' && !otherDescription.trim()) {
+      setOtherDescriptionError('Please describe the environmental issue.');
+      alert('Please describe the environmental issue you want to report.');
+      return;
+    }
+
     if (!title || !description) {
       alert('Please fill out all required fields.');
       return;
@@ -83,6 +95,7 @@ export const ReportIssuePage: React.FC = () => {
         reporter_id: currentUser ? currentUser.id : 'guest-reporter',
         reporter_name: currentUser ? currentUser.full_name : 'Community Citizen',
         issue_type: issueType,
+        other_description: issueType === 'other' ? otherDescription.trim() : undefined,
         title,
         description,
         district,
@@ -137,13 +150,26 @@ export const ReportIssuePage: React.FC = () => {
           <div className="w-12 h-12 rounded-full bg-[#E8EFE9] text-[#103D2A] border border-[#C8D6C9] flex items-center justify-center mx-auto">
             <CheckCircle2 className="w-6 h-6 text-emerald-700" />
           </div>
-          <div className="space-y-1">
+          <div className="space-y-2">
             <span className="text-xs text-[#5C6E66] uppercase tracking-wider block font-medium">
               Incident Report Recorded
             </span>
             <h2 className="font-mono font-bold text-2xl text-[#103D2A]">
               #{createdTicket}
             </h2>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#E8EFE9] text-[#103D2A] text-xs font-medium border border-[#C8D6C9]">
+              {getIssueTypeLabel(issueType)}
+            </div>
+            {issueType === 'other' && otherDescription && (
+              <div className="text-xs text-[#1C2826] bg-[#FAF8F2] border border-[#E8E4DA] p-2.5 rounded-md text-left max-w-sm mx-auto">
+                <span className="font-medium text-[#785418] block text-[11px] uppercase tracking-wider">
+                  Reported Issue Description:
+                </span>
+                <p className="mt-0.5 text-xs text-[#1C2826]">
+                  {otherDescription}
+                </p>
+              </div>
+            )}
             <p className="text-xs text-[#5C6E66] pt-1 leading-relaxed">
               Your environmental alert has been added to the GreenLoop tracking registry. You can monitor verification status on the public civic watch feed.
             </p>
@@ -168,6 +194,8 @@ export const ReportIssuePage: React.FC = () => {
                 setCreatedTicket(null);
                 setTitle('');
                 setDescription('');
+                setOtherDescription('');
+                setOtherDescriptionError('');
                 setPhotoPreview(null);
                 setPhotoUrl('');
               }}
@@ -185,18 +213,20 @@ export const ReportIssuePage: React.FC = () => {
                 Type of Environmental Issue *
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-                {[
-                  { id: 'overflowing_bin', title: 'Overflowing Public Bin', desc: 'Waste spilling onto walkway or street' },
-                  { id: 'illegal_dumping', title: 'Roadside / Vacant Plot Dump', desc: 'Commercial or residential unauthorized dumping' },
-                  { id: 'plastic_burning', title: 'Open Waste / Plastic Burning', desc: 'Smoke and air pollution hazards' },
-                  { id: 'water_pollution', title: 'Drain / Canal Contamination', desc: 'Solid waste accumulating in water bodies' },
-                ].map((item) => (
+                {ENVIRONMENTAL_ISSUE_CATEGORIES.map((item) => (
                   <label
                     key={item.id}
-                    onClick={() => setIssueType(item.id as any)}
+                    onClick={() => {
+                      setIssueType(item.id);
+                      if (item.id !== 'other') {
+                        setOtherDescriptionError('');
+                      }
+                    }}
                     className={`p-3 rounded-md border cursor-pointer transition-colors flex items-start gap-2.5 ${
+                      item.id === 'other' ? 'sm:col-span-2' : ''
+                    } ${
                       issueType === item.id
-                        ? 'bg-[#E8EFE9] border-[#103D2A] text-[#103D2A]'
+                        ? 'bg-[#E8EFE9] border-[#103D2A] text-[#103D2A] shadow-xs'
                         : 'bg-white border-[#E8E4DA] hover:bg-[#F8F6EF]'
                     }`}
                   >
@@ -204,10 +234,15 @@ export const ReportIssuePage: React.FC = () => {
                       type="radio"
                       name="issueType"
                       checked={issueType === item.id}
-                      onChange={() => setIssueType(item.id as any)}
+                      onChange={() => {
+                        setIssueType(item.id);
+                        if (item.id !== 'other') {
+                          setOtherDescriptionError('');
+                        }
+                      }}
                       className="mt-0.5 accent-[#103D2A]"
                     />
-                    <div>
+                    <div className="flex-1">
                       <span className="font-sans font-medium text-xs block text-[#1C2826]">{item.title}</span>
                       <span className="text-[11px] text-[#5C6E66] block mt-0.5">{item.desc}</span>
                     </div>
@@ -215,6 +250,28 @@ export const ReportIssuePage: React.FC = () => {
                 ))}
               </div>
             </div>
+
+            {/* Additional required field when "Other Environmental Issue" is selected */}
+            {issueType === 'other' && (
+              <div className="p-3.5 bg-[#FAF8F2] border border-[#DFC9A5] rounded-md space-y-2 transition-all">
+                <Input
+                  label="Describe the environmental issue *"
+                  placeholder="Briefly explain the issue you want to report..."
+                  value={otherDescription}
+                  onChange={(e) => {
+                    setOtherDescription(e.target.value);
+                    if (e.target.value.trim()) {
+                      setOtherDescriptionError('');
+                    }
+                  }}
+                  error={otherDescriptionError}
+                  required={issueType === 'other'}
+                />
+                <p className="text-[11px] text-[#5C6E66]">
+                  Please specify the environmental hazard, dumping, or pollution observed so our community and sanitation teams can take appropriate action.
+                </p>
+              </div>
+            )}
 
             {/* Title & Landmark */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">

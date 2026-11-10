@@ -15,6 +15,7 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { MetricCard } from '../../components/ui/MetricCard';
 import { EmptyState } from '../../components/ui/Skeleton';
+import { getIssueTypeLabel } from '../../lib/reportCategories';
 
 export const AdminDashboardPage: React.FC = () => {
   const { listings, recyclingCentres, transactions, deleteListing, reports, updateReportStatus } = useData();
@@ -195,6 +196,7 @@ export const AdminDashboardPage: React.FC = () => {
               <thead className="bg-gl-cream/60 text-xs text-gl-charcoal uppercase font-bold border-b border-gl-border">
                 <tr>
                   <th className="p-3.5">Ticket</th>
+                  <th className="p-3.5">Category</th>
                   <th className="p-3.5">Issue Title</th>
                   <th className="p-3.5">Locality &amp; Ward</th>
                   <th className="p-3.5">Status</th>
@@ -205,6 +207,20 @@ export const AdminDashboardPage: React.FC = () => {
                 {reports.map((r) => (
                   <tr key={r.id} className="hover:bg-gl-cream/30">
                     <td className="p-3.5 font-mono font-bold text-gl-forest">#{r.ticket_number}</td>
+                    <td className="p-3.5">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border inline-block ${
+                        r.issue_type === 'other'
+                          ? 'bg-amber-50 text-amber-800 border-amber-200'
+                          : 'bg-gl-sage-light text-gl-forest border-gl-border'
+                      }`}>
+                        {getIssueTypeLabel(r.issue_type)}
+                      </span>
+                      {r.issue_type === 'other' && r.other_description && (
+                        <span className="block text-[11px] text-gl-charcoal-muted mt-1 max-w-xs truncate" title={r.other_description}>
+                          "{r.other_description}"
+                        </span>
+                      )}
+                    </td>
                     <td className="p-3.5 font-bold text-gl-charcoal">{r.title}</td>
                     <td className="p-3.5 text-gl-charcoal-muted">{r.locality}, {r.ward}</td>
                     <td className="p-3.5">

@@ -5,3 +5,4 @@ import fs from 'fs';
 const rawOsm = JSON.parse(fs.readFileSync('scripts/osm-raw-kerala.json'));
 
 console.log('Total raw OSM elements:', rawOsm.length);
+

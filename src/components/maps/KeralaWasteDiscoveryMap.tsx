@@ -760,3 +760,4 @@ export const KeralaWasteDiscoveryMap: React.FC<KeralaWasteDiscoveryMapProps> = (
     </div>
   );
 };
+
