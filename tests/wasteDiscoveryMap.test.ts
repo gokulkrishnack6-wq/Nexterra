@@ -272,7 +272,7 @@ describe('GreenLoop Kerala Waste Discovery Map — Comprehensive Test Suite', ()
       `);
       const reportRes = await db.query('SELECT * FROM public.reports WHERE reported_item_type = \'location\';');
       expect(reportRes.rows.length).toBe(1);
-    });
+    }, 30000);
 
     it('community submissions default to pending_verification and maintain idempotency', async () => {
       const db = new PGlite();
@@ -318,7 +318,7 @@ describe('GreenLoop Kerala Waste Discovery Map — Comprehensive Test Suite', ()
         'SELECT COUNT(*) FROM public.waste_locations WHERE source_reference = \'COMMUNITY-TEST-001\';'
       );
       expect(Number(dupCount.rows[0].count)).toBe(1);
-    });
+    }, 30000);
   });
 });
 

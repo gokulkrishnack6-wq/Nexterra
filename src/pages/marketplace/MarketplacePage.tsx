@@ -1,15 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Search, Plus, X, Sparkles, Filter, Navigation, LayoutGrid, Map, MapPin, CheckCircle2 } from 'lucide-react';
+import { Search, Plus, X, Filter, LayoutGrid, Map } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { useGeolocation, KERALA_DISTRICT_COORDS, calculateDistanceKm } from '../../hooks/useGeolocation';
 import { ListingCard } from '../../components/marketplace/ListingCard';
 import { KeralaCircularMap } from '../../components/maps/KeralaCircularMap';
-import { LocationAutocomplete } from '../../components/ui/LocationAutocomplete';
-import { LocationSuggestion, reverseGeocodeCoordinates } from '../../services/geocoding';
-import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
-import { Card } from '../../components/ui/Card';
 import { EmptyState, ListingCardSkeleton } from '../../components/ui/Skeleton';
 
 export const MarketplacePage: React.FC = () => {
@@ -33,29 +28,13 @@ export const MarketplacePage: React.FC = () => {
   const [onlyAiVerified, setOnlyAiVerified] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
 
-  // Custom reference location selected by user via search or GPS button
-  const [customRefLocation, setCustomRefLocation] = useState<{
-    name: string;
-    locality?: string;
-    district?: string;
-    latitude: number;
-    longitude: number;
-    source: 'gps' | 'search';
-  } | null>(null);
-  const [isDetectingGps, setIsDetectingGps] = useState(false);
-  const [gpsNotice, setGpsNotice] = useState<string | null>(null);
-
   const keralaDistricts = Object.keys(KERALA_DISTRICT_COORDS);
 
   // Geographic reference point calculation:
-  // 1. Explicit user custom search location or GPS click
-  // 2. User browser geolocation coords
-  // 3. Selected district center
-  // 4. Default to Ernakulam (central Kerala)
+  // 1. User browser geolocation coords
+  // 2. Selected district center
+  // 3. Fallback to Ernakulam (central Kerala)
   const refCoords = useMemo(() => {
-    if (customRefLocation) {
-      return { latitude: customRefLocation.latitude, longitude: customRefLocation.longitude };
-    }
     if (selectedDistrict && selectedDistrict !== 'All Kerala' && KERALA_DISTRICT_COORDS[selectedDistrict]) {
       if (detectedDistrict?.toLowerCase() === selectedDistrict.toLowerCase() && geoCoords?.latitude && geoCoords?.longitude) {
         return { latitude: geoCoords.latitude, longitude: geoCoords.longitude };
@@ -69,82 +48,7 @@ export const MarketplacePage: React.FC = () => {
       return KERALA_DISTRICT_COORDS[detectedDistrict];
     }
     return KERALA_DISTRICT_COORDS['Ernakulam'];
-  }, [customRefLocation, geoCoords, selectedDistrict, detectedDistrict]);
-
-  const activeReferenceLabel = useMemo(() => {
-    if (customRefLocation) {
-      return `${customRefLocation.locality ? `${customRefLocation.locality}, ` : ''}${customRefLocation.district || customRefLocation.name}`;
-    }
-    if (geoCoords && geoCoords.latitude && geoCoords.longitude) {
-      return detectedDistrict ? `${detectedDistrict} (GPS)` : 'Your GPS Location';
-    }
-    if (selectedDistrict !== 'All Kerala') {
-      return selectedDistrict;
-    }
-    return 'Kerala (Central)';
-  }, [customRefLocation, geoCoords, detectedDistrict, selectedDistrict]);
-
-  const handleUseGps = () => {
-    if (!navigator.geolocation) {
-      setGpsNotice('Geolocation is not supported by your browser.');
-      return;
-    }
-    setIsDetectingGps(true);
-    setGpsNotice(null);
-
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude;
-        const lon = pos.coords.longitude;
-        try {
-          const rev = await reverseGeocodeCoordinates(lat, lon);
-          setCustomRefLocation({
-            name: rev.name,
-            locality: rev.locality,
-            district: rev.district,
-            latitude: lat,
-            longitude: lon,
-            source: 'gps',
-          });
-        } catch {
-          setCustomRefLocation({
-            name: 'Current Location',
-            latitude: lat,
-            longitude: lon,
-            source: 'gps',
-          });
-        } finally {
-          setIsDetectingGps(false);
-        }
-      },
-      (err) => {
-        setIsDetectingGps(false);
-        if (err.code === 1) {
-          setGpsNotice('Location permission was denied. You can search for your town below.');
-        } else {
-          setGpsNotice('Could not retrieve GPS coordinates. Please search for your town below.');
-        }
-      },
-      { timeout: 12000, enableHighAccuracy: true }
-    );
-  };
-
-  const handleSelectAutocomplete = (suggestion: LocationSuggestion) => {
-    setCustomRefLocation({
-      name: suggestion.name,
-      locality: suggestion.locality,
-      district: suggestion.district,
-      latitude: suggestion.latitude,
-      longitude: suggestion.longitude,
-      source: 'search',
-    });
-    setGpsNotice(null);
-  };
-
-  const handleClearRefLocation = () => {
-    setCustomRefLocation(null);
-    setGpsNotice(null);
-  };
+  }, [geoCoords, selectedDistrict, detectedDistrict]);
 
   const handleCategoryChange = (slug: string) => {
     if (slug === 'all') {
@@ -235,19 +139,19 @@ export const MarketplacePage: React.FC = () => {
   }, [sourceListings, categories, selectedCategory, selectedDistrict, selectedRadius, selectedPricing, onlyAiVerified, searchTerm, sortBy, refCoords]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 space-y-6 text-left">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 space-y-4 text-left">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E8E4DA] pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E8E4DA] pb-4">
         <div>
           <h1 className="font-serif font-normal text-2xl sm:text-3xl text-[#103D2A] tracking-tight">
             Waste Marketplace
           </h1>
-          <p className="font-sans text-xs sm:text-sm text-[#5C6E66] mt-1">
+          <p className="font-sans text-xs sm:text-sm text-[#5C6E66] mt-0.5">
             Browse recyclable and reusable secondary materials available across Kerala.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           {/* View Mode Toggle: Grid vs Map */}
           <div className="inline-flex p-0.5 bg-[#F8F6EF] rounded-md border border-[#E8E4DA]">
             <button
@@ -276,13 +180,6 @@ export const MarketplacePage: React.FC = () => {
             </button>
           </div>
 
-          <Link to="/smart-match" className="flex-1 sm:flex-initial">
-            <button className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white hover:bg-[#F8F6EF] text-[#1C2826] border border-[#E8E4DA] rounded-md text-xs font-medium shadow-subtle transition-colors">
-              <Sparkles className="w-3.5 h-3.5 text-[#103D2A]" />
-              <span>Smart Matches</span>
-            </button>
-          </Link>
-
           <Link to="/marketplace/new" className="flex-1 sm:flex-initial">
             <button className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 bg-[#103D2A] hover:bg-[#0A261A] text-white rounded-md text-xs font-medium shadow-subtle transition-colors">
               <Plus className="w-3.5 h-3.5 text-white" />
@@ -306,61 +203,11 @@ export const MarketplacePage: React.FC = () => {
       )}
 
       {/* Filter Toolbar */}
-      <div className="bg-white border border-[#E8E4DA] rounded-lg p-3.5 sm:p-4 shadow-subtle space-y-3">
-        {/* Row 1: Location Filter */}
-        <div className="p-2.5 bg-[#F8F6EF] rounded-md border border-[#E8E4DA] flex flex-col md:flex-row md:items-center justify-between gap-2.5 text-xs">
-          <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-2">
-            <div className="flex items-center gap-1.5 text-[#103D2A] font-medium shrink-0">
-              <MapPin className="w-3.5 h-3.5 text-[#103D2A]" />
-              <span className="font-sans">Reference:</span>
-            </div>
-
-            <div className="flex-1 max-w-sm">
-              <LocationAutocomplete
-                placeholder="Search town or locality..."
-                onSelect={handleSelectAutocomplete}
-                initialValue={customRefLocation?.name || ''}
-              />
-            </div>
-
-            <button
-              onClick={handleUseGps}
-              disabled={isDetectingGps}
-              className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-white hover:bg-[#F8F6EF] border border-[#DCD6CB] text-[#1C2826] rounded-md text-xs font-medium transition-colors shrink-0 disabled:opacity-50"
-              title="Use current location"
-            >
-              <Navigation className={`w-3.5 h-3.5 text-[#103D2A] ${isDetectingGps ? 'animate-spin' : ''}`} />
-              <span>{isDetectingGps ? 'Locating...' : 'Use current GPS'}</span>
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#E8EFE9] text-[#103D2A] rounded-md text-xs font-medium border border-[#C8D6C9]">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
-              <span>Near: {activeReferenceLabel}</span>
-              {customRefLocation && (
-                <button
-                  onClick={handleClearRefLocation}
-                  className="ml-1 hover:text-red-500 transition-colors"
-                  title="Reset location"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {gpsNotice && (
-          <div className="text-xs text-amber-900 bg-amber-50 p-2.5 rounded-md border border-amber-200">
-            {gpsNotice}
-          </div>
-        )}
-
-        {/* Row 2: Standard Filtering & Sorting */}
+      <div className="bg-white border border-[#E8E4DA] rounded-lg p-3 sm:p-3.5 shadow-subtle space-y-2.5">
+        {/* Search & Filter Controls */}
         <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 text-xs">
           {/* Keyword Search */}
-          <div className="sm:col-span-3 relative">
+          <div className="sm:col-span-4 relative">
             <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#7B8B83]" />
             <input
               type="text"
@@ -380,7 +227,7 @@ export const MarketplacePage: React.FC = () => {
           </div>
 
           {/* District Select */}
-          <div className="sm:col-span-3">
+          <div className="sm:col-span-2">
             <select
               value={selectedDistrict}
               onChange={(e) => setSelectedDistrict(e.target.value)}

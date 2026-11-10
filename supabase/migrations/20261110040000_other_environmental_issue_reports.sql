@@ -51,3 +51,4 @@ BEGIN
       FOR SELECT USING (auth.uid() = reporter_id);
   END IF;
 END $$;
+

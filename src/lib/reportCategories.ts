@@ -58,3 +58,4 @@ export const getIssueTypeLabel = (type: string | undefined | null): string => {
       return type.replace(/_/g, ' ');
   }
 };
+
