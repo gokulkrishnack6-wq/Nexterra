@@ -440,8 +440,8 @@ describe('GreenLoop Marketplace Cross-Account Visibility & Scanner Validation', 
     });
   });
 
-  describe('Phase 5: Separation of Demo Data from Real Listings', () => {
-    it('ensures demo listings are distinguishable by is_demo: true and demo- prefix', () => {
+  describe('Phase 5: Four Permanent Fixed-Location Marketplace Listings', () => {
+    it('ensures fixed marketplace listings have stable identifiers starting with demo- prefix', () => {
       const demoListings = generateDynamicDemoListings(
         { latitude: 12.2167, longitude: 75.1667 },
         'Cheruvathur',
@@ -452,12 +452,11 @@ describe('GreenLoop Marketplace Cross-Account Visibility & Scanner Validation', 
 
       expect(demoListings).toHaveLength(4);
       demoListings.forEach((demo) => {
-        expect(demo.is_demo).toBe(true);
         expect(demo.id.startsWith('demo-')).toBe(true);
       });
     });
 
-    it('ensures real user listings always have is_demo: false and appear ahead of demo listings', () => {
+    it('ensures real user listings and fixed listings coexist without collision', () => {
       const realListing: WasteListing = {
         id: 'e1111111-2222-4333-8444-555555555555',
         user_id: 'user-a',
@@ -491,12 +490,8 @@ describe('GreenLoop Marketplace Cross-Account Visibility & Scanner Validation', 
 
       // First item is real listing
       expect(combined[0].id).toBe('e1111111-2222-4333-8444-555555555555');
-      expect(combined[0].is_demo).toBe(false);
 
-      // Remaining items are demo listings
-      expect(combined.slice(1).every((l) => l.is_demo === true)).toBe(true);
-
-      // Deduplication: real listing is never overwritten by demo data
+      // Deduplication: real listing is never overwritten by fixed listing data
       const nonConflictingDemo = demoListings.filter((d) => d.id !== realListing.id);
       expect(nonConflictingDemo).toHaveLength(4);
     });

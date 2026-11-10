@@ -188,9 +188,15 @@ export function findNearbyRealLocalities(
 }
 
 /**
- * Fixed 4 Competition Demonstration Materials
+ * Fixed 4 Permanent Kerala Marketplace Materials
+ * Each listing has an immutable, permanent district, locality, municipality, and actual coordinates.
+ *
+ * 1. Coconut Husk Waste -> Kasaragod (Kanhangad)
+ * 2. Used Cardboard Boxes -> Kannur (Thalassery)
+ * 3. Used Plastic Bottles -> Kollam (Karunagappally)
+ * 4. Vegetable and Fruit Waste -> Thrissur (Irinjalakuda)
  */
-export interface DemoMaterialTemplate {
+export interface FixedMaterialTemplate {
   id: string;
   title: string;
   category_id: string;
@@ -202,9 +208,18 @@ export interface DemoMaterialTemplate {
   purpose: string;
   suggested_action: string;
   image: string;
+  district: string;
+  locality: string;
+  municipality: string;
+  address: string;
+  latitude: number;
+  longitude: number;
 }
 
-export const DEMO_MATERIALS: DemoMaterialTemplate[] = [
+// Preserve DemoMaterialTemplate type alias for backward compatibility
+export type DemoMaterialTemplate = FixedMaterialTemplate;
+
+export const FIXED_MARKETPLACE_MATERIALS: FixedMaterialTemplate[] = [
   {
     id: 'demo-coconut-husk',
     title: 'Coconut Husk Waste',
@@ -217,6 +232,12 @@ export const DEMO_MATERIALS: DemoMaterialTemplate[] = [
     purpose: 'Coir production, gardening and composting. Sun-dried raw coconut husks accumulated from domestic harvesting. Clean and fiber-intact, ideal for coir yarn spinning, potting medium, or organic mulch.',
     suggested_action: 'Coir production, gardening and composting',
     image: '/images/materials/coconut-husk-waste.jpg',
+    district: 'Kasaragod',
+    locality: 'Kanhangad',
+    municipality: 'Kanhangad',
+    address: 'Kanhangad, Kasaragod, Kerala',
+    latitude: 12.3089,
+    longitude: 75.0906,
   },
   {
     id: 'demo-cardboard-boxes',
@@ -230,6 +251,12 @@ export const DEMO_MATERIALS: DemoMaterialTemplate[] = [
     purpose: 'Recycling and packaging reuse. Assorted corrugated shipping and delivery cartons. Clean, flattened, free of tape and contaminants, suitable for reuse or pulp recycling.',
     suggested_action: 'Recycling and packaging reuse',
     image: '/images/materials/used-cardboard-boxes.jpg',
+    district: 'Kannur',
+    locality: 'Thalassery',
+    municipality: 'Thalassery',
+    address: 'Thalassery, Kannur, Kerala',
+    latitude: 11.7483,
+    longitude: 75.4894,
   },
   {
     id: 'demo-plastic-bottles',
@@ -243,6 +270,12 @@ export const DEMO_MATERIALS: DemoMaterialTemplate[] = [
     purpose: 'Plastic recycling. Clean, rinsed, and compacted clear PET bottles and containers. Sorted by polymer grade, ready for mechanical flaking and fiber extrusion.',
     suggested_action: 'Plastic recycling',
     image: '/images/materials/used-plastic-bottles.jpg',
+    district: 'Kollam',
+    locality: 'Karunagappally',
+    municipality: 'Karunagappally',
+    address: 'Karunagappally, Kollam, Kerala',
+    latitude: 9.0556,
+    longitude: 76.5361,
   },
   {
     id: 'demo-vegetable-fruit',
@@ -256,98 +289,36 @@ export const DEMO_MATERIALS: DemoMaterialTemplate[] = [
     purpose: 'Composting and agricultural reuse. Daily segregated wet organic scraps from raw vegetable trims and fruit discards. Suitable for decentralized biogas digesters or aerobic windrow composting.',
     suggested_action: 'Composting and agricultural reuse',
     image: '/images/materials/vegetable-fruit-waste.jpg',
+    district: 'Thrissur',
+    locality: 'Irinjalakuda',
+    municipality: 'Irinjalakuda',
+    address: 'Irinjalakuda, Thrissur, Kerala',
+    latitude: 10.3444,
+    longitude: 76.2089,
   },
 ];
 
-const DEMO_USER_PROFILE: UserProfile = {
-  id: 'greenloop-demo-system',
-  full_name: 'Verified Community Generator (Sample)',
-  email: 'sample.generator@greenloop.eco',
-  role: 'individual',
-  district: 'Ernakulam',
-  state: 'Kerala',
-  latitude: 9.9816,
-  longitude: 76.2999,
-  eco_points_balance: 0,
-  is_verified: true,
-  bio: 'Competition demonstration profile showcasing verified circular material recovery.',
-  created_at: '2026-01-01T00:00:00Z',
-};
+// Backward-compatibility export
+export const DEMO_MATERIALS: DemoMaterialTemplate[] = FIXED_MARKETPLACE_MATERIALS;
 
 /**
- * Generates 4 location-specific sample waste listings:
- * - 1 listing assigned to user's detected locality (offset by ~0.8 km)
- * - 3 listings assigned to 3 distinct nearby localities
- *
- * All coordinates are real geographic numbers.
- * Distances are calculated mathematically using the Haversine formula.
+ * Returns the four permanent fixed-location marketplace listings across Kerala.
+ * Their locations are strictly invariant to user GPS, profile district, or dashboard settings.
  */
-export function generateDynamicDemoListings(
-  coords: LocationCoords | null,
-  detectedLocality?: string,
-  detectedDistrict?: string,
-  detectedCity?: string,
-  categories?: WasteCategory[]
-): WasteListing[] {
-  // Determine reference coordinates and locality
-  let refLat: number;
-  let refLon: number;
-  let userLoc: string;
-  let userDist: string;
-
-  if (coords && typeof coords.latitude === 'number' && typeof coords.longitude === 'number') {
-    refLat = coords.latitude;
-    refLon = coords.longitude;
-    userLoc = detectedLocality || detectedCity || detectedDistrict || 'Local Centre';
-    userDist = detectedDistrict || 'Ernakulam';
-  } else if (detectedDistrict && KERALA_DISTRICT_COORDS[detectedDistrict]) {
-    const districtCoords = KERALA_DISTRICT_COORDS[detectedDistrict];
-    refLat = districtCoords.latitude;
-    refLon = districtCoords.longitude;
-    userLoc = detectedLocality || `${detectedDistrict} Town`;
-    userDist = detectedDistrict;
-  } else {
-    // Standard Kerala reference centroid when completely undetected
-    const fallback = KERALA_DISTRICT_COORDS['Ernakulam'];
-    refLat = fallback.latitude;
-    refLon = fallback.longitude;
-    userLoc = 'Kochi Central';
-    userDist = 'Ernakulam';
-  }
-
-  // Listing 1: Placed in the user's detected locality (~0.8 km offset)
-  // ~0.005 lat offset ≈ 555m, ~0.005 lon offset ≈ 550m => sqrt(555^2 + 550^2) ≈ 780m (0.8 km)
-  const loc1Lat = Math.round((refLat + 0.005) * 10000) / 10000;
-  const loc1Lon = Math.round((refLon + 0.005) * 10000) / 10000;
-
-  // Listings 2, 3, 4: Pick 3 distinct real nearby localities from actual geographic data
-  const nearby = findNearbyRealLocalities(refLat, refLon, userLoc, 3);
-
-  // If fewer than 3 were found (rare), fallback to distinct defaults
-  const fallbackList: GeographicLocality[] = [
-    { locality: 'Palarivattom', district: 'Ernakulam', latitude: 10.0033, longitude: 76.3075, region: 'Kerala' },
-    { locality: 'Edappally', district: 'Ernakulam', latitude: 10.0261, longitude: 76.3125, region: 'Kerala' },
-    { locality: 'Aluva', district: 'Ernakulam', latitude: 10.1076, longitude: 76.3516, region: 'Kerala' },
+export function getFixedMarketplaceListings(categories?: WasteCategory[]): WasteListing[] {
+  const STABLE_TIMESTAMPS = [
+    '2026-02-01T08:00:00Z',
+    '2026-02-01T09:30:00Z',
+    '2026-02-01T11:00:00Z',
+    '2026-02-01T14:15:00Z',
   ];
 
-  const loc2 = nearby[0] || fallbackList[0];
-  const loc3 = nearby[1] || fallbackList[1];
-  const loc4 = nearby[2] || fallbackList[2];
-
-  const assignments = [
-    { locality: userLoc, district: userDist, latitude: loc1Lat, longitude: loc1Lon },
-    { locality: loc2.locality, district: loc2.district, latitude: loc2.latitude, longitude: loc2.longitude },
-    { locality: loc3.locality, district: loc3.district, latitude: loc3.latitude, longitude: loc3.longitude },
-    { locality: loc4.locality, district: loc4.district, latitude: loc4.latitude, longitude: loc4.longitude },
-  ];
-
-  return DEMO_MATERIALS.map((item, index) => {
-    const loc = assignments[index];
+  return FIXED_MARKETPLACE_MATERIALS.map((item, index) => {
     const category = categories?.find((c) => c.id === item.category_id || c.slug === item.category_slug);
 
     return {
       id: item.id,
-      user_id: DEMO_USER_PROFILE.id,
+      user_id: `member-${item.district.toLowerCase()}`,
       category_id: item.category_id,
       title: item.title,
       description: item.purpose,
@@ -357,27 +328,53 @@ export function generateDynamicDemoListings(
       listing_type: 'free' as const,
       price: 0,
       condition: item.condition,
-      district: loc.district,
-      locality: loc.locality,
-      address: `${loc.locality}, ${loc.district}`,
-      latitude: loc.latitude,
-      longitude: loc.longitude,
+      district: item.district,
+      locality: item.locality,
+      municipality: item.municipality,
+      address: item.address,
+      formatted_address: item.address,
+      latitude: item.latitude,
+      longitude: item.longitude,
       status: 'active' as const,
       ai_classified: true,
       ai_confidence: 96.5,
       suggested_action: item.suggested_action,
-      created_at: new Date(Date.now() - (index + 1) * 3600000 * 2).toISOString(),
-      is_demo: true,
+      created_at: STABLE_TIMESTAMPS[index] || '2026-02-01T12:00:00Z',
+      is_demo: false,
       category,
       user: {
-        ...DEMO_USER_PROFILE,
-        district: loc.district,
-        latitude: loc.latitude,
-        longitude: loc.longitude,
+        id: `member-${item.district.toLowerCase()}`,
+        full_name: 'GreenLoop Community Member',
+        email: `community.${item.district.toLowerCase()}@greenloop.eco`,
+        role: 'individual',
+        district: item.district,
+        locality: item.locality,
+        state: 'Kerala',
+        latitude: item.latitude,
+        longitude: item.longitude,
+        eco_points_balance: 100 + index * 25,
+        is_verified: false,
+        bio: `Community member in ${item.locality}, ${item.district} sharing circular materials.`,
+        created_at: '2026-01-01T00:00:00Z',
       },
       images: [item.image],
     };
   });
+}
+
+/**
+ * Returns the permanent fixed-location marketplace listings.
+ * Signature preserved for full backwards-compatibility.
+ * Arguments are accepted but ignored so coordinates never change dynamically.
+ */
+export function generateDynamicDemoListings(
+  _coords?: LocationCoords | null,
+  _detectedLocality?: string,
+  _detectedDistrict?: string,
+  _detectedCity?: string,
+  categories?: WasteCategory[]
+): WasteListing[] {
+  return getFixedMarketplaceListings(categories);
 }
 
 /**

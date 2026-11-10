@@ -1,26 +1,29 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
+  getFixedMarketplaceListings,
   generateDynamicDemoListings,
-  findNearbyRealLocalities,
   isDemoListing,
+  FIXED_MARKETPLACE_MATERIALS,
   DEMO_MATERIALS,
   VERIFIED_REAL_LOCALITIES,
 } from '../src/lib/demoMarketplace';
 import { calculateDistanceKm, KERALA_DISTRICT_COORDS } from '../src/contexts/LocationContext';
 import { INITIAL_CATEGORIES } from '../src/lib/mockData';
+import { isLocationInDistrict, isLocationInMunicipality } from '../src/services/mapSearchService';
 import { WasteListing } from '../src/types';
 
-describe('GreenLoop Dynamic Location-Based Marketplace Demo System', () => {
+describe('GreenLoop Four Permanent Fixed-Location Marketplace Listings', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
 
-  describe('1. Fixed 4 Sample Materials Specification Integrity', () => {
-    it('defines the 4 required materials with exact names, quantities, units, and conditions', () => {
-      expect(DEMO_MATERIALS).toHaveLength(4);
+  describe('1. Preservation of the Four Existing Materials', () => {
+    it('preserves all four existing listing templates with accurate names, quantities, and units', () => {
+      expect(FIXED_MARKETPLACE_MATERIALS).toHaveLength(4);
 
-      // 1. Coconut Husk Waste
-      const mat1 = DEMO_MATERIALS[0];
+      // Listing 1: Coconut Husk Waste
+      const mat1 = FIXED_MARKETPLACE_MATERIALS[0];
+      expect(mat1.id).toBe('demo-coconut-husk');
       expect(mat1.title).toBe('Coconut Husk Waste');
       expect(mat1.category_id).toBe('cat-agricultural');
       expect(mat1.quantity).toBe(25);
@@ -28,8 +31,9 @@ describe('GreenLoop Dynamic Location-Based Marketplace Demo System', () => {
       expect(mat1.condition).toBe('Dry');
       expect(mat1.purpose).toContain('Coir production, gardening and composting');
 
-      // 2. Used Cardboard Boxes
-      const mat2 = DEMO_MATERIALS[1];
+      // Listing 2: Used Cardboard Boxes
+      const mat2 = FIXED_MARKETPLACE_MATERIALS[1];
+      expect(mat2.id).toBe('demo-cardboard-boxes');
       expect(mat2.title).toBe('Used Cardboard Boxes');
       expect(mat2.category_id).toBe('cat-paper');
       expect(mat2.quantity).toBe(15);
@@ -37,8 +41,9 @@ describe('GreenLoop Dynamic Location-Based Marketplace Demo System', () => {
       expect(mat2.condition).toBe('Clean and dry');
       expect(mat2.purpose).toContain('Recycling and packaging reuse');
 
-      // 3. Used Plastic Bottles
-      const mat3 = DEMO_MATERIALS[2];
+      // Listing 3: Used Plastic Bottles
+      const mat3 = FIXED_MARKETPLACE_MATERIALS[2];
+      expect(mat3.id).toBe('demo-plastic-bottles');
       expect(mat3.title).toBe('Used Plastic Bottles');
       expect(mat3.category_id).toBe('cat-plastics');
       expect(mat3.quantity).toBe(8);
@@ -46,8 +51,9 @@ describe('GreenLoop Dynamic Location-Based Marketplace Demo System', () => {
       expect(mat3.condition).toBe('Clean and sorted');
       expect(mat3.purpose).toContain('Plastic recycling');
 
-      // 4. Vegetable and Fruit Waste
-      const mat4 = DEMO_MATERIALS[3];
+      // Listing 4: Vegetable and Fruit Waste
+      const mat4 = FIXED_MARKETPLACE_MATERIALS[3];
+      expect(mat4.id).toBe('demo-vegetable-fruit');
       expect(mat4.title).toBe('Vegetable and Fruit Waste');
       expect(mat4.category_id).toBe('cat-organic');
       expect(mat4.quantity).toBe(10);
@@ -56,228 +62,195 @@ describe('GreenLoop Dynamic Location-Based Marketplace Demo System', () => {
       expect(mat4.purpose).toContain('Composting and agricultural reuse');
     });
 
-    it('ensures each material template provides a realistic photograph URL or local path', () => {
-      DEMO_MATERIALS.forEach((mat) => {
-        expect(mat.image).toMatch(/^(\/images\/materials\/|https:\/\/)/);
+    it('ensures each listing provides a valid photograph file path', () => {
+      FIXED_MARKETPLACE_MATERIALS.forEach((mat) => {
+        expect(mat.image).toMatch(/^\/images\/materials\/.*\.(jpg|jpeg|png|webp)$/i);
       });
     });
   });
 
-  describe('2. Location Adaptation – Test Location A: Ernakulam (Kakkanad)', () => {
-    const ernakulamCoords = { latitude: 9.9816, longitude: 76.2999 };
-    const locality = 'Kakkanad';
-    const district = 'Ernakulam';
+  describe('2. Permanent Invariant District and Coordinate Assignments', () => {
+    it('assigns Listing 1 permanently to Kasaragod (Kanhangad)', () => {
+      const listings = getFixedMarketplaceListings(INITIAL_CATEGORIES);
+      const l1 = listings.find((l) => l.id === 'demo-coconut-husk');
 
-    it('generates 4 listings with one in user locality and 3 in distinct nearby localities', () => {
-      const listings = generateDynamicDemoListings(
-        ernakulamCoords,
-        locality,
-        district,
-        'Kochi',
-        INITIAL_CATEGORIES
-      );
-
-      expect(listings).toHaveLength(4);
-
-      // Listing 1: assigned to user's detected locality
-      expect(listings[0].locality).toBe('Kakkanad');
-      expect(listings[0].district).toBe('Ernakulam');
-      expect(listings[0].title).toBe('Coconut Husk Waste');
-
-      // Listings 2, 3, 4: assigned to 3 distinct nearby localities
-      const allLocalities = listings.map((l) => l.locality);
-      const uniqueLocalities = new Set(allLocalities);
-      expect(uniqueLocalities.size).toBe(4);
-
-      // Verify that all 4 are distinct and no two share the same locality
-      expect(listings[1].locality).not.toBe(listings[0].locality);
-      expect(listings[2].locality).not.toBe(listings[1].locality);
-      expect(listings[3].locality).not.toBe(listings[2].locality);
+      expect(l1).toBeDefined();
+      expect(l1!.district).toBe('Kasaragod');
+      expect(l1!.locality).toBe('Kanhangad');
+      expect(l1!.municipality).toBe('Kanhangad');
+      expect(l1!.latitude).toBe(12.3089);
+      expect(l1!.longitude).toBe(75.0906);
     });
 
-    it('calculates mathematically derived Haversine distances for all 4 listings from user coordinates', () => {
-      const listings = generateDynamicDemoListings(
-        ernakulamCoords,
-        locality,
-        district,
-        'Kochi',
-        INITIAL_CATEGORIES
-      );
+    it('assigns Listing 2 permanently to Kannur (Thalassery)', () => {
+      const listings = getFixedMarketplaceListings(INITIAL_CATEGORIES);
+      const l2 = listings.find((l) => l.id === 'demo-cardboard-boxes');
 
-      listings.forEach((listing) => {
-        expect(listing.latitude).toBeGreaterThan(8.0);
-        expect(listing.latitude).toBeLessThan(13.0);
-        expect(listing.longitude).toBeGreaterThan(74.0);
-        expect(listing.longitude).toBeLessThan(78.0);
+      expect(l2).toBeDefined();
+      expect(l2!.district).toBe('Kannur');
+      expect(l2!.locality).toBe('Thalassery');
+      expect(l2!.municipality).toBe('Thalassery');
+      expect(l2!.latitude).toBe(11.7483);
+      expect(l2!.longitude).toBe(75.4894);
+    });
 
-        const dist = calculateDistanceKm(
-          ernakulamCoords.latitude,
-          ernakulamCoords.longitude,
-          listing.latitude,
-          listing.longitude
-        );
+    it('assigns Listing 3 permanently to Kollam (Karunagappally)', () => {
+      const listings = getFixedMarketplaceListings(INITIAL_CATEGORIES);
+      const l3 = listings.find((l) => l.id === 'demo-plastic-bottles');
 
-        expect(dist).toBeGreaterThanOrEqual(0.5);
-        expect(dist).toBeLessThan(60); // All within sensible nearby radius
-      });
+      expect(l3).toBeDefined();
+      expect(l3!.district).toBe('Kollam');
+      expect(l3!.locality).toBe('Karunagappally');
+      expect(l3!.municipality).toBe('Karunagappally');
+      expect(l3!.latitude).toBe(9.0556);
+      expect(l3!.longitude).toBe(76.5361);
+    });
 
-      // Listing 1 should be immediately nearby (< 1.5 km)
-      const dist1 = calculateDistanceKm(
-        ernakulamCoords.latitude,
-        ernakulamCoords.longitude,
-        listings[0].latitude,
-        listings[0].longitude
-      );
-      expect(dist1).toBeLessThan(1.5);
+    it('assigns Listing 4 permanently to Thrissur (Irinjalakuda)', () => {
+      const listings = getFixedMarketplaceListings(INITIAL_CATEGORIES);
+      const l4 = listings.find((l) => l.id === 'demo-vegetable-fruit');
+
+      expect(l4).toBeDefined();
+      expect(l4!.district).toBe('Thrissur');
+      expect(l4!.locality).toBe('Irinjalakuda');
+      expect(l4!.municipality).toBe('Irinjalakuda');
+      expect(l4!.latitude).toBe(10.3444);
+      expect(l4!.longitude).toBe(76.2089);
     });
   });
 
-  describe('3. Location Adaptation – Test Location B: Kozhikode (Mananchira)', () => {
-    const kozhikodeCoords = { latitude: 11.2588, longitude: 75.7804 };
-    const locality = 'Mananchira';
-    const district = 'Kozhikode';
-
-    it('adapts listing localities to Kozhikode region while maintaining identical material types', () => {
-      const listings = generateDynamicDemoListings(
-        kozhikodeCoords,
-        locality,
-        district,
-        'Kozhikode',
+  describe('3. Invariance Across Different User Sessions, Logins, and GPS Locations', () => {
+    it('produces identical coordinates and districts regardless of caller reference coordinates', () => {
+      // User A in Kasaragod
+      const listingsUserA = generateDynamicDemoListings(
+        { latitude: 12.4996, longitude: 74.9869 },
+        'Vidyanagar',
+        'Kasaragod',
+        'Kasaragod',
         INITIAL_CATEGORIES
       );
 
-      expect(listings).toHaveLength(4);
+      // User B in Kannur
+      const listingsUserB = generateDynamicDemoListings(
+        { latitude: 11.8745, longitude: 75.3704 },
+        'Payyambalam',
+        'Kannur',
+        'Kannur',
+        INITIAL_CATEGORIES
+      );
 
-      // 1. One listing assigned to user locality
-      expect(listings[0].locality).toBe('Mananchira');
-      expect(listings[0].district).toBe('Kozhikode');
-
-      // 2. Three other listings assigned to distinct nearby localities
-      const allLocalities = listings.map((l) => l.locality);
-      const uniqueLocalities = new Set(allLocalities);
-      expect(uniqueLocalities.size).toBe(4);
-
-      // 3. Four material types remain consistent
-      expect(listings[0].title).toBe('Coconut Husk Waste');
-      expect(listings[1].title).toBe('Used Cardboard Boxes');
-      expect(listings[2].title).toBe('Used Plastic Bottles');
-      expect(listings[3].title).toBe('Vegetable and Fruit Waste');
-
-      // 4. Quantities remain consistent
-      expect(listings[0].quantity).toBe(25);
-      expect(listings[1].quantity).toBe(15);
-      expect(listings[2].quantity).toBe(8);
-      expect(listings[3].quantity).toBe(10);
-    });
-
-    it('confirms that changing location completely changes the assigned nearby localities', () => {
-      const ernakulamListings = generateDynamicDemoListings(
+      // User C in Ernakulam
+      const listingsUserC = generateDynamicDemoListings(
         { latitude: 9.9816, longitude: 76.2999 },
-        'Kakkanad',
+        'Kochi Central',
         'Ernakulam',
         'Kochi',
         INITIAL_CATEGORIES
       );
 
-      const kozhikodeListings = generateDynamicDemoListings(
-        kozhikodeCoords,
-        locality,
-        district,
-        'Kozhikode',
-        INITIAL_CATEGORIES
-      );
+      // All 4 listings must match 1:1 across all three user locations
+      expect(listingsUserA).toHaveLength(4);
+      expect(listingsUserB).toHaveLength(4);
+      expect(listingsUserC).toHaveLength(4);
 
-      const ernakulamLocalities = ernakulamListings.map((l) => l.locality);
-      const kozhikodeLocalities = kozhikodeListings.map((l) => l.locality);
+      for (let i = 0; i < 4; i++) {
+        expect(listingsUserA[i].district).toBe(listingsUserB[i].district);
+        expect(listingsUserA[i].district).toBe(listingsUserC[i].district);
 
-      // Zero overlap between Ernakulam and Kozhikode locality sets
-      const intersection = ernakulamLocalities.filter((loc) => kozhikodeLocalities.includes(loc));
-      expect(intersection).toHaveLength(0);
+        expect(listingsUserA[i].locality).toBe(listingsUserB[i].locality);
+        expect(listingsUserA[i].locality).toBe(listingsUserC[i].locality);
+
+        expect(listingsUserA[i].latitude).toBe(listingsUserB[i].latitude);
+        expect(listingsUserA[i].latitude).toBe(listingsUserC[i].latitude);
+
+        expect(listingsUserA[i].longitude).toBe(listingsUserB[i].longitude);
+        expect(listingsUserA[i].longitude).toBe(listingsUserC[i].longitude);
+      }
+    });
+
+    it('ensures stable timestamps so listings do not regenerate or reorder on page refreshes', () => {
+      const run1 = getFixedMarketplaceListings(INITIAL_CATEGORIES);
+      const run2 = getFixedMarketplaceListings(INITIAL_CATEGORIES);
+
+      expect(run1.map((l) => l.created_at)).toEqual(run2.map((l) => l.created_at));
+      expect(run1.map((l) => l.id)).toEqual(run2.map((l) => l.id));
     });
   });
 
-  describe('4. Geographic Data & Anti-Fabrication Guarantee', () => {
-    it('only uses authentic OpenStreetMap localities with verified coordinates', () => {
-      VERIFIED_REAL_LOCALITIES.forEach((place) => {
-        expect(place.locality.trim().length).toBeGreaterThan(0);
-        expect(place.district.trim().length).toBeGreaterThan(0);
-        expect(typeof place.latitude).toBe('number');
-        expect(typeof place.longitude).toBe('number');
-        expect(place.latitude).toBeGreaterThan(8.0);
-        expect(place.longitude).toBeGreaterThan(70.0);
-      });
+  describe('4. Marketplace and Map District-Wide Filtering Integration', () => {
+    const listings = getFixedMarketplaceListings(INITIAL_CATEGORIES);
+
+    it('returns only the Kasaragod listing when filtering by Kasaragod', () => {
+      const kasaragodListings = listings.filter((l) => isLocationInDistrict(l, 'Kasaragod'));
+      expect(kasaragodListings).toHaveLength(1);
+      expect(kasaragodListings[0].id).toBe('demo-coconut-husk');
+      expect(kasaragodListings[0].title).toBe('Coconut Husk Waste');
     });
 
-    it('spatial selection finds 3 closest real localities without duplicating the user locality', () => {
-      const nearby = findNearbyRealLocalities(9.9816, 76.2999, 'Kaloor', 3);
-      expect(nearby).toHaveLength(3);
-      expect(nearby.map((n) => n.locality)).not.toContain('Kaloor');
+    it('returns only the Kannur listing when filtering by Kannur', () => {
+      const kannurListings = listings.filter((l) => isLocationInDistrict(l, 'Kannur'));
+      expect(kannurListings).toHaveLength(1);
+      expect(kannurListings[0].id).toBe('demo-cardboard-boxes');
+      expect(kannurListings[0].title).toBe('Used Cardboard Boxes');
+    });
 
-      // Verify sorted by ascending distance
-      const d0 = calculateDistanceKm(9.9816, 76.2999, nearby[0].latitude, nearby[0].longitude);
-      const d1 = calculateDistanceKm(9.9816, 76.2999, nearby[1].latitude, nearby[1].longitude);
-      const d2 = calculateDistanceKm(9.9816, 76.2999, nearby[2].latitude, nearby[2].longitude);
-      expect(d0).toBeLessThanOrEqual(d1);
-      expect(d1).toBeLessThanOrEqual(d2);
+    it('returns only the Kollam listing when filtering by Kollam', () => {
+      const kollamListings = listings.filter((l) => isLocationInDistrict(l, 'Kollam'));
+      expect(kollamListings).toHaveLength(1);
+      expect(kollamListings[0].id).toBe('demo-plastic-bottles');
+      expect(kollamListings[0].title).toBe('Used Plastic Bottles');
+    });
+
+    it('returns only the Thrissur listing when filtering by Thrissur', () => {
+      const thrissurListings = listings.filter((l) => isLocationInDistrict(l, 'Thrissur'));
+      expect(thrissurListings).toHaveLength(1);
+      expect(thrissurListings[0].id).toBe('demo-vegetable-fruit');
+      expect(thrissurListings[0].title).toBe('Vegetable and Fruit Waste');
+    });
+
+    it('returns all 4 listings when filtering by All Kerala', () => {
+      const allKerala = listings.filter((l) => isLocationInDistrict(l, 'All Kerala'));
+      expect(allKerala).toHaveLength(4);
+    });
+
+    it('returns 0 of the four listings when filtering by Ernakulam or Wayanad', () => {
+      const ernakulamListings = listings.filter((l) => isLocationInDistrict(l, 'Ernakulam'));
+      expect(ernakulamListings).toHaveLength(0);
+
+      const wayanadListings = listings.filter((l) => isLocationInDistrict(l, 'Wayanad'));
+      expect(wayanadListings).toHaveLength(0);
+    });
+
+    it('matches specific municipalities cleanly for map zoom and navigation', () => {
+      const kanhangadListings = listings.filter((l) => isLocationInMunicipality(l, 'Kanhangad'));
+      expect(kanhangadListings).toHaveLength(1);
+      expect(kanhangadListings[0].id).toBe('demo-coconut-husk');
+
+      const thalasseryListings = listings.filter((l) => isLocationInMunicipality(l, 'Thalassery'));
+      expect(thalasseryListings).toHaveLength(1);
+      expect(thalasseryListings[0].id).toBe('demo-cardboard-boxes');
     });
   });
 
-  describe('5. Demo Data Integrity & Separation', () => {
-    it('tags all dynamic demo listings with is_demo: true and demo user id', () => {
-      const listings = generateDynamicDemoListings(
-        { latitude: 9.9816, longitude: 76.2999 },
-        'Kakkanad',
-        'Ernakulam',
-        'Kochi',
-        INITIAL_CATEGORIES
-      );
-
+  describe('5. Complete Removal of Demo and Sample Indicators', () => {
+    it('sets is_demo to false so listings render visually identical to genuine listings', () => {
+      const listings = getFixedMarketplaceListings(INITIAL_CATEGORIES);
       listings.forEach((listing) => {
-        expect(listing.is_demo).toBe(true);
-        expect(listing.id.startsWith('demo-')).toBe(true);
-        expect(listing.user_id).toBe('greenloop-demo-system');
-        expect(isDemoListing(listing)).toBe(true);
+        expect(listing.is_demo).toBe(false);
       });
     });
 
-    it('strictly distinguishes genuine user listings from demo listings', () => {
-      const genuineListing: WasteListing = {
-        id: 'list-genuine-999',
-        user_id: 'real-user-123',
-        category_id: 'cat-paper',
-        title: 'Authentic Office Paper Waste',
-        description: 'Real shredded white paper bundles.',
-        material_type: 'Office paper',
-        quantity: 50,
-        unit: 'kg',
-        listing_type: 'free',
-        condition: 'Dry',
-        district: 'Ernakulam',
-        locality: 'Edappally',
-        latitude: 10.0261,
-        longitude: 76.3125,
-        status: 'active',
-        created_at: new Date().toISOString(),
-      };
+    it('does not include "Sample" or "Demo" in titles, user full names, or user bios', () => {
+      const listings = getFixedMarketplaceListings(INITIAL_CATEGORIES);
+      listings.forEach((listing) => {
+        expect(listing.title.toLowerCase()).not.toContain('demo');
+        expect(listing.title.toLowerCase()).not.toContain('sample');
 
-      expect(isDemoListing(genuineListing)).toBe(false);
-      expect(isDemoListing('list-genuine-999')).toBe(false);
-      expect(isDemoListing('demo-coconut-husk')).toBe(true);
-    });
-
-    it('ensures demo listings have free pricing and active status', () => {
-      const listings = generateDynamicDemoListings(
-        { latitude: 10.5276, longitude: 76.2144 },
-        'Swaraj Round',
-        'Thrissur',
-        'Thrissur',
-        INITIAL_CATEGORIES
-      );
-
-      listings.forEach((l) => {
-        expect(l.listing_type).toBe('free');
-        expect(l.price).toBe(0);
-        expect(l.status).toBe('active');
+        if (listing.user) {
+          expect(listing.user.full_name.toLowerCase()).not.toContain('sample');
+          expect(listing.user.full_name.toLowerCase()).not.toContain('demo');
+          expect(listing.user.bio?.toLowerCase()).not.toContain('competition demonstration');
+        }
       });
     });
   });

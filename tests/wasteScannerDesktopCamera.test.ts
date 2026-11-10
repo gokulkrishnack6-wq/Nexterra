@@ -279,3 +279,4 @@ describe('GreenLoop Waste Scanner Desktop Camera Interface & Lifecycle', () => {
     });
   });
 });
+

@@ -180,14 +180,6 @@ export const ListingDetailPage: React.FC = () => {
 
     setSubmitting(true);
     try {
-      if (listing.is_demo) {
-        setSuccessMessage('This is a sample listing for demonstration. On real listings, requests notify the owner and unlock WhatsApp contact upon acceptance.');
-        setTimeout(() => {
-          navigate('/marketplace');
-        }, 2500);
-        return;
-      }
-
       const newRequestId = await createExchangeRequest(
         listing.id,
         requestedQuantity,
@@ -250,13 +242,6 @@ export const ListingDetailPage: React.FC = () => {
             </div>
           )}
 
-          {listing.is_demo && (
-            <div className="bg-[#F8F6EF] border border-[#E8E4DA] rounded-lg p-3 flex items-center gap-2 text-xs text-[#5C6E66]">
-              <span className="font-medium text-[11px] bg-[#E8EFE9] text-[#103D2A] px-2 py-0.5 rounded-md">Sample</span>
-              <span>Demonstration listing illustrating material lifecycle on GreenLoop.</span>
-            </div>
-          )}
-
           <div className="bg-white rounded-lg border border-[#E8E4DA] overflow-hidden shadow-subtle">
             {hasImages ? (
               <div className="aspect-[16/10] w-full bg-[#F4F1EA] overflow-hidden relative">
@@ -269,11 +254,6 @@ export const ListingDetailPage: React.FC = () => {
                   <span className="text-xs text-[#103D2A] font-medium bg-white/95 px-2.5 py-1 rounded-md shadow-subtle border border-[#E8E4DA]">
                     {listing.listing_type === 'free' ? 'Free' : listing.listing_type === 'exchange' ? 'Exchange' : `₹${listing.price}`}
                   </span>
-                  {listing.is_demo && (
-                    <span className="text-xs font-medium text-[#5C6E66] bg-white/95 border border-[#E8E4DA] px-2.5 py-1 rounded-md shadow-subtle">
-                      Sample Stream
-                    </span>
-                  )}
                 </div>
               </div>
             ) : (
@@ -287,11 +267,6 @@ export const ListingDetailPage: React.FC = () => {
                   <span className="text-xs text-[#103D2A] font-medium bg-white/95 px-2.5 py-1 rounded-md shadow-subtle border border-[#E8E4DA]">
                     {listing.listing_type === 'free' ? 'Free' : listing.listing_type === 'exchange' ? 'Exchange' : `₹${listing.price}`}
                   </span>
-                  {listing.is_demo && (
-                    <span className="text-xs font-medium text-[#5C6E66] bg-white/95 border border-[#E8E4DA] px-2.5 py-1 rounded-md shadow-subtle">
-                      Sample Stream
-                    </span>
-                  )}
                 </div>
               </div>
             )}

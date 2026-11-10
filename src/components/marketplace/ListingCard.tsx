@@ -90,11 +90,6 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, referenceCoor
               In progress
             </span>
           )}
-          {listing.is_demo && (
-            <span className="text-[11px] font-medium text-[#5C6E66] bg-white/95 border border-[#DCD6CB] px-2 py-0.5 rounded-md">
-              Sample
-            </span>
-          )}
         </div>
 
         {/* Save button */}

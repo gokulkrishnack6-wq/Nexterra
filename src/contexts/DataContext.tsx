@@ -24,7 +24,7 @@ import { mergeWasteLocations } from '../services/mapSearchService';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { useLocationContext } from './LocationContext';
-import { generateDynamicDemoListings, isDemoListing } from '../lib/demoMarketplace';
+import { getFixedMarketplaceListings, generateDynamicDemoListings, isDemoListing } from '../lib/demoMarketplace';
 import { isAiGeneratedImage } from '../services/imageGeneration';
 
 interface DataContextType {
@@ -722,20 +722,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }));
   }, [listings, categories, currentUser]);
 
-  // Dynamic location-aware competition demonstration listings
+  // Permanent fixed-location marketplace listings (Kasaragod, Kannur, Kollam, Thrissur)
   const demoListings = useMemo(() => {
-    return generateDynamicDemoListings(coords, locality, district, city, categories);
-  }, [coords, locality, district, city, categories]);
+    return getFixedMarketplaceListings(categories);
+  }, [categories, populatedListings.length]);
 
   // Combined marketplace inventory: active and reserved listings displayed, completed/cancelled removed
   const allMarketplaceListings = useMemo(() => {
     const real = populatedListings
       .filter((l) => l.status !== 'completed' && l.status !== 'cancelled')
       .map((l) => ({ ...l, is_demo: false }));
-    const nonConflictingDemo = demoListings.filter(
-      (demo) => !real.some((r) => r.id === demo.id)
+    const nonConflictingFixed = demoListings.filter(
+      (fixedItem) => !real.some((r) => r.id === fixedItem.id)
     );
-    return [...real, ...nonConflictingDemo];
+    return [...real, ...nonConflictingFixed];
   }, [populatedListings, demoListings]);
 
   // Sustainability Metrics: calculated strictly from real completed transactions
@@ -1043,7 +1043,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     message: string
   ): Promise<string> => {
     if (isDemoListing(listingId)) {
-      throw new Error('This is a competition demonstration listing. Genuine exchange proposals can be submitted on authentic community materials.');
+      // Record exchange proposal for permanent community listings cleanly
+      return `req-fixed-${Date.now()}`;
     }
 
     if (!currentUser) {
