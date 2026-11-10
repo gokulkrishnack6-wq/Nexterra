@@ -27,12 +27,14 @@ import {
 } from 'lucide-react';
 import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { useGeolocation, calculateDistanceKm } from '../../hooks/useGeolocation';
+import { useGeolocation, calculateDistanceKm, isInKeralaRegion } from '../../hooks/useGeolocation';
 import { KeralaWasteDiscoveryMap } from '../../components/maps/KeralaWasteDiscoveryMap';
 import { MapSearchAutocomplete } from '../../components/maps/MapSearchAutocomplete';
 import {
   MapSearchSuggestion,
   getDistrictBounds,
+  isLocationInDistrict,
+  isLocationInMunicipality,
 } from '../../services/mapSearchService';
 import {
   KERALA_DISTRICTS,
@@ -131,6 +133,8 @@ export const MapPage: React.FC = () => {
   const handleDistrictChange = (districtName: string) => {
     setSelectedDistrict(districtName);
     setSelectedMunicipality('All Municipalities');
+    setSearchQuery('');
+    setDebouncedSearch('');
     setSelectedLocationId(null);
     setSelectedListingId(null);
     setActiveMaterialFilter(null);
@@ -157,12 +161,14 @@ export const MapPage: React.FC = () => {
   // Center map when municipality changes
   const handleMunicipalityChange = (municipalityName: string) => {
     setSelectedMunicipality(municipalityName);
+    setSearchQuery('');
+    setDebouncedSearch('');
     setSelectedLocationId(null);
     setSelectedListingId(null);
     setActiveMaterialFilter(null);
     setFitBounds(null);
 
-    if (municipalityName === 'All Municipalities') {
+    if (municipalityName === 'All Municipalities' || municipalityName.startsWith('All in ')) {
       const bounds = getDistrictBounds(selectedDistrict);
       if (bounds) {
         setFitBounds(bounds);
@@ -189,10 +195,17 @@ export const MapPage: React.FC = () => {
     try {
       setFitBounds(null);
       await detectLocation({ force: true });
-      if (userCoords) {
+      if (userCoords && isInKeralaRegion(userCoords.latitude, userCoords.longitude)) {
         setCenterCoords({ latitude: userCoords.latitude, longitude: userCoords.longitude });
         setZoomLevel(13);
-        if (userDistrict) setSelectedDistrict(userDistrict);
+        if (userDistrict && userDistrict !== 'Outside Kerala') {
+          setSelectedDistrict(userDistrict);
+        }
+      } else {
+        // Safe default: keep view focused on Kerala without fabricating coordinates
+        setCenterCoords({ latitude: 10.2500, longitude: 76.3500 });
+        setZoomLevel(8);
+        setSelectedDistrict('All Kerala');
       }
     } catch (e) {
       console.warn('Geolocation trigger notice:', e);
@@ -201,11 +214,11 @@ export const MapPage: React.FC = () => {
 
   // Autocomplete Suggestion Selection Handler
   const handleSelectSuggestion = useCallback((suggestion: MapSearchSuggestion) => {
-    setSearchQuery(suggestion.title);
-
     if (suggestion.type === 'district') {
       setSelectedDistrict(suggestion.title);
       setSelectedMunicipality('All Municipalities');
+      setSearchQuery('');
+      setDebouncedSearch('');
       setActiveMaterialFilter(null);
       setSelectedLocationId(null);
       setSelectedListingId(null);
@@ -221,6 +234,8 @@ export const MapPage: React.FC = () => {
         setSelectedDistrict(suggestion.district);
       }
       setSelectedMunicipality(suggestion.title);
+      setSearchQuery('');
+      setDebouncedSearch('');
       setActiveMaterialFilter(null);
       setSelectedLocationId(null);
       setSelectedListingId(null);
@@ -236,6 +251,8 @@ export const MapPage: React.FC = () => {
       if (suggestion.municipality) {
         setSelectedMunicipality(suggestion.municipality);
       }
+      setSearchQuery('');
+      setDebouncedSearch('');
       setActiveMaterialFilter(null);
       if (suggestion.latitude && suggestion.longitude) {
         setCenterCoords({ latitude: suggestion.latitude, longitude: suggestion.longitude });
@@ -243,6 +260,7 @@ export const MapPage: React.FC = () => {
         setFitBounds(null);
       }
     } else if (suggestion.type === 'material') {
+      setSearchQuery(suggestion.title);
       setActiveMaterialFilter(suggestion.title);
       setCategoryFilter('listings');
       if (suggestion.bounds) {
@@ -259,6 +277,9 @@ export const MapPage: React.FC = () => {
       if (suggestion.municipality) {
         setSelectedMunicipality(suggestion.municipality);
       }
+      setSearchQuery('');
+      setDebouncedSearch('');
+      setActiveMaterialFilter(null);
       if (suggestion.locationId) {
         setSelectedLocationId(suggestion.locationId);
         setSelectedListingId(null);
@@ -280,6 +301,7 @@ export const MapPage: React.FC = () => {
   // Clear search and reset map viewport without resetting chosen district unexpectedly
   const handleClearSearch = useCallback(() => {
     setSearchQuery('');
+    setDebouncedSearch('');
     setActiveMaterialFilter(null);
     setFitBounds(null);
     if (selectedDistrict !== 'All Kerala') {
@@ -308,16 +330,13 @@ export const MapPage: React.FC = () => {
   // Filter Waste Locations
   const filteredLocations = useMemo(() => {
     return wasteLocations.filter((loc) => {
-      // 1. District filter
-      if (selectedDistrict !== 'All Kerala' && loc.district.toLowerCase() !== selectedDistrict.toLowerCase()) {
+      // 1. District filter (using canonical ULB and alias resolution)
+      if (!isLocationInDistrict(loc, selectedDistrict)) {
         return false;
       }
 
       // 2. Municipality filter
-      if (
-        selectedMunicipality !== 'All Municipalities' &&
-        loc.municipality.toLowerCase() !== selectedMunicipality.toLowerCase()
-      ) {
+      if (!isLocationInMunicipality(loc, selectedMunicipality)) {
         return false;
       }
 
@@ -345,14 +364,24 @@ export const MapPage: React.FC = () => {
 
       // 6. Text search query
       if (debouncedSearch && !activeMaterialFilter) {
-        const matchName = loc.name.toLowerCase().includes(debouncedSearch);
-        const matchAddress = loc.address.toLowerCase().includes(debouncedSearch);
-        const matchDistrict = loc.district.toLowerCase().includes(debouncedSearch);
-        const matchMun = loc.municipality.toLowerCase().includes(debouncedSearch);
-        const matchPincode = loc.pincode ? loc.pincode.includes(debouncedSearch) : false;
-        const matchMat = loc.accepted_waste_categories?.some((c) => c.toLowerCase().includes(debouncedSearch));
-        if (!matchName && !matchAddress && !matchDistrict && !matchMun && !matchPincode && !matchMat) {
-          return false;
+        const isDistrictQuery =
+          selectedDistrict !== 'All Kerala' &&
+          (debouncedSearch === selectedDistrict.toLowerCase() ||
+            debouncedSearch === `all in ${selectedDistrict.toLowerCase()}`);
+        const isMunQuery =
+          selectedMunicipality !== 'All Municipalities' &&
+          debouncedSearch === selectedMunicipality.toLowerCase();
+
+        if (!isDistrictQuery && !isMunQuery) {
+          const matchName = loc.name.toLowerCase().includes(debouncedSearch);
+          const matchAddress = loc.address.toLowerCase().includes(debouncedSearch);
+          const matchDistrict = loc.district.toLowerCase().includes(debouncedSearch);
+          const matchMun = loc.municipality.toLowerCase().includes(debouncedSearch);
+          const matchPincode = loc.pincode ? loc.pincode.includes(debouncedSearch) : false;
+          const matchMat = loc.accepted_waste_categories?.some((c) => c.toLowerCase().includes(debouncedSearch));
+          if (!matchName && !matchAddress && !matchDistrict && !matchMun && !matchPincode && !matchMat) {
+            return false;
+          }
         }
       }
 
@@ -367,17 +396,14 @@ export const MapPage: React.FC = () => {
     }
 
     return activeListings.filter((list) => {
-      // 1. District filter
-      if (selectedDistrict !== 'All Kerala' && list.district.toLowerCase() !== selectedDistrict.toLowerCase()) {
+      // 1. District filter (using canonical ULB and alias resolution)
+      if (!isLocationInDistrict(list, selectedDistrict)) {
         return false;
       }
 
       // 2. Municipality filter
-      if (selectedMunicipality !== 'All Municipalities') {
-        const listLocality = (list.locality || list.address || list.formatted_address || '').toLowerCase();
-        if (!listLocality.includes(selectedMunicipality.toLowerCase())) {
-          return false;
-        }
+      if (!isLocationInMunicipality(list, selectedMunicipality)) {
+        return false;
       }
 
       // 3. Free only filter
@@ -400,12 +426,22 @@ export const MapPage: React.FC = () => {
 
       // 5. Text search query
       if (debouncedSearch && !activeMaterialFilter) {
-        const matchTitle = list.title.toLowerCase().includes(debouncedSearch);
-        const matchDesc = list.description ? list.description.toLowerCase().includes(debouncedSearch) : false;
-        const matchMat = (list.material_type || '').toLowerCase().includes(debouncedSearch);
-        const matchLoc = (list.formatted_address || list.district || '').toLowerCase().includes(debouncedSearch);
-        if (!matchTitle && !matchDesc && !matchMat && !matchLoc) {
-          return false;
+        const isDistrictQuery =
+          selectedDistrict !== 'All Kerala' &&
+          (debouncedSearch === selectedDistrict.toLowerCase() ||
+            debouncedSearch === `all in ${selectedDistrict.toLowerCase()}`);
+        const isMunQuery =
+          selectedMunicipality !== 'All Municipalities' &&
+          debouncedSearch === selectedMunicipality.toLowerCase();
+
+        if (!isDistrictQuery && !isMunQuery) {
+          const matchTitle = list.title.toLowerCase().includes(debouncedSearch);
+          const matchDesc = list.description ? list.description.toLowerCase().includes(debouncedSearch) : false;
+          const matchMat = (list.material_type || '').toLowerCase().includes(debouncedSearch);
+          const matchLoc = (list.formatted_address || list.district || '').toLowerCase().includes(debouncedSearch);
+          if (!matchTitle && !matchDesc && !matchMat && !matchLoc) {
+            return false;
+          }
         }
       }
 
@@ -416,13 +452,10 @@ export const MapPage: React.FC = () => {
   // Geographic subset (district/municipality) before category filter
   const areaLocations = useMemo(() => {
     return wasteLocations.filter((loc) => {
-      if (selectedDistrict !== 'All Kerala' && loc.district.toLowerCase() !== selectedDistrict.toLowerCase()) {
+      if (!isLocationInDistrict(loc, selectedDistrict)) {
         return false;
       }
-      if (
-        selectedMunicipality !== 'All Municipalities' &&
-        loc.municipality.toLowerCase() !== selectedMunicipality.toLowerCase()
-      ) {
+      if (!isLocationInMunicipality(loc, selectedMunicipality)) {
         return false;
       }
       return true;
@@ -431,14 +464,11 @@ export const MapPage: React.FC = () => {
 
   const areaListings = useMemo(() => {
     return activeListings.filter((list) => {
-      if (selectedDistrict !== 'All Kerala' && list.district.toLowerCase() !== selectedDistrict.toLowerCase()) {
+      if (!isLocationInDistrict(list, selectedDistrict)) {
         return false;
       }
-      if (selectedMunicipality !== 'All Municipalities') {
-        const listLocality = (list.locality || list.address || list.formatted_address || '').toLowerCase();
-        if (!listLocality.includes(selectedMunicipality.toLowerCase())) {
-          return false;
-        }
+      if (!isLocationInMunicipality(list, selectedMunicipality)) {
+        return false;
       }
       return true;
     });
@@ -455,32 +485,51 @@ export const MapPage: React.FC = () => {
   const municipalityTotalCount = isSpecificMunicipality ? (areaLocations.length + areaListings.length) : 10;
   const isLimitedCoverage = isSpecificMunicipality && municipalityTotalCount < 10;
 
-  // Calculate distance if userCoords available
+  // Calculate distance if userCoords available and genuinely located in Kerala
   const sortedLocationsWithDistance = useMemo(() => {
+    const isUserInKerala = Boolean(
+      userCoords &&
+      typeof userCoords.latitude === 'number' &&
+      typeof userCoords.longitude === 'number' &&
+      isInKeralaRegion(userCoords.latitude, userCoords.longitude)
+    );
+
     return filteredLocations
       .map((loc) => {
-        const dist = userCoords
-          ? calculateDistanceKm(userCoords.latitude, userCoords.longitude, loc.latitude, loc.longitude)
-          : null;
-        return { ...loc, distanceKm: dist };
+        if (!isUserInKerala || !userCoords) {
+          return { ...loc, distanceKm: null };
+        }
+        const dist = calculateDistanceKm(userCoords.latitude, userCoords.longitude, loc.latitude, loc.longitude);
+        return { ...loc, distanceKm: dist <= 500 ? dist : null };
       })
       .sort((a, b) => {
         if (a.distanceKm !== null && b.distanceKm !== null) return a.distanceKm - b.distanceKm;
+        if (a.distanceKm !== null) return -1;
+        if (b.distanceKm !== null) return 1;
         return 0;
       });
   }, [filteredLocations, userCoords]);
 
   const sortedListingsWithDistance = useMemo(() => {
+    const isUserInKerala = Boolean(
+      userCoords &&
+      typeof userCoords.latitude === 'number' &&
+      typeof userCoords.longitude === 'number' &&
+      isInKeralaRegion(userCoords.latitude, userCoords.longitude)
+    );
+
     return filteredListings
       .map((list) => {
-        const dist =
-          userCoords && list.latitude && list.longitude
-            ? calculateDistanceKm(userCoords.latitude, userCoords.longitude, list.latitude, list.longitude)
-            : null;
-        return { ...list, distanceKm: dist };
+        if (!isUserInKerala || !userCoords || !list.latitude || !list.longitude) {
+          return { ...list, distanceKm: null };
+        }
+        const dist = calculateDistanceKm(userCoords.latitude, userCoords.longitude, list.latitude, list.longitude);
+        return { ...list, distanceKm: dist <= 500 ? dist : null };
       })
       .sort((a, b) => {
         if (a.distanceKm !== null && b.distanceKm !== null) return a.distanceKm - b.distanceKm;
+        if (a.distanceKm !== null) return -1;
+        if (b.distanceKm !== null) return 1;
         return 0;
       });
   }, [filteredListings, userCoords]);

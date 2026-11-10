@@ -122,12 +122,17 @@ export function findNearestDistrict(lat: number, lon: number): string {
 }
 
 /**
- * Returns true if the coordinates lie roughly within Kerala's geographic boundary (~220 km of centre).
+ * Returns true if the coordinates lie within Kerala's geographic boundaries.
+ * Bounding box spans ~8.1° N to 12.95° N and 74.8° E to 77.6° E, covering all 14 districts
+ * from Parassala (South) to Manjeshwaram (North), with distance fallback to central Kerala.
  */
 export function isInKeralaRegion(lat: number, lon: number): boolean {
-  // Kerala geographic centre roughly around 10.25 N, 76.35 E
+  if (lat >= 8.1 && lat <= 12.95 && lon >= 74.8 && lon <= 77.6) {
+    return true;
+  }
+  // Central Kerala radius fallback (~350 km covers entire state from 10.25 N, 76.35 E)
   const dist = calculateDistanceKm(lat, lon, 10.25, 76.35);
-  return dist < 220;
+  return dist < 350;
 }
 
 /**

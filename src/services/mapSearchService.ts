@@ -1,5 +1,6 @@
 import { KERALA_DISTRICTS, KERALA_MUNICIPAL_BODIES, MunicipalBody, KeralaDistrictInfo } from '../data/keralaAdministrativeData';
 import { VERIFIED_REAL_LOCALITIES, GeographicLocality } from '../lib/demoMarketplace';
+import { matchKeralaDistrict } from '../contexts/LocationContext';
 import { WasteLocation, WasteListing } from '../types';
 
 export type MapSuggestionType =
@@ -483,5 +484,154 @@ export function mergeWasteLocations(
 
   return result;
 }
+
+/**
+ * Determines whether a waste location, listing, or facility belongs to a specific Kerala district.
+ * Uses a multi-tiered resolution model:
+ * 1. Direct district match (case-insensitive)
+ * 2. Vernacular / city aliases via matchKeralaDistrict (e.g. "Kochi" -> "Ernakulam", "Trivandrum" -> "Thiruvananthapuram")
+ * 3. Official Municipal Body (ULB) affiliation: matches item's municipality against all 93 ULBs
+ * 4. Known Locality affiliation: matches item's locality against verified Kerala localities
+ * 5. Full address text inspection: checks if address contains the district or any of its ULBs / aliases
+ */
+export function isLocationInDistrict(
+  item: {
+    district?: string | null;
+    municipality?: string | null;
+    locality?: string | null;
+    address?: string | null;
+    formatted_address?: string | null;
+    name?: string | null;
+  },
+  selectedDistrict: string
+): boolean {
+  if (!selectedDistrict || selectedDistrict === 'All Kerala') {
+    return true;
+  }
+
+  const targetDistrict = selectedDistrict.trim().toLowerCase();
+
+  // 1. Direct match on district field or normalized district alias
+  if (item.district) {
+    const rawDist = item.district.trim().toLowerCase();
+    if (rawDist === targetDistrict) return true;
+    const matched = matchKeralaDistrict(item.district);
+    if (matched && matched.toLowerCase() === targetDistrict) return true;
+  }
+
+  // 2. Official Municipal Body (ULB) affiliation:
+  // e.g. "Kalamassery" or "Aluva" belongs to "Ernakulam"
+  if (item.municipality) {
+    const munLower = item.municipality.trim().toLowerCase();
+    const municipalBody = KERALA_MUNICIPAL_BODIES.find(
+      (b) => b.name.toLowerCase() === munLower
+    );
+    if (municipalBody && municipalBody.district.toLowerCase() === targetDistrict) {
+      return true;
+    }
+  }
+
+  // 3. Known Locality affiliation:
+  // e.g. "Edappally" or "Kaloor" belongs to "Ernakulam"
+  if (item.locality) {
+    const locLower = item.locality.trim().toLowerCase();
+    const knownLoc = VERIFIED_REAL_LOCALITIES.find(
+      (l) => l.locality.toLowerCase() === locLower
+    );
+    if (knownLoc && knownLoc.district.toLowerCase() === targetDistrict) {
+      return true;
+    }
+  }
+
+  // 4. Address text inspection
+  const fullAddress = `${item.address || ''} ${item.formatted_address || ''} ${item.name || ''}`.toLowerCase();
+  if (fullAddress) {
+    // Does the address explicitly contain the district name?
+    if (fullAddress.includes(targetDistrict)) {
+      return true;
+    }
+
+    // Does the address contain any municipal body belonging to this district?
+    const districtBodies = KERALA_MUNICIPAL_BODIES.filter(
+      (b) => b.district.toLowerCase() === targetDistrict
+    );
+    for (const body of districtBodies) {
+      if (fullAddress.includes(body.name.toLowerCase())) {
+        return true;
+      }
+    }
+
+    // Check vernacular aliases in address
+    if (targetDistrict === 'ernakulam' && (fullAddress.includes('kochi') || fullAddress.includes('cochin'))) {
+      return true;
+    }
+    if (targetDistrict === 'thiruvananthapuram' && fullAddress.includes('trivandrum')) {
+      return true;
+    }
+    if (targetDistrict === 'kozhikode' && fullAddress.includes('calicut')) {
+      return true;
+    }
+    if (targetDistrict === 'kannur' && (fullAddress.includes('cannur') || fullAddress.includes('cannanore'))) {
+      return true;
+    }
+    if (targetDistrict === 'alappuzha' && fullAddress.includes('alleppey')) {
+      return true;
+    }
+    if (targetDistrict === 'palakkad' && fullAddress.includes('palghat')) {
+      return true;
+    }
+    if (targetDistrict === 'thrissur' && fullAddress.includes('trichur')) {
+      return true;
+    }
+    if (targetDistrict === 'kollam' && fullAddress.includes('quilon')) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Determines whether a waste location, listing, or facility belongs to a specific municipality.
+ */
+export function isLocationInMunicipality(
+  item: {
+    municipality?: string | null;
+    locality?: string | null;
+    address?: string | null;
+    formatted_address?: string | null;
+    name?: string | null;
+  },
+  selectedMunicipality: string
+): boolean {
+  if (
+    !selectedMunicipality ||
+    selectedMunicipality === 'All Municipalities' ||
+    selectedMunicipality.startsWith('All in ')
+  ) {
+    return true;
+  }
+
+  const targetMun = selectedMunicipality.trim().toLowerCase();
+
+  // 1. Direct municipality match
+  if (item.municipality && item.municipality.trim().toLowerCase() === targetMun) {
+    return true;
+  }
+
+  // 2. Locality match
+  if (item.locality && item.locality.trim().toLowerCase().includes(targetMun)) {
+    return true;
+  }
+
+  // 3. Address & Name substring match
+  const fullText = `${item.address || ''} ${item.formatted_address || ''} ${item.name || ''}`.toLowerCase();
+  if (fullText.includes(targetMun)) {
+    return true;
+  }
+
+  return false;
+}
+
 
 

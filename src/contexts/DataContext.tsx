@@ -369,10 +369,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.warn('Public profiles directory fetch notice:', profErr);
       }
 
-      // Query listings with categories joined
+      // Query listings with categories joined (with expanded range up to 5000 items)
       const { data: rawListings, error: listError } = await supabase
         .from('listings')
-        .select('*, category:waste_categories(*)');
+        .select('*, category:waste_categories(*)')
+        .range(0, 4999);
       
       if (listError) {
         console.error('Supabase listings fetch error:', listError);
@@ -426,16 +427,43 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
 
-      // 3b. Fetch waste discovery locations (Public Bins & Collection Centres)
+      // 3b. Fetch waste discovery locations (Public Bins & Collection Centres) with robust pagination
       try {
-        const { data: dbLocations, error: locError } = await supabase
-          .from('waste_locations')
-          .select('*')
-          .order('name');
-        if (!locError && dbLocations && dbLocations.length > 0) {
+        const allDbLocations: WasteLocation[] = [];
+        let page = 0;
+        const pageSize = 1000;
+        let hasMore = true;
+
+        while (hasMore) {
+          const from = page * pageSize;
+          const to = from + pageSize - 1;
+          const { data: pageLocations, error: locError } = await supabase
+            .from('waste_locations')
+            .select('*')
+            .order('name')
+            .range(from, to);
+
+          if (locError) {
+            console.warn('Notice: waste_locations pagination fetch notice:', locError);
+            break;
+          }
+
+          if (pageLocations && pageLocations.length > 0) {
+            allDbLocations.push(...(pageLocations as WasteLocation[]));
+            if (pageLocations.length < pageSize) {
+              hasMore = false;
+            } else {
+              page++;
+            }
+          } else {
+            hasMore = false;
+          }
+        }
+
+        if (allDbLocations.length > 0) {
           // Merge database records with full verified seed dataset so all 14 districts remain covered!
           setWasteLocations((prev) =>
-            mergeWasteLocations(KERALA_WASTE_LOCATIONS_SEED, [...prev, ...(dbLocations as WasteLocation[])])
+            mergeWasteLocations(KERALA_WASTE_LOCATIONS_SEED, [...prev, ...allDbLocations])
           );
         }
       } catch (locErr) {
