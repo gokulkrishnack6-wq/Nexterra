@@ -340,10 +340,10 @@ export const ExchangeRequestsPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-gl-charcoal tracking-tight">
-            Exchange Requests
+          <h1 className="font-heading font-bold text-2xl sm:text-3xl lg:text-[34px] text-[#18251F] tracking-tight">
+            My Exchanges
           </h1>
-          <p className="text-sm text-gl-charcoal-muted mt-1">
+          <p className="font-sans text-sm text-[#6F776F] mt-1">
             Coordinate pickups on WhatsApp and verify material handovers with secure completion codes.
           </p>
         </div>

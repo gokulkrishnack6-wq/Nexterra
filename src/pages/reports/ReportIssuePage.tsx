@@ -124,10 +124,10 @@ export const ReportIssuePage: React.FC = () => {
       </div>
 
       <div className="space-y-1">
-        <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-gl-charcoal tracking-tight">
+        <h1 className="font-heading font-bold text-2xl sm:text-3xl lg:text-[34px] text-[#18251F] tracking-tight">
           Report an Issue
         </h1>
-        <p className="text-sm text-gl-charcoal-muted">
+        <p className="font-sans text-sm text-[#6F776F]">
           Report overflowing bins, illegal dumping, or burning to alert the local community.
         </p>
       </div>

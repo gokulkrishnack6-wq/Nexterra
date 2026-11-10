@@ -40,11 +40,11 @@ export const CommunityPage: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 space-y-8 text-left">
       {/* Header */}
-      <div className="space-y-1">
-        <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-gl-charcoal tracking-tight">
+      <div className="border-b border-[#E8E4DA] pb-5 space-y-1">
+        <h1 className="font-heading font-bold text-2xl sm:text-3xl lg:text-[34px] text-[#18251F] tracking-tight">
           Community Drives
         </h1>
-        <p className="text-sm text-gl-charcoal-muted max-w-xl">
+        <p className="font-sans text-sm text-[#6F776F] max-w-xl">
           Join local waste collection drives, campus cleanups, and community initiatives across Kerala.
         </p>
       </div>

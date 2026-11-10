@@ -78,7 +78,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({ isOp
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fadeIn">
       <div
         ref={modalRef}
-        className="w-full max-w-lg bg-white rounded-2xl border border-gl-border shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        className="w-full max-w-lg bg-white rounded-[20px] border border-[#E8E4DA] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
       >
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-gl-border bg-gl-cream/40">

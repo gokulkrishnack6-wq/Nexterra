@@ -32,12 +32,12 @@ export const ReportTrackingPage: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 space-y-6 text-left">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E8E4DA] pb-5">
         <div>
-          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-gl-charcoal tracking-tight">
+          <h1 className="font-heading font-bold text-2xl sm:text-3xl lg:text-[34px] text-[#18251F] tracking-tight">
             Reported Issues
           </h1>
-          <p className="text-sm text-gl-charcoal-muted mt-1">
+          <p className="font-sans text-sm text-[#6F776F] mt-1">
             Track community-reported waste alerts and cleanup progress.
           </p>
         </div>

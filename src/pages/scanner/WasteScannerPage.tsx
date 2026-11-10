@@ -311,22 +311,22 @@ export const WasteScannerPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pt-1">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#E8E4DA] pb-5">
           <div className="max-w-3xl">
-            <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-gl-charcoal tracking-tight">
+            <h1 className="font-heading font-bold text-2xl sm:text-3xl lg:text-[34px] text-[#18251F] tracking-tight">
               Waste Scanner
             </h1>
-            <p className="text-sm text-gl-charcoal-muted mt-1 leading-relaxed">
+            <p className="font-sans text-sm text-[#6F776F] mt-1 leading-relaxed">
               Take or upload a photo to identify recyclable materials and pre-fill your marketplace listing.
             </p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => navigate('/marketplace')}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-gl-cream text-gl-charcoal font-semibold text-xs transition-colors shadow-2xs border border-gl-border"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-[#F8F6EF] text-[#18251F] font-semibold text-xs transition-colors shadow-xs border border-[#E8E4DA]"
               type="button"
             >
-              <Recycle className="w-4 h-4 text-gl-forest" />
+              <Recycle className="w-4 h-4 text-[#103D2A]" />
               <span>Browse Marketplace</span>
             </button>
           </div>

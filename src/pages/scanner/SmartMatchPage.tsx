@@ -25,17 +25,17 @@ export const SmartMatchPage: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 space-y-6 text-left">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E8E4DA] pb-5">
         <div>
-          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-gl-charcoal tracking-tight">
-            Recommended Matches
+          <h1 className="font-heading font-bold text-2xl sm:text-3xl lg:text-[34px] text-[#18251F] tracking-tight">
+            Smart Matches
           </h1>
-          <p className="text-sm text-gl-charcoal-muted mt-1">
-            Materials recommended for your profile in {userDistrict}.
+          <p className="font-sans text-sm text-[#6F776F] mt-1">
+            Discover reusable materials available in your area.
           </p>
         </div>
 
-        <span className="text-xs text-gl-dark bg-gl-sage-light px-3 py-1.5 rounded-full border border-gl-sage font-bold self-start sm:self-auto">
+        <span className="text-xs text-[#103D2A] bg-[#E7EEDC] px-3.5 py-1.5 rounded-full font-semibold self-start sm:self-auto">
           {smartMatches.length} Matches Found
         </span>
       </div>

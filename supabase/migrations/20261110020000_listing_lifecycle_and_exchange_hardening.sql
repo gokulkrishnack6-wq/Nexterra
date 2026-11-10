@@ -355,3 +355,4 @@ $$ LANGUAGE plpgsql;
 
 REVOKE ALL ON FUNCTION public.confirm_exchange_handover(UUID, TEXT) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.confirm_exchange_handover(UUID, TEXT) TO authenticated;
+

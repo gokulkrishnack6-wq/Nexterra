@@ -319,7 +319,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode }) => {
         </p>
       </div>
 
-      <Card variant="elevated" className="space-y-5 p-6 sm:p-8 bg-white border border-gl-border rounded-2xl shadow-card">
+      <Card variant="elevated" className="space-y-5 p-6 sm:p-8 bg-white border border-[#E8E4DA] rounded-[20px] shadow-[0_2px_12px_rgba(16,61,42,0.03)]">
         {/* Status Alerts */}
         {error && (
           <div className="p-3 bg-error-container text-on-error-container rounded-lg text-body-sm font-medium border border-error/20 flex items-start gap-2.5">

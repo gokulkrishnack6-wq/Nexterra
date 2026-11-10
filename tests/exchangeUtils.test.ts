@@ -125,3 +125,4 @@ describe('GreenLoop Exchange Participant Resolution & Lifecycle Utilities', () =
     expect(isListingReserved(null)).toBe(false);
   });
 });
+

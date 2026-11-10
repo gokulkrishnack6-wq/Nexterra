@@ -237,25 +237,25 @@ export const MarketplacePage: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 space-y-6 text-left">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gl-border/70 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E8E4DA] pb-5">
         <div>
-          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-gl-charcoal tracking-tight">
+          <h1 className="font-heading font-bold text-2xl sm:text-3xl lg:text-[34px] text-[#18251F] tracking-tight">
             Waste Marketplace
           </h1>
-          <p className="font-body text-sm text-gl-charcoal-muted mt-1">
+          <p className="font-sans text-sm text-[#6F776F] mt-1">
             Browse recyclable and reusable materials available across Kerala.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
           {/* View Mode Toggle: Grid vs Map */}
-          <div className="inline-flex p-1 bg-gl-cream rounded-xl border border-gl-border">
+          <div className="inline-flex p-1 bg-[#F8F6EF] rounded-xl border border-[#E8E4DA]">
             <button
               onClick={() => setViewMode('grid')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 viewMode === 'grid'
-                  ? 'bg-white text-gl-forest shadow-xs'
-                  : 'text-gl-charcoal-muted hover:text-gl-charcoal'
+                  ? 'bg-white text-[#103D2A] shadow-xs'
+                  : 'text-[#6F776F] hover:text-[#18251F]'
               }`}
               title="Grid View"
             >
@@ -266,8 +266,8 @@ export const MarketplacePage: React.FC = () => {
               onClick={() => setViewMode('map')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 viewMode === 'map'
-                  ? 'bg-white text-gl-forest shadow-xs'
-                  : 'text-gl-charcoal-muted hover:text-gl-charcoal'
+                  ? 'bg-white text-[#103D2A] shadow-xs'
+                  : 'text-[#6F776F] hover:text-[#18251F]'
               }`}
               title="Map View"
             >
@@ -277,15 +277,15 @@ export const MarketplacePage: React.FC = () => {
           </div>
 
           <Link to="/smart-match" className="flex-1 sm:flex-initial">
-            <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-gl-cream text-gl-forest border border-gl-border rounded-xl text-sm font-semibold shadow-xs transition-all active:scale-[0.98]">
-              <Sparkles className="w-4 h-4 text-gl-fresh" />
-              <span>Smart Match</span>
+            <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white hover:bg-[#F8F6EF] text-[#18251F] border border-[#E8E4DA] rounded-xl text-sm font-semibold shadow-xs transition-all active:scale-[0.98]">
+              <Sparkles className="w-4 h-4 text-[#315F3B]" />
+              <span>Smart Matches</span>
             </button>
           </Link>
 
           <Link to="/marketplace/new" className="flex-1 sm:flex-initial">
-            <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gl-forest hover:bg-gl-dark text-white rounded-xl text-sm font-semibold shadow-sm transition-all active:scale-[0.98]">
-              <Plus className="w-4 h-4" />
+            <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#103D2A] hover:bg-[#08291D] text-white rounded-xl text-sm font-semibold shadow-xs transition-all active:scale-[0.98]">
+              <Plus className="w-4 h-4 text-white" />
               <span>Add Listing</span>
             </button>
           </Link>
@@ -517,8 +517,8 @@ export const MarketplacePage: React.FC = () => {
           </div>
         </div>
       ) : (
-        /* Grid View */
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+        /* Grid View (Three listing columns on large desktop screens) */
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredListings.map((listing) => (
             <ListingCard key={listing.id} listing={listing} referenceCoords={refCoords} />
           ))}

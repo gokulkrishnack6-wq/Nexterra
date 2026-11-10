@@ -67,7 +67,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({ listing, referenceCoor
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gl-border hover:border-gl-sage transition-all duration-200 flex flex-col justify-between overflow-hidden group shadow-card hover:shadow-card-hover text-left">
+    <div className="bg-white rounded-[18px] border border-[#E8E4DA] hover:border-[#8BA681] transition-all duration-200 flex flex-col justify-between overflow-hidden group shadow-[0_2px_8px_rgba(16,61,42,0.03)] hover:shadow-card-hover text-left">
       {/* Thumbnail */}
       <div className="relative aspect-[4/3] w-full bg-gl-cream overflow-hidden">
         <img

@@ -67,3 +67,4 @@ export function isWhatsAppContactAllowed(status?: string | null): boolean {
 export function isListingReserved(listing?: { status?: string | null } | null): boolean {
   return listing?.status === 'reserved';
 }
+

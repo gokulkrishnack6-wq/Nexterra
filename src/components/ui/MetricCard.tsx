@@ -32,23 +32,23 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   className = '',
 }) => {
   return (
-    <div className={`flex flex-col justify-between p-space-md bg-surface-container-lowest rounded-xl border border-outline-variant/70 shadow-sm ${className}`}>
+    <div className={`flex flex-col justify-between p-5 sm:p-6 bg-white rounded-[18px] border border-[#E8E4DA] shadow-[0_2px_8px_rgba(16,61,42,0.03)] hover:shadow-card-hover transition-all ${className}`}>
       {/* Top Header */}
       <div className="flex items-center justify-between">
-        <span className="font-label-sm text-label-sm text-outline uppercase tracking-wider">{label}</span>
-        <span className={`p-2 rounded-lg ${iconBg} ${iconColor} flex items-center justify-center`}>
+        <span className="font-sans text-[11px] font-bold text-[#6F776F] uppercase tracking-wider">{label}</span>
+        <span className={`w-9 h-9 rounded-full ${iconBg} ${iconColor} flex items-center justify-center shadow-xs`}>
           {icon}
         </span>
       </div>
 
       {/* Numerical Value */}
-      <div className="mt-space-sm">
+      <div className="mt-3">
         <div className="flex items-baseline gap-2 flex-wrap">
-          <span className={`font-headline-lg text-primary font-bold tracking-tight break-words ${typeof value === 'string' && value.length > 8 ? 'text-xl sm:text-2xl' : 'text-2xl sm:text-headline-lg'}`}>{value}</span>
-          {unit && <span className="font-label-sm text-label-sm text-secondary font-semibold">{unit}</span>}
+          <span className={`font-heading font-bold text-[#18251F] tracking-tight break-words ${typeof value === 'string' && value.length > 8 ? 'text-xl sm:text-2xl' : 'text-2xl sm:text-3xl'}`}>{value}</span>
+          {unit && <span className="font-sans text-xs text-[#315F3B] font-semibold">{unit}</span>}
         </div>
         {subtext && (
-          <p className="font-body-sm text-body-sm text-on-surface-variant mt-1 line-clamp-1">
+          <p className="font-sans text-xs text-[#6F776F] mt-1 line-clamp-1">
             {subtext}
           </p>
         )}

@@ -46,12 +46,12 @@ export const MapPage: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 space-y-6 text-left">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E8E4DA] pb-5">
         <div>
-          <h1 className="font-heading font-extrabold text-2xl sm:text-3xl text-gl-charcoal tracking-tight">
+          <h1 className="font-heading font-bold text-2xl sm:text-3xl lg:text-[34px] text-[#18251F] tracking-tight">
             Recycling Directory &amp; Bins
           </h1>
-          <p className="text-sm text-gl-charcoal-muted mt-1">
+          <p className="font-sans text-sm text-[#6F776F] mt-1">
             Find public waste bins, recycling centres, and collection hubs across Kerala.
           </p>
         </div>
@@ -60,7 +60,7 @@ export const MapPage: React.FC = () => {
           <select
             value={selectedDistrict}
             onChange={(e) => setSelectedDistrict(e.target.value)}
-            className="w-full sm:w-auto py-2.5 px-3.5 bg-white border border-gl-border hover:border-gl-forest/50 focus:border-gl-forest focus:ring-2 focus:ring-gl-forest/20 rounded-xl text-sm font-medium text-gl-charcoal focus:outline-none transition-all shadow-2xs"
+            className="w-full sm:w-auto py-2.5 px-4 bg-white border border-[#E8E4DA] hover:border-[#8BA681] focus:border-[#103D2A] focus:ring-2 focus:ring-[#103D2A]/15 rounded-xl text-sm font-medium text-[#18251F] focus:outline-none transition-all shadow-xs"
           >
             <option value="All Kerala">All Kerala</option>
             {keralaDistricts.map((d) => (

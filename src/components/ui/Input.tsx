@@ -21,34 +21,34 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({
   return (
     <div className="flex flex-col gap-1 w-full">
       {label && (
-        <label className="font-label-md text-label-md text-on-surface">
+        <label className="font-sans text-xs font-semibold text-[#18251F]">
           {label}
         </label>
       )}
       <div className="relative flex items-center">
         {leftIcon && (
-          <div className="absolute left-3 text-outline pointer-events-none flex items-center">
+          <div className="absolute left-3 text-[#6F776F] pointer-events-none flex items-center">
             {leftIcon}
           </div>
         )}
         <input
           ref={ref}
           disabled={disabled}
-          className={`w-full bg-surface-container-lowest text-on-surface placeholder:text-outline text-base sm:text-body-md font-body rounded-lg border min-h-[44px] ${
-            error ? 'border-error ring-1 ring-error' : 'border-outline-variant hover:border-outline'
-          } focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 py-2.5 sm:py-2 ${
-            leftIcon ? 'pl-9' : 'pl-3'
-          } ${rightIcon ? 'pr-9' : 'pr-3'} transition-all disabled:opacity-50 disabled:bg-surface-container-low ${className}`}
+          className={`w-full bg-white text-[#18251F] placeholder:text-[#6F776F]/70 text-sm font-sans rounded-xl border min-h-[46px] ${
+            error ? 'border-[#C74738] ring-1 ring-[#C74738]' : 'border-[#E8E4DA] hover:border-[#8BA681]'
+          } focus:outline-none focus:border-[#103D2A] focus:ring-2 focus:ring-[#103D2A]/15 py-2.5 px-3.5 ${
+            leftIcon ? 'pl-9' : 'pl-3.5'
+          } ${rightIcon ? 'pr-9' : 'pr-3.5'} transition-all disabled:opacity-50 disabled:bg-[#F8F6EF] ${className}`}
           {...props}
         />
         {rightIcon && (
-          <div className="absolute right-3 text-outline flex items-center">
+          <div className="absolute right-3 text-[#6F776F] flex items-center">
             {rightIcon}
           </div>
         )}
       </div>
-      {error && <span className="font-body-sm text-body-sm text-error">{error}</span>}
-      {!error && helperText && <span className="font-body-sm text-body-sm text-outline">{helperText}</span>}
+      {error && <span className="font-sans text-xs text-[#C74738]">{error}</span>}
+      {!error && helperText && <span className="font-sans text-xs text-[#6F776F]">{helperText}</span>}
     </div>
   );
 });
@@ -72,20 +72,20 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({
   return (
     <div className="flex flex-col gap-1 w-full">
       {label && (
-        <label className="font-label-md text-label-md text-on-surface">
+        <label className="font-sans text-xs font-semibold text-[#18251F]">
           {label}
         </label>
       )}
       <textarea
         ref={ref}
         disabled={disabled}
-        className={`w-full bg-surface-container-lowest text-on-surface placeholder:text-outline text-base sm:text-body-md font-body rounded-lg border ${
-          error ? 'border-error ring-1 ring-error' : 'border-outline-variant hover:border-outline'
-        } focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 p-3 transition-all disabled:opacity-50 disabled:bg-surface-container-low ${className}`}
+        className={`w-full bg-white text-[#18251F] placeholder:text-[#6F776F]/70 text-sm font-sans rounded-xl border ${
+          error ? 'border-[#C74738] ring-1 ring-[#C74738]' : 'border-[#E8E4DA] hover:border-[#8BA681]'
+        } focus:outline-none focus:border-[#103D2A] focus:ring-2 focus:ring-[#103D2A]/15 p-3.5 transition-all disabled:opacity-50 disabled:bg-[#F8F6EF] ${className}`}
         {...props}
       />
-      {error && <span className="font-body-sm text-body-sm text-error">{error}</span>}
-      {!error && helperText && <span className="font-body-sm text-body-sm text-outline">{helperText}</span>}
+      {error && <span className="font-sans text-xs text-[#C74738]">{error}</span>}
+      {!error && helperText && <span className="font-sans text-xs text-[#6F776F]">{helperText}</span>}
     </div>
   );
 });

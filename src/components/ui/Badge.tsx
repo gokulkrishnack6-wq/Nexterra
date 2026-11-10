@@ -16,17 +16,17 @@ export const Badge: React.FC<BadgeProps> = ({
   className = '',
 }) => {
   const sizeStyles = {
-    sm: 'px-2 py-0.5 text-label-sm font-label-sm leading-none',
-    md: 'px-2.5 py-1 text-body-sm font-medium',
+    sm: 'px-2.5 py-0.5 text-[10px] font-sans font-bold leading-none',
+    md: 'px-3 py-1 text-xs font-sans font-semibold',
   };
 
   const variantStyles = {
-    brand: 'bg-primary-container text-on-primary',
-    active: 'bg-tertiary-fixed text-primary font-semibold',
-    success: 'bg-secondary-container text-on-secondary-container font-medium',
-    pending: 'bg-surface-container-high text-on-surface-variant',
-    neutral: 'bg-surface-container text-on-surface-variant border border-outline-variant/50',
-    error: 'bg-error-container text-on-error-container font-medium',
+    brand: 'bg-[#103D2A] text-white',
+    active: 'bg-[#E7EEDC] text-[#103D2A] font-semibold',
+    success: 'bg-[#E7EEDC] text-[#315F3B] font-semibold',
+    pending: 'bg-amber-100 text-amber-900 font-semibold',
+    neutral: 'bg-[#F8F6EF] text-[#6F776F] border border-[#E8E4DA]',
+    error: 'bg-rose-50 text-[#C74738] font-semibold',
   };
 
   return (
