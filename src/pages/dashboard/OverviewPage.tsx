@@ -6,6 +6,7 @@ import { useGeolocation } from '../../hooks/useGeolocation';
 import { EmptyState, MetricCardSkeleton } from '../../components/ui/Skeleton';
 import { LandscapeIllustration } from '../../components/dashboard/LandscapeIllustration';
 import { BotanicalWatermark } from '../../components/ui/BotanicalWatermark';
+import { Modal } from '../../components/ui/Modal';
 import { ExchangeRequest } from '../../types';
 import {
   Package,
@@ -518,32 +519,26 @@ export const OverviewPage: React.FC = () => {
 
       {/* Digital Handover Pass Modal */}
       {selectedExchangeForPass && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs cursor-pointer"
-          role="dialog"
-          aria-modal="true"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setSelectedExchangeForPass(null);
-          }}
+        <Modal
+          isOpen={Boolean(selectedExchangeForPass)}
+          onClose={() => setSelectedExchangeForPass(null)}
+          title="Handover Verification Pass"
+          subtitle="Show this code to your exchange partner during physical pickup."
+          icon={<QrCode className="w-5 h-5 text-[#103D2A]" />}
+          maxWidth="sm"
+          footer={
+            <button
+              onClick={() => setSelectedExchangeForPass(null)}
+              className="w-full py-2.5 bg-[#103D2A] hover:bg-[#0B3827] text-white rounded-xl text-xs font-medium transition-colors shadow-2xs"
+              type="button"
+            >
+              Close Pass
+            </button>
+          }
         >
-          <div
-            className="bg-white rounded-lg border border-[#E8E4DA] p-6 max-w-sm w-full shadow-modal flex flex-col items-center text-center gap-3 cursor-default"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="w-10 h-10 rounded-full bg-[#E7EEDC] text-[#103D2A] flex items-center justify-center">
-              <QrCode className="w-5 h-5" />
-            </div>
-
-            <h3 className="font-editorial font-normal text-lg text-[#18251F]">
-              Handover Verification Pass
-            </h3>
-
-            <p className="font-sans text-xs text-[#6F776F]">
-              Show this code to your exchange partner during physical pickup.
-            </p>
-
-            <div className="p-4 bg-[#F8F6EF] rounded-md border border-[#E8E4DA] flex flex-col items-center w-full my-1">
-              <div className="w-32 h-32 bg-white p-2 rounded flex items-center justify-center border border-[#E8E4DA]">
+          <div className="flex flex-col items-center text-center gap-3">
+            <div className="p-4 bg-[#F8F6EF] rounded-xl border border-[#E8E4DA] flex flex-col items-center w-full my-1">
+              <div className="w-32 h-32 bg-white p-2 rounded-lg flex items-center justify-center border border-[#E8E4DA] shadow-2xs">
                 {/* Clean SVG QR Code */}
                 <svg className="w-full h-full text-[#103D2A]" viewBox="0 0 100 100" fill="currentColor">
                   <rect x="10" y="10" width="25" height="25" />
@@ -564,23 +559,15 @@ export const OverviewPage: React.FC = () => {
                   <rect x="80" y="80" width="10" height="10" />
                 </svg>
               </div>
-              <span className="font-mono font-semibold text-lg text-[#103D2A] tracking-wider mt-2.5">
+              <span className="font-mono font-bold text-xl text-[#103D2A] tracking-wider mt-3">
                 {selectedExchangeForPass.completion_code || selectedExchangeForPass.id.slice(0, 8).toUpperCase()}
               </span>
-              <span className="font-sans text-xs text-[#6F776F] mt-0.5">
+              <span className="font-sans text-xs text-[#68736B] mt-0.5 truncate max-w-[240px]">
                 {selectedExchangeForPass.listing?.title || 'Material Batch'}
               </span>
             </div>
-
-            <button
-              onClick={() => setSelectedExchangeForPass(null)}
-              className="w-full py-2 bg-[#103D2A] text-white rounded-md text-xs font-medium hover:bg-[#08291D] transition-colors mt-1"
-              type="button"
-            >
-              Close Pass
-            </button>
           </div>
-        </div>
+        </Modal>
       )}
 
     </div>

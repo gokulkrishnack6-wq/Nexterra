@@ -33,6 +33,7 @@ import { Card } from '../../components/ui/Card';
 import { MetricCard } from '../../components/ui/MetricCard';
 import { EmptyState } from '../../components/ui/Skeleton';
 import { Button } from '../../components/ui/Button';
+import { Modal } from '../../components/ui/Modal';
 import { EcoReward, AVAILABLE_REWARDS, getEcoTier } from '../../lib/ecoRewards';
 
 export const ImpactDashboardPage: React.FC = () => {
@@ -44,25 +45,6 @@ export const ImpactDashboardPage: React.FC = () => {
   const [selectedReward, setSelectedReward] = useState<EcoReward | null>(null);
   const [claimSuccessMsg, setClaimSuccessMsg] = useState<string | null>(null);
   const [claimedVoucherCode, setClaimedVoucherCode] = useState<string | null>(null);
-
-  // Handle Escape key and body scroll lock for Reward Voucher Modal
-  useEffect(() => {
-    if (!selectedReward) return;
-
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setSelectedReward(null);
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.body.style.overflow = originalOverflow;
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [selectedReward]);
 
   // -------------------------------------------------------------
   // 1. LOGGED-OUT EXPERIENCE: DEDICATED SIGN-IN REQUIRED SCREEN
@@ -716,51 +698,22 @@ export const ImpactDashboardPage: React.FC = () => {
 
       {/* Modal: Confirm Reward Redemption */}
       {selectedReward && (
-        <div
-          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 cursor-pointer"
-          role="dialog"
-          aria-modal="true"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setSelectedReward(null);
-          }}
-        >
-          <Card
-            variant="elevated"
-            className="max-w-md w-full p-6 space-y-4 shadow-xl border-outline-variant cursor-default"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-2">
-                <Gift className="w-5 h-5 text-primary" />
-                <h3 className="font-heading font-bold text-lg text-primary">
-                  Claim Reward Voucher
-                </h3>
-              </div>
-              <button onClick={() => setSelectedReward(null)} className="p-1 text-outline hover:text-on-surface">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-2 text-body-sm text-on-surface">
-              <p>
-                You are about to redeem <strong>{selectedReward.points_cost} EcoPoints</strong> for:
-              </p>
-              <div className="p-3 rounded-lg bg-surface-container border border-outline-variant/60">
-                <span className="font-semibold block text-primary">{selectedReward.title}</span>
-                <span className="text-xs text-outline block mt-0.5">Partner: {selectedReward.partner}</span>
-              </div>
-              <p className="text-xs text-on-surface-variant">
-                Your remaining balance will be <strong>{userBalance - selectedReward.points_cost} PTS</strong>.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-outline-variant/40">
-              <Button variant="outline" size="sm" onClick={() => setSelectedReward(null)}>
+        <Modal
+          isOpen={Boolean(selectedReward)}
+          onClose={() => setSelectedReward(null)}
+          title="Claim Reward Voucher"
+          subtitle="Redeem your earned EcoPoints for verified partner incentives"
+          icon={<Gift className="w-5 h-5 text-[#103D2A]" />}
+          maxWidth="md"
+          footer={
+            <div className="flex items-center justify-end gap-2.5 w-full">
+              <Button variant="outline" size="sm" onClick={() => setSelectedReward(null)} className="rounded-xl">
                 Cancel
               </Button>
               <Button
                 variant="primary"
                 size="sm"
+                className="rounded-xl shadow-sm"
                 onClick={() => {
                   handleClaimReward(selectedReward);
                   setSelectedReward(null);
@@ -769,8 +722,21 @@ export const ImpactDashboardPage: React.FC = () => {
                 Confirm &amp; Generate Voucher
               </Button>
             </div>
-          </Card>
-        </div>
+          }
+        >
+          <div className="space-y-3.5 text-left">
+            <p className="text-sm text-[#18251F]">
+              You are about to redeem <strong>{selectedReward.points_cost} EcoPoints</strong> for:
+            </p>
+            <div className="p-3.5 rounded-xl bg-[#FAF8F2] border border-[#E9E2D5]">
+              <span className="font-semibold block text-base text-[#103D2A]">{selectedReward.title}</span>
+              <span className="text-xs text-[#68736B] block mt-0.5">Partner: {selectedReward.partner}</span>
+            </div>
+            <p className="text-xs text-[#68736B]">
+              Your remaining balance will be <strong>{userBalance - selectedReward.points_cost} PTS</strong>.
+            </p>
+          </div>
+        </Modal>
       )}
     </div>
   );

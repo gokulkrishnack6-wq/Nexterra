@@ -249,12 +249,12 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
 
       {/* Mobile Drawer (Visible on smaller screens < 768px) */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 md:hidden flex">
+        <div className="fixed inset-0 z-50 md:hidden flex animate-fadeIn">
           <div
             className="fixed inset-0 bg-[#08291D]/50 backdrop-blur-sm transition-opacity"
             onClick={closeAllMenus}
           />
-          <div className="relative w-72 max-w-[80vw] bg-[#103D2A] text-white h-full flex flex-col justify-between py-5 px-3.5 shadow-2xl z-50 overflow-y-auto">
+          <div className="relative w-72 max-w-[85vw] bg-[#103D2A] text-white h-[100dvh] max-h-[100dvh] flex flex-col justify-between pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))] px-3.5 shadow-2xl z-50 overflow-y-auto overscroll-contain">
             <div>
               <div className="flex items-center justify-between pb-4 border-b border-white/10 px-2">
                 <Link to="/" onClick={closeAllMenus} className="flex items-center gap-2.5">
@@ -367,7 +367,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
               </button>
 
               {locationMenuOpen && (
-                <div className="fixed inset-x-2 top-16 sm:absolute sm:inset-auto sm:left-0 sm:top-full mt-2 w-auto sm:w-80 max-w-sm max-h-[calc(100vh-5rem)] overflow-y-auto bg-surface-container-lowest border border-outline-variant rounded-xl shadow-dropdown py-2 z-50">
+                <div className="fixed inset-x-2 top-[68px] sm:absolute sm:inset-auto sm:left-0 sm:top-full mt-2 w-auto sm:w-80 max-w-sm max-h-[calc(100dvh-5rem)] overflow-y-auto overscroll-contain bg-[#FDFBF7] border border-[#E6E0D5] rounded-xl shadow-xl py-2 z-50">
                   {/* Mobile header with close button */}
                   <div className="flex items-center justify-between px-3.5 py-1.5 sm:hidden border-b border-outline-variant/30">
                     <span className="text-xs font-semibold text-primary">Location Settings</span>
@@ -532,7 +532,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
               </button>
 
               {notifOpen && (
-                <div className="fixed inset-x-2 top-16 sm:absolute sm:inset-auto sm:right-0 sm:top-full mt-2 w-auto sm:w-80 max-w-sm bg-surface-container-lowest border border-outline-variant rounded-xl shadow-dropdown z-50 overflow-hidden">
+                <div className="fixed inset-x-2 top-[68px] sm:absolute sm:inset-auto sm:right-0 sm:top-full mt-2 w-auto sm:w-80 max-w-sm max-h-[calc(100dvh-5rem)] flex flex-col bg-[#FDFBF7] border border-[#E6E0D5] rounded-xl shadow-xl z-50 overflow-hidden overscroll-contain">
                   <div className="p-3 bg-surface-container border-b border-outline-variant/60 flex items-center justify-between">
                     <span className="font-label-md text-label-md text-primary font-semibold">
                       Notifications ({unreadCount})
@@ -608,7 +608,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                   </button>
 
                   {userMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-60 sm:w-64 max-w-[calc(100vw-1.5rem)] bg-surface-container-lowest border border-outline-variant rounded-xl shadow-dropdown py-2 z-50">
+                    <div className="fixed inset-x-4 top-[68px] sm:absolute sm:inset-auto sm:right-0 sm:top-full mt-2 w-auto sm:w-64 max-w-sm bg-[#FDFBF7] border border-[#E6E0D5] rounded-xl shadow-xl py-2 z-50 overscroll-contain max-h-[calc(100dvh-5rem)] overflow-y-auto">
                       <div className="px-4 py-2 border-b border-outline-variant/40">
                         <span className="font-semibold text-sm text-primary block truncate">
                           {currentUser.full_name}
@@ -680,7 +680,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
         </header>
 
         {/* Dynamic Route Content */}
-        <main className="w-full flex-1 min-w-0 max-w-full pt-16 sm:pt-20 pb-20 md:pb-12 px-4 sm:px-6 lg:px-8">
+        <main className="w-full flex-1 min-w-0 max-w-full pt-[72px] sm:pt-20 pb-20 md:pb-12 px-4 sm:px-6 lg:px-8">
           {children}
         </main>
 

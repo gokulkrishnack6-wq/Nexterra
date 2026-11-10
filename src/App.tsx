@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { LocationProvider } from './contexts/LocationContext';
 import { DataProvider } from './contexts/DataContext';
 import { StitchAppShell } from './components/layout/StitchAppShell';
+import { ScrollToTop } from './components/layout/ScrollToTop';
 
 // Pages
 import { OverviewPage } from './pages/dashboard/OverviewPage';
@@ -60,6 +61,7 @@ const AuthCallbackDetector: React.FC = () => {
 export const App: React.FC = () => {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <AuthCallbackDetector />
       <AuthProvider>
         <LocationProvider>

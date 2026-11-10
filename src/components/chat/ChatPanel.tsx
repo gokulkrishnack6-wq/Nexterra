@@ -110,6 +110,25 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ conversationId, onClose, i
     }
   };
 
+  // Lock body scroll and handle Escape key while ChatPanel is open
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
   // Load initial messages
   useEffect(() => {
     if (!conversationId || !isOpen) return;
@@ -222,7 +241,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ conversationId, onClose, i
   return (
     <>
       <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-xs animate-fadeIn">
-        <div className="w-full max-w-lg h-full bg-surface-container-lowest shadow-2xl flex flex-col border-l border-outline-variant animate-slideLeft">
+        <div className="w-full max-w-lg h-[100dvh] max-h-[100dvh] bg-surface-container-lowest shadow-2xl flex flex-col border-l border-outline-variant animate-slideLeft overscroll-contain">
           
           {/* Header */}
           <div className="p-4 border-b border-outline-variant/60 bg-surface-container-low flex flex-col gap-3">

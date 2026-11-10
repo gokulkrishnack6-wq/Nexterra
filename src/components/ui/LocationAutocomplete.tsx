@@ -32,6 +32,7 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
   const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [openAbove, setOpenAbove] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState<number>(-1);
   const [searchError, setSearchError] = useState<string | null>(null);
 
@@ -49,6 +50,22 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
     enabled: isOpen,
     onEscape: closeDropdown,
   });
+
+  // Calculate viewport boundary collision to flip dropdown upwards if near bottom
+  useEffect(() => {
+    if (isOpen && inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const spaceBelow = viewportHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      // If less than 240px below and more room above, flip dropdown above
+      if (spaceBelow < 240 && spaceAbove > spaceBelow) {
+        setOpenAbove(true);
+      } else {
+        setOpenAbove(false);
+      }
+    }
+  }, [isOpen, suggestions.length]);
 
   // Sync internal input value with selected location prop or initial value
   useEffect(() => {
@@ -182,7 +199,11 @@ export const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({
 
       {/* Autocomplete Suggestions Dropdown */}
       {isOpen && (
-        <div className="absolute z-50 left-0 right-0 mt-1 max-h-64 overflow-y-auto bg-surface-container-lowest border border-outline-variant/80 rounded-xl shadow-lg divide-y divide-outline-variant/30 font-sans">
+        <div
+          className={`absolute z-50 left-0 right-0 max-h-60 overflow-y-auto overscroll-contain bg-surface-container-lowest border border-outline-variant/80 rounded-xl shadow-xl divide-y divide-outline-variant/30 font-sans ${
+            openAbove ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
+          }`}
+        >
           {suggestions.length === 0 && !isLoading && (
             <div className="p-3 text-xs text-on-surface-variant text-center">
               No matching locations found in Kerala. Try typing another locality or district.
