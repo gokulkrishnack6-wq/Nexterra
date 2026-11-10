@@ -3,17 +3,19 @@
 @tailwind utilities;
 
 :root {
+  --sidebar: #0B3827;
   --forest: #103D2A;
-  --forest-dark: #08291D;
-  --forest-light: #315F3B;
+  --primary: #174B32;
+  --secondary: #47764C;
+  --botanical: #8BA681;
   --sage: #8BA681;
-  --sage-pale: #E7EEDC;
-  --cream: #F8F6EF;
-  --surface: #FFFFFF;
-  --beige: #EAE4D8;
+  --pale-sage: #E8EEDC;
+  --main-bg: #F7F4EC;
+  --card-bg: #FFFEFA;
+  --warm-beige: #E9E2D5;
+  --divider: #E6E0D5;
   --text-primary: #18251F;
-  --text-secondary: #6F776F;
-  --border: #E8E4DA;
+  --text-secondary: #68736B;
   --accent-orange: #D97706;
   --error: #C74738;
 }
@@ -28,31 +30,30 @@
   }
 
   body {
-    background-color: #F8F6EF;
+    background-color: #F7F4EC;
     color: #18251F;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Selected editorial headings use Lora; interface titles use clean Inter */
-  h1, .font-editorial {
+  /* Headings: Lora for dashboard greeting, page titles, section headings, card titles */
+  h1, h2, .font-heading, .font-serif, .font-editorial {
     font-family: 'Lora', Georgia, serif;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.015em;
     color: #18251F;
-    font-weight: 600;
   }
 
-  h2, h3, h4, h5, h6 {
+  /* Subheadings & Interface text */
+  h3, h4, h5, h6 {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     letter-spacing: -0.01em;
     color: #18251F;
-    font-weight: 600;
   }
 
   p {
     line-height: 1.6;
-    color: #6F776F;
+    color: #68736B;
   }
 }
 

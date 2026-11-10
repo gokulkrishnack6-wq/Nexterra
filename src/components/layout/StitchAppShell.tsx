@@ -5,15 +5,15 @@ import { useData } from '../../contexts/DataContext';
 import { useGeolocation, KERALA_DISTRICT_COORDS } from '../../hooks/useGeolocation';
 import { useOutsideClick } from '../../hooks/useOutsideClick';
 import {
-  LayoutDashboard,
+  Home,
   Store,
   MapPin,
   AlertTriangle,
   ScanLine,
-  Sparkles,
+  Share2,
   Repeat,
-  Recycle,
-  Award,
+  BookOpen,
+  Leaf,
   Users,
   Settings,
   Bell,
@@ -21,12 +21,16 @@ import {
   Menu,
   X,
   ChevronDown,
+  ChevronRight,
   Navigation,
   CheckCircle2,
   LogIn,
   LogOut,
   User,
-  Loader2
+  Loader2,
+  Award,
+  LayoutDashboard,
+  Sparkles
 } from 'lucide-react';
 
 export interface StitchAppShellProps {
@@ -127,15 +131,15 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   const navLinks = [
-    { label: 'Overview', path: '/', icon: LayoutDashboard, exact: true },
+    { label: 'Overview', path: '/', icon: Home, exact: true },
     { label: 'Waste Marketplace', path: '/marketplace', icon: Store },
     { label: 'Find Waste Bins', path: '/bins', icon: MapPin },
     { label: 'Report an Issue', path: '/report-issue', icon: AlertTriangle },
     { label: 'Waste Scanner', path: '/ai-scanner', icon: ScanLine },
-    { label: 'Smart Matches', path: '/matches', icon: Sparkles },
+    { label: 'Smart Matches', path: '/matches', icon: Share2 },
     { label: 'My Exchanges', path: '/exchanges', icon: Repeat },
-    { label: 'Recycling Directory', path: '/recycling-directory', icon: Recycle },
-    { label: 'EcoPoints & Impact', path: '/impact', icon: Award },
+    { label: 'Recycling Directory', path: '/recycling-directory', icon: BookOpen },
+    { label: 'EcoPoints & Impact', path: '/impact', icon: Leaf },
     { label: 'Community Drives', path: '/community', icon: Users },
   ];
 
@@ -151,29 +155,29 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
   };
 
   const getInitial = (name: string) => {
-    return name ? name.trim().charAt(0).toUpperCase() : 'U';
+    return name ? name.trim().charAt(0).toUpperCase() : 'G';
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F6EF] font-body text-[#18251F] flex flex-col">
-      {/* Desktop & Tablet Sidebar (w-16 on tablet, w-[250px] on desktop) */}
-      <aside className="fixed left-0 top-0 h-full w-16 lg:w-[250px] bg-[#103D2A] z-50 hidden md:flex flex-col justify-between py-5 border-r border-[#08291D] select-none">
-        <div className="flex flex-col gap-4">
+    <div className="min-h-screen bg-[#F7F4EC] font-body text-[#18251F] flex flex-col">
+      {/* Desktop & Tablet Sidebar (w-16 on tablet, w-[280px] on desktop) */}
+      <aside className="fixed left-0 top-0 h-full w-16 lg:w-[280px] bg-[#0B3827] z-50 hidden md:flex flex-col justify-between py-5 border-r border-[#08291D] select-none">
+        <div className="flex flex-col gap-5">
           {/* Logo Brand Header */}
-          <Link to="/" className="px-3 lg:px-5 pb-2 flex items-center justify-center lg:justify-start gap-2.5 hover:opacity-95 transition-opacity" title="GreenLoop">
-            <img src="/logo.png" alt="GreenLoop" className="w-7 h-7 object-contain shrink-0 brightness-110" />
+          <Link to="/" className="px-3 lg:px-5 pb-2 flex items-center justify-center lg:justify-start gap-3 hover:opacity-95 transition-opacity" title="GreenLoop">
+            <img src="/logo.png" alt="GreenLoop" className="w-8 h-8 object-contain shrink-0 brightness-110" />
             <div className="hidden lg:flex flex-col">
-              <span className="font-heading text-[17px] text-white tracking-tight leading-none">
+              <span className="font-heading text-[19px] text-white tracking-tight leading-none">
                 GreenLoop
               </span>
-              <span className="font-sans text-[10px] text-[#8BA681] tracking-wider mt-0.5 font-medium">
+              <span className="font-sans text-[11px] text-[#8BA681] tracking-normal mt-1 font-normal">
                 Kerala Circular Action
               </span>
             </div>
           </Link>
 
           {/* Nav Item Links */}
-          <nav className="flex flex-col gap-0.5 px-2 lg:px-3 overflow-y-auto max-h-[calc(100vh-150px)]">
+          <nav className="flex flex-col gap-1 px-2 lg:px-3 overflow-y-auto max-h-[calc(100vh-160px)]">
             {navLinks.map((item) => {
               const active = isLinkActive(item.path, item.exact);
               const Icon = item.icon;
@@ -182,13 +186,13 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                   key={item.path}
                   to={item.path}
                   title={item.label}
-                  className={`flex items-center justify-center lg:justify-start gap-2.5 px-2.5 py-2 rounded-md font-sans text-[13px] transition-colors ${
+                  className={`flex items-center justify-center lg:justify-start gap-3 px-3 py-2.5 rounded-xl font-sans text-[13.5px] transition-colors ${
                     active
-                      ? 'bg-[#315F3B] text-white font-medium'
-                      : 'text-white/70 hover:bg-white/5 hover:text-white'
+                      ? 'bg-[#47764C] text-white font-medium'
+                      : 'text-[#E8EEDC]/80 hover:bg-white/5 hover:text-white'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-white' : 'text-white/70'}`} />
+                  <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-white' : 'text-[#E8EEDC]/80'}`} />
                   <span className="hidden lg:inline truncate font-normal">{item.label}</span>
                 </Link>
               );
@@ -197,47 +201,44 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
         </div>
 
         {/* Bottom Profile / Auth Info */}
-        <div className="px-2 lg:px-3 pt-3 border-t border-white/10">
+        <div className="px-2 lg:px-3 pt-3">
           {currentUser ? (
-            <div className="flex items-center justify-center lg:justify-between p-2 rounded-md bg-white/5 border border-white/10">
-              <div className="flex items-center gap-2 overflow-hidden">
+            <div
+              onClick={() => toggleMenu('user')}
+              className="flex items-center justify-center lg:justify-between p-2.5 rounded-xl bg-white/5 hover:bg-white/10 cursor-pointer transition-colors border border-white/5"
+            >
+              <div className="flex items-center gap-2.5 overflow-hidden">
                 {currentUser.avatar_url ? (
                   <img
                     src={currentUser.avatar_url}
                     alt={currentUser.full_name}
-                    className="w-7 h-7 rounded-full object-cover shrink-0 ring-1 ring-white/20"
+                    className="w-8 h-8 rounded-full object-cover shrink-0"
                     title={currentUser.full_name}
                   />
                 ) : (
                   <div
-                    className="w-7 h-7 rounded-full bg-[#315F3B] text-white font-medium text-xs flex items-center justify-center shrink-0"
+                    className="w-8 h-8 rounded-full bg-white text-[#0B3827] font-bold text-xs flex items-center justify-center shrink-0"
                     title={currentUser.full_name}
                   >
                     {getInitial(currentUser.full_name)}
                   </div>
                 )}
                 <div className="hidden lg:flex flex-col truncate">
-                  <span className="text-xs font-medium text-white truncate leading-tight">
+                  <span className="text-xs font-bold text-white truncate leading-tight">
                     {currentUser.full_name}
                   </span>
-                  <span className="text-[10px] text-[#8BA681] capitalize truncate">
-                    {currentUser.role}
+                  <span className="text-[11px] text-[#8BA681] capitalize truncate">
+                    {currentUser.role || 'Individual'}
                   </span>
                 </div>
               </div>
-              <button
-                onClick={() => signOut()}
-                className="hidden lg:block p-1 text-white/50 hover:text-white hover:bg-white/10 rounded transition-colors"
-                title="Sign Out"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </button>
+              <ChevronRight className="hidden lg:block w-4 h-4 text-white/50 shrink-0" />
             </div>
           ) : (
             <Link
               to="/login"
               title="Sign In to GreenLoop"
-              className="flex items-center justify-center gap-2 w-full py-2 px-3 rounded-md bg-[#315F3B] text-white text-xs font-medium hover:bg-white/15 transition-colors"
+              className="flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-xl bg-[#47764C] text-white text-xs font-medium hover:bg-[#3D6C42] transition-colors"
             >
               <LogIn className="w-3.5 h-3.5 shrink-0 text-white" />
               <span className="hidden lg:inline">Sign In</span>
@@ -328,14 +329,14 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
       )}
 
       {/* Main Content Area */}
-      <div className="md:pl-16 lg:pl-[250px] flex flex-col flex-1 min-w-0 w-full">
+      <div className="md:pl-16 lg:pl-[280px] flex flex-col flex-1 min-w-0 w-full">
         {/* Top Header (~60px high, warm ivory background, clean hairline bottom border) */}
-        <header className="fixed top-0 left-0 md:left-16 lg:left-[250px] right-0 h-[60px] bg-[#F8F6EF]/95 backdrop-blur-md border-b border-[#E8E4DA] z-40 px-3 xs:px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+        <header className="fixed top-0 left-0 md:left-16 lg:left-[280px] right-0 h-[60px] bg-[#F7F4EC]/95 backdrop-blur-md border-b border-[#E6E0D5] z-40 px-4 sm:px-6 lg:px-8 flex items-center justify-between">
           {/* Left: Mobile Toggle + Geolocation Context */}
           <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-3 min-w-0">
             <button
               onClick={() => toggleMenu('mobile')}
-              className="md:hidden p-1.5 rounded-md text-[#6F776F] hover:bg-[#EAE4D8]/50 shrink-0"
+              className="md:hidden p-1.5 rounded-lg text-[#68736B] hover:bg-[#E9E2D5]/50 shrink-0"
               aria-label="Open Navigation Menu"
             >
               <Menu className="w-5 h-5" />
@@ -345,7 +346,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
             <div ref={locationRef} className="relative min-w-0">
               <button
                 onClick={() => toggleMenu('location')}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white hover:bg-[#FAF8F2] text-[#18251F] text-xs font-medium cursor-pointer transition-colors border border-[#E8E4DA] max-w-full"
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/90 hover:bg-white text-[#18251F] text-xs font-medium cursor-pointer transition-colors border border-[#E6E0D5] shadow-xs max-w-full"
                 title="Current Location"
                 aria-expanded={locationMenuOpen}
                 aria-haspopup="true"
@@ -355,14 +356,14 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                 ) : (
                   <MapPin className="w-3.5 h-3.5 text-[#103D2A] shrink-0" />
                 )}
-                <span className="truncate max-w-[100px] min-[360px]:max-w-[140px] xs:max-w-[180px] sm:max-w-xs text-xs font-medium">
+                <span className="truncate max-w-[120px] min-[360px]:max-w-[160px] xs:max-w-[200px] sm:max-w-xs text-xs font-medium">
                   {geoLoading
                     ? 'Detecting Location...'
                     : (currentLocality
-                        ? `${currentLocality}${currentDistrict && currentDistrict !== currentLocality ? `, ${currentDistrict}` : ''}`
-                        : (currentDistrict || 'Select Location'))}
+                        ? `${currentLocality}, ${currentDistrict || 'Kasaragod'}`
+                        : (currentDistrict ? `${currentDistrict}, Kerala` : 'Quinta do Farol, Kasaragod'))}
                 </span>
-                <ChevronDown className="w-3 h-3 text-[#6F776F] shrink-0" />
+                <ChevronDown className="w-3.5 h-3.5 text-[#68736B] shrink-0" />
               </button>
 
               {locationMenuOpen && (
@@ -503,79 +504,30 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
           </div>
 
           {/* Right Action Bar */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Quick Create Dropdown */}
-            <div ref={createRef} className="relative">
-              <button
-                onClick={() => toggleMenu('create')}
-                className="inline-flex items-center gap-1.5 bg-[#103D2A] text-white px-3 py-1.5 rounded-md font-sans text-xs font-medium hover:bg-[#08291D] transition-colors"
-                type="button"
-                aria-expanded={createMenuOpen}
-                aria-haspopup="true"
-              >
-                <Plus className="w-3.5 h-3.5 text-white" />
-                <span className="hidden sm:inline">Add Listing</span>
-                <span className="hidden xs:inline sm:hidden">Add</span>
-              </button>
-
-              {createMenuOpen && (
-                <div className="absolute right-0 mt-2 w-48 sm:w-56 max-w-[calc(100vw-1.5rem)] bg-surface-container-lowest border border-outline-variant rounded-xl shadow-dropdown py-1.5 z-50">
-                  <button
-                    onClick={() => {
-                      closeAllMenus();
-                      navigate('/marketplace/new');
-                    }}
-                    className="w-full text-left px-3 py-2 text-xs text-on-surface hover:bg-surface-container flex items-center gap-2"
-                  >
-                    <Plus className="w-4 h-4 text-primary" />
-                    <div>
-                      <span className="font-semibold block">List Material</span>
-                      <span className="text-[10px] text-outline">Post reusable waste</span>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => {
-                      closeAllMenus();
-                      navigate('/ai-scanner');
-                    }}
-                    className="w-full text-left px-3 py-2 text-xs text-on-surface hover:bg-surface-container flex items-center gap-2"
-                  >
-                    <ScanLine className="w-4 h-4 text-primary" />
-                    <div>
-                      <span className="font-semibold block">Scan Material</span>
-                      <span className="text-[10px] text-outline">Recognise material from image</span>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => {
-                      closeAllMenus();
-                      navigate('/report-issue');
-                    }}
-                    className="w-full text-left px-3 py-2 text-xs text-on-surface hover:bg-surface-container flex items-center gap-2"
-                  >
-                    <AlertTriangle className="w-4 h-4 text-error" />
-                    <div>
-                      <span className="font-semibold block text-error">Report Issue</span>
-                      <span className="text-[10px] text-outline">Waste dump or overflowing bin</span>
-                    </div>
-                  </button>
-                </div>
-              )}
-            </div>
+          <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+            {/* Quick Create Button */}
+            <button
+              onClick={() => navigate('/marketplace/new')}
+              className="inline-flex items-center gap-1.5 bg-[#103D2A] hover:bg-[#0B3827] text-white px-3.5 py-1.5 rounded-lg font-sans text-xs font-medium transition-colors shadow-2xs"
+              type="button"
+            >
+              <Plus className="w-3.5 h-3.5 text-white" />
+              <span>Add Listing</span>
+            </button>
 
             {/* Notifications Bell */}
             <div ref={notifRef} className="relative">
               <button
                 onClick={() => toggleMenu('notif')}
-                className="relative p-1.5 xs:p-2 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors"
+                className="relative p-2 rounded-lg text-[#18251F] hover:bg-[#E9E2D5]/50 transition-colors"
                 type="button"
                 aria-label="Activity Notifications"
                 aria-expanded={notifOpen}
                 aria-haspopup="true"
               >
-                <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
+                <Bell className="w-4 h-4 text-[#18251F]" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-error ring-2 ring-surface" />
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#C74738] ring-2 ring-[#F7F4EC]" />
                 )}
               </button>
 
@@ -637,26 +589,19 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                 <>
                   <button
                     onClick={() => toggleMenu('user')}
-                    className="flex items-center gap-1.5 xs:gap-2 pl-1.5 xs:pl-2 border-l border-outline-variant/40 hover:opacity-85 transition-opacity"
+                    className="flex items-center hover:opacity-90 transition-opacity focus:outline-none"
                     aria-expanded={userMenuOpen}
                     aria-haspopup="true"
+                    title={currentUser.full_name}
                   >
-                    <div className="flex flex-col text-right hidden sm:flex">
-                      <span className="font-label-md text-label-md text-on-surface leading-tight font-semibold">
-                        {currentUser.full_name}
-                      </span>
-                      <span className="font-body-sm text-[11px] text-outline leading-tight capitalize">
-                        {currentUser.district} • {currentUser.role}
-                      </span>
-                    </div>
                     {currentUser.avatar_url ? (
                       <img
                         src={currentUser.avatar_url}
                         alt={currentUser.full_name}
-                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover ring-1 ring-outline-variant shrink-0"
+                        className="w-8 h-8 rounded-full object-cover ring-1 ring-[#E6E0D5] shrink-0"
                       />
                     ) : (
-                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-primary-container text-on-primary flex items-center justify-center font-bold text-xs ring-1 ring-outline-variant shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-[#103D2A] text-white flex items-center justify-center font-bold text-xs ring-1 ring-[#E6E0D5] shrink-0">
                         {getInitial(currentUser.full_name)}
                       </div>
                     )}

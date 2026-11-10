@@ -5,6 +5,7 @@ import { useData } from '../../contexts/DataContext';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import { EmptyState, MetricCardSkeleton } from '../../components/ui/Skeleton';
 import { LandscapeIllustration } from '../../components/dashboard/LandscapeIllustration';
+import { BotanicalWatermark } from '../../components/ui/BotanicalWatermark';
 import { ExchangeRequest } from '../../types';
 import {
   Package,
@@ -20,7 +21,8 @@ import {
   Clock,
   Compass,
   MapPin,
-  Check
+  Check,
+  Calendar
 } from 'lucide-react';
 
 export const OverviewPage: React.FC = () => {
@@ -90,38 +92,27 @@ export const OverviewPage: React.FC = () => {
   return (
     <div className="flex flex-col w-full gap-8 pb-14 max-w-6xl mx-auto text-left min-w-0">
 
-      {/* 1. EDITORIAL GREETING (Open Layout with Tucked Landscape Artwork) */}
-      <section className="relative bg-white rounded-lg p-6 sm:p-8 border border-[#E8E4DA] shadow-subtle overflow-hidden">
-        {/* Subtle, restrained Kerala landscape illustration */}
-        <LandscapeIllustration className="absolute right-0 top-0 bottom-0 w-full sm:w-1/2 opacity-70 hidden sm:block pointer-events-none" />
+      {/* 1. EDITORIAL GREETING (Open Layout with Seamless Kerala Landscape Artwork) */}
+      <section className="relative overflow-hidden pt-1 pb-4">
+        {/* Authentic Kerala landscape illustration on right */}
+        <LandscapeIllustration className="absolute right-0 top-0 bottom-0 w-1/2 lg:w-[48%] h-full hidden md:block pointer-events-none" />
 
-        <div className="relative z-10 max-w-lg">
-          <div className="flex items-center gap-2 text-xs text-[#6F776F] mb-2 font-medium">
-            <span className="w-2 h-2 rounded-full bg-[#103D2A]" />
-            <span>Kerala Circular Network</span>
-            <span>•</span>
-            <span>
-              {userDistrict
-                ? (userLocality && userLocality !== userDistrict ? `${userLocality}, ${userDistrict}` : userDistrict)
-                : 'Statewide'}
-            </span>
-          </div>
-
-          <h1 className="font-editorial text-2xl sm:text-3xl text-[#18251F] font-normal tracking-tight leading-snug">
-            Namaskaram,{' '}
-            <span className="text-[#103D2A] font-medium">
+        <div className="relative z-10 max-w-xl">
+          <h1 className="font-editorial text-3xl sm:text-4xl text-[#18251F] font-normal tracking-tight leading-tight">
+            Namaskaram,
+            <span className="block font-bold text-[#103D2A] mt-1">
               {currentUser ? currentUser.full_name : 'Friend'}
             </span>
           </h1>
 
-          <p className="font-sans text-sm text-[#6F776F] mt-2 leading-relaxed">
+          <p className="font-sans text-sm text-[#68736B] mt-3 leading-relaxed max-w-lg">
             Manage your listings, coordinate pickups directly on WhatsApp, and review your local environmental contributions.
           </p>
 
-          <div className="flex flex-wrap items-center gap-2.5 mt-5">
+          <div className="flex flex-wrap items-center gap-3 mt-6">
             <button
               onClick={() => navigate('/marketplace/new')}
-              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-[#103D2A] hover:bg-[#08291D] text-white rounded-md text-xs font-medium transition-colors"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-[#103D2A] hover:bg-[#0B3827] text-white rounded-lg text-xs font-medium transition-colors shadow-2xs"
             >
               <Plus className="w-3.5 h-3.5 text-white" />
               <span>Add Listing</span>
@@ -129,7 +120,7 @@ export const OverviewPage: React.FC = () => {
 
             <button
               onClick={() => navigate('/ai-scanner')}
-              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white hover:bg-[#FAF8F2] text-[#18251F] border border-[#DCD6CB] rounded-md text-xs font-medium transition-colors"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-white hover:bg-[#FAF8F2] text-[#18251F] border border-[#DCD6CB] rounded-lg text-xs font-medium transition-colors shadow-2xs"
             >
               <ScanLine className="w-3.5 h-3.5 text-[#103D2A]" />
               <span>Waste Scanner</span>
@@ -137,7 +128,7 @@ export const OverviewPage: React.FC = () => {
 
             <button
               onClick={() => navigate('/report-issue')}
-              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white hover:bg-[#FAF8F2] text-[#6F776F] hover:text-[#18251F] border border-[#DCD6CB] rounded-md text-xs font-medium transition-colors"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-white hover:bg-[#FAF8F2] text-[#18251F] border border-[#DCD6CB] rounded-lg text-xs font-medium transition-colors shadow-2xs"
             >
               <AlertTriangle className="w-3.5 h-3.5 text-[#D97706]" />
               <span>Report Issue</span>
@@ -146,85 +137,100 @@ export const OverviewPage: React.FC = () => {
         </div>
       </section>
 
-      {/* 2. RESTRAINED HORIZONTAL STATS BAR (Divided cells, not candy-colored identical cards) */}
-      <section className="bg-white border border-[#E8E4DA] rounded-lg shadow-subtle grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[#E8E4DA]">
-        {/* Metric 1 */}
-        <div className="p-5 sm:p-6 flex flex-col justify-between">
-          <span className="text-xs text-[#6F776F] font-normal">
-            Diverted Waste
-          </span>
-          <div className="my-2">
-            <span className="font-editorial text-2xl sm:text-3xl text-[#18251F] font-normal tracking-tight">
+      {/* 2. FOUR METRIC CARDS (Exact Match to Visual Reference) */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Metric 1: Diverted Waste */}
+        <div className="bg-[#FFFEFA] border border-[#E9E2D5] rounded-2xl p-5 relative overflow-hidden flex flex-col justify-between min-h-[142px] shadow-2xs">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-[#E8EEDC] text-[#174B32] flex items-center justify-center shrink-0">
+              <Leaf className="w-4 h-4" />
+            </div>
+            <span className="text-xs font-medium text-[#18251F]">Diverted Waste</span>
+          </div>
+          <div className="my-1.5">
+            <span className="font-editorial text-2xl sm:text-3xl text-[#18251F] font-bold tracking-tight">
               {metrics.total_waste_diverted_kg}
             </span>
-            <span className="text-xs text-[#6F776F] ml-1.5">kg</span>
+            <span className="text-xs text-[#68736B] ml-1.5 font-normal">kg</span>
           </div>
-          <span className="text-[11px] text-[#8BA681] font-normal">
+          <span className="text-[11px] text-[#68736B]">
             {metrics.total_co2e_avoided_kg} kg CO₂e avoided
           </span>
+          <BotanicalWatermark />
         </div>
 
-        {/* Metric 2 */}
-        <div className="p-5 sm:p-6 flex flex-col justify-between">
-          <span className="text-xs text-[#6F776F] font-normal">
-            Your Active Listings
-          </span>
-          <div className="my-2">
-            <span className="font-editorial text-2xl sm:text-3xl text-[#18251F] font-normal tracking-tight">
+        {/* Metric 2: Your Active Listings */}
+        <div className="bg-[#FFFEFA] border border-[#E9E2D5] rounded-2xl p-5 relative overflow-hidden flex flex-col justify-between min-h-[142px] shadow-2xs">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-[#FCE8D5] text-[#C26522] flex items-center justify-center shrink-0">
+              <Package className="w-4 h-4" />
+            </div>
+            <span className="text-xs font-medium text-[#18251F]">Your Active Listings</span>
+          </div>
+          <div className="my-1.5">
+            <span className="font-editorial text-2xl sm:text-3xl text-[#18251F] font-bold tracking-tight">
               {myListings.length}
             </span>
-            <span className="text-xs text-[#6F776F] ml-1.5">batches</span>
+            <span className="text-xs text-[#68736B] ml-1.5 font-normal">
+              {myListings.length === 1 ? 'batch' : 'batches'}
+            </span>
           </div>
-          <span className="text-[11px] text-[#6F776F] font-normal">
+          <span className="text-[11px] text-[#68736B]">
             {activeMarketplaceCount} total across Kerala
           </span>
         </div>
 
-        {/* Metric 3 */}
-        <div className="p-5 sm:p-6 flex flex-col justify-between">
-          <span className="text-xs text-[#6F776F] font-normal">
-            Active Handovers
-          </span>
-          <div className="my-2">
-            <span className="font-editorial text-2xl sm:text-3xl text-[#18251F] font-normal tracking-tight">
+        {/* Metric 3: Active Handovers */}
+        <div className="bg-[#FFFEFA] border border-[#E9E2D5] rounded-2xl p-5 relative overflow-hidden flex flex-col justify-between min-h-[142px] shadow-2xs">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-[#E3EFE3] text-[#2E7D32] flex items-center justify-center shrink-0">
+              <Repeat className="w-4 h-4" />
+            </div>
+            <span className="text-xs font-medium text-[#18251F]">Active Handovers</span>
+          </div>
+          <div className="my-1.5">
+            <span className="font-editorial text-2xl sm:text-3xl text-[#18251F] font-bold tracking-tight">
               {activeExchanges.length}
             </span>
-            <span className="text-xs text-[#6F776F] ml-1.5">in progress</span>
+            <span className="text-xs text-[#68736B] ml-1.5 font-normal">in progress</span>
           </div>
-          <span className="text-[11px] text-[#6F776F] font-normal">
+          <span className="text-[11px] text-[#68736B]">
             {metrics.total_completed_exchanges} verified completions
           </span>
         </div>
 
-        {/* Metric 4 */}
-        <div className="p-5 sm:p-6 flex flex-col justify-between">
-          <span className="text-xs text-[#6F776F] font-normal">
-            EcoPoints Balance
-          </span>
-          <div className="my-2">
-            <span className="font-editorial text-2xl sm:text-3xl text-[#103D2A] font-normal tracking-tight">
+        {/* Metric 4: EcoPoints Balance */}
+        <div className="bg-[#FFFEFA] border border-[#E9E2D5] rounded-2xl p-5 relative overflow-hidden flex flex-col justify-between min-h-[142px] shadow-2xs">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-[#EFE8F5] text-[#6B46C1] flex items-center justify-center shrink-0">
+              <Award className="w-4 h-4" />
+            </div>
+            <span className="text-xs font-medium text-[#18251F]">EcoPoints Balance</span>
+          </div>
+          <div className="my-1.5">
+            <span className="font-editorial text-2xl sm:text-3xl text-[#18251F] font-bold tracking-tight">
               {currentUser ? currentUser.eco_points_balance : 0}
             </span>
-            <span className="text-xs text-[#103D2A] ml-1.5 font-medium">PTS</span>
+            <span className="text-xs text-[#18251F] ml-1.5 font-bold">PTS</span>
           </div>
-          <span className="text-[11px] text-[#6F776F] capitalize font-normal">
-            {currentUser ? `${currentUser.role} account` : 'Public visitor'}
+          <span className="text-[11px] text-[#68736B] capitalize">
+            {currentUser ? `${currentUser.role} Account` : 'Individual Account'}
           </span>
         </div>
       </section>
 
-      {/* 3. TWO-COLUMN WORKSPACE: MATERIAL DIRECTORY (70%) + COMMUNITY & CIVIC (30%) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start min-w-0">
+      {/* 3. TWO-COLUMN WORKSPACE: AVAILABLE MATERIALS NEARBY (70%) + COMMUNITY & IMPACT (30%) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start min-w-0">
 
-        {/* Left Column (~70% width, 8 cols): Material Directory */}
-        <section className="lg:col-span-8 flex flex-col gap-6 min-w-0">
+        {/* Left Column (~70% width, 8 cols): Available Materials Nearby */}
+        <section className="lg:col-span-8 flex flex-col gap-4 min-w-0">
           
-          <div className="flex items-baseline justify-between border-b border-[#E8E4DA] pb-3">
+          <div className="flex items-baseline justify-between pb-1">
             <div>
-              <h2 className="font-editorial text-xl text-[#18251F] font-normal">
+              <h2 className="font-editorial text-2xl text-[#18251F] font-bold tracking-tight">
                 Available Materials Nearby
               </h2>
-              <p className="font-sans text-xs text-[#6F776F] mt-0.5">
+              <p className="font-sans text-xs sm:text-sm text-[#68736B] mt-0.5">
                 Surplus biomass, packaging, and clean recyclables listed in your area.
               </p>
             </div>
@@ -247,7 +253,7 @@ export const OverviewPage: React.FC = () => {
               actionLink="/marketplace/new"
             />
           ) : (
-            <div className="bg-white border border-[#E8E4DA] rounded-lg divide-y divide-[#E8E4DA] shadow-subtle overflow-hidden">
+            <div className="flex flex-col gap-3">
               {suggestedListings.map((listing) => {
                 const primaryImage = listing.images && listing.images.length > 0 
                   ? listing.images[0] 
@@ -256,52 +262,52 @@ export const OverviewPage: React.FC = () => {
                 return (
                   <article
                     key={listing.id}
-                    className="p-4 sm:p-5 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between hover:bg-[#FAF8F2]/60 transition-colors"
+                    className="bg-[#FFFEFA] border border-[#E9E2D5] rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xs hover:border-[#8BA681]/60 transition-colors"
                   >
-                    <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
-                      {/* Product Thumbnail (Crisp 72x72px or 80x80px) */}
+                    <div className="flex items-start sm:items-center gap-4 min-w-0 flex-1">
+                      {/* Product Thumbnail */}
                       <img
                         src={primaryImage}
                         alt={listing.title}
-                        className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-md shrink-0 border border-[#E8E4DA] bg-[#F8F6EF]"
+                        className="w-20 h-20 sm:w-24 sm:h-20 object-cover rounded-xl shrink-0 border border-[#E9E2D5] bg-[#F7F4EC]"
                         loading="lazy"
                       />
 
-                      <div className="flex flex-col gap-1 min-w-0 flex-1">
-                        <div className="flex items-center gap-2 text-xs">
-                          <span className="text-[#103D2A] font-medium">
+                      <div className="flex flex-col gap-1.5 min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#E8EEDC] text-[#174B32]">
                             {listing.category?.name || 'Recyclable'}
                           </span>
-                          <span className="text-[#DCD6CB]">•</span>
-                          <span className="text-[#6F776F]">
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#F6EFE5] text-[#8C6D3B]">
                             {listing.listing_type === 'free' ? 'Free' : listing.listing_type === 'exchange' ? 'Barter' : `₹${listing.price}`}
                           </span>
-                          <span className="text-[#DCD6CB]">•</span>
-                          <span className="flex items-center gap-1 text-[#6F776F]">
+                          <span className="flex items-center gap-1.5 text-xs text-[#174B32] font-medium">
                             <span className={`w-1.5 h-1.5 rounded-full ${listing.status === 'reserved' ? 'bg-amber-600' : 'bg-emerald-600'}`} />
                             {listing.status === 'reserved' ? 'Reserved' : 'Available'}
                           </span>
                         </div>
 
-                        <h3 className="font-sans font-medium text-sm text-[#18251F] truncate">
+                        <h3 className="font-editorial font-bold text-base sm:text-lg text-[#18251F] truncate">
                           {listing.title}
                         </h3>
 
-                        <div className="flex items-center gap-3 text-xs text-[#6F776F]">
-                          <span>Quantity: <strong className="font-medium text-[#18251F]">{listing.quantity} {listing.unit}</strong></span>
-                          <span>•</span>
+                        <div className="flex items-center gap-3 text-xs text-[#68736B]">
                           <span className="flex items-center gap-1">
-                            <MapPin className="w-3 h-3 text-[#6F776F]" />
-                            {listing.district}
+                            <Package className="w-3.5 h-3.5 text-[#68736B]" />
+                            Quantity: <strong className="font-medium text-[#18251F]">{listing.quantity} {listing.unit}</strong>
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <MapPin className="w-3.5 h-3.5 text-[#68736B]" />
+                            {listing.district || 'Kasaragod'}
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 self-end sm:self-center shrink-0 pt-2 sm:pt-0">
+                    <div className="flex items-center self-end sm:self-center shrink-0">
                       <button
                         onClick={() => navigate(`/marketplace/${listing.id}`)}
-                        className="px-3 py-1.5 rounded-md bg-white hover:bg-[#FAF8F2] text-[#18251F] border border-[#DCD6CB] text-xs font-medium transition-colors"
+                        className="px-5 py-2 rounded-lg bg-[#103D2A] hover:bg-[#0B3827] text-white text-xs font-medium transition-colors shadow-2xs"
                       >
                         Inspect
                       </button>
@@ -314,12 +320,12 @@ export const OverviewPage: React.FC = () => {
 
           {/* Active Handovers Section */}
           <div className="mt-4 flex flex-col gap-4">
-            <div className="flex items-baseline justify-between border-b border-[#E8E4DA] pb-3">
+            <div className="flex items-baseline justify-between pb-1">
               <div>
-                <h3 className="font-editorial text-xl text-[#18251F] font-normal">
+                <h3 className="font-editorial text-xl text-[#18251F] font-bold">
                   Ongoing Exchanges
                 </h3>
-                <p className="font-sans text-xs text-[#6F776F] mt-0.5">
+                <p className="font-sans text-xs text-[#68736B] mt-0.5">
                   Pickups awaiting verification between participants.
                 </p>
               </div>
@@ -334,11 +340,11 @@ export const OverviewPage: React.FC = () => {
             </div>
 
             {activeExchanges.length === 0 ? (
-              <div className="p-6 bg-white border border-[#E8E4DA] rounded-lg text-center text-xs text-[#6F776F]">
+              <div className="p-6 bg-[#FFFEFA] border border-[#E9E2D5] rounded-2xl text-center text-xs text-[#68736B]">
                 No pending handovers. Request materials or accept incoming requests to start exchanging.
               </div>
             ) : (
-              <div className="bg-white border border-[#E8E4DA] rounded-lg divide-y divide-[#E8E4DA] shadow-subtle overflow-hidden">
+              <div className="bg-[#FFFEFA] border border-[#E9E2D5] rounded-2xl divide-y divide-[#E6E0D5] shadow-2xs overflow-hidden">
                 {activeExchanges.map((req) => (
                   <div
                     key={req.id}
@@ -368,7 +374,7 @@ export const OverviewPage: React.FC = () => {
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={() => setSelectedExchangeForPass(req)}
-                        className="px-3 py-1.5 rounded-md bg-white hover:bg-[#FAF8F2] text-[#18251F] border border-[#DCD6CB] text-xs font-medium inline-flex items-center gap-1.5 transition-colors"
+                        className="px-3 py-1.5 rounded-lg bg-white hover:bg-[#FAF8F2] text-[#18251F] border border-[#DCD6CB] text-xs font-medium inline-flex items-center gap-1.5 transition-colors"
                         type="button"
                       >
                         <QrCode className="w-3.5 h-3.5 text-[#103D2A]" />
@@ -377,7 +383,7 @@ export const OverviewPage: React.FC = () => {
 
                       <button
                         onClick={() => navigate('/exchanges')}
-                        className="px-3 py-1.5 rounded-md bg-[#103D2A] hover:bg-[#08291D] text-white text-xs font-medium transition-colors"
+                        className="px-3.5 py-1.5 rounded-lg bg-[#103D2A] hover:bg-[#08291D] text-white text-xs font-medium transition-colors"
                       >
                         Manage
                       </button>
@@ -390,16 +396,19 @@ export const OverviewPage: React.FC = () => {
 
         </section>
 
-        {/* Right Column (~30% width, 4 cols): Community Initiatives & Civic Reports */}
-        <aside className="lg:col-span-4 flex flex-col gap-6 min-w-0">
+        {/* Right Column (~30% width, 4 cols): Community Drives & Your Impact */}
+        <aside className="lg:col-span-4 flex flex-col gap-4 min-w-0">
 
           {/* Community Drives Panel */}
-          <div className="bg-white rounded-lg p-5 border border-[#E8E4DA] shadow-subtle flex flex-col gap-3">
+          <div className="bg-[#FFFEFA] border border-[#E9E2D5] rounded-2xl p-5 relative overflow-hidden flex flex-col gap-3.5 shadow-2xs">
             <div className="flex items-baseline justify-between border-b border-[#E8E4DA] pb-2.5">
-              <h3 className="font-editorial text-lg text-[#18251F] font-normal">
-                Community Drives
-              </h3>
-              <span className="text-xs text-[#6F776F]">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-[#103D2A]" />
+                <h3 className="font-editorial text-lg text-[#18251F] font-bold">
+                  Community Drives
+                </h3>
+              </div>
+              <span className="text-xs text-[#68736B]">
                 {spotlightDrive ? spotlightDrive.district : 'Kerala'}
               </span>
             </div>
@@ -409,7 +418,7 @@ export const OverviewPage: React.FC = () => {
                 <h4 className="font-sans font-medium text-sm text-[#18251F] leading-snug">
                   {spotlightDrive.title}
                 </h4>
-                <p className="font-sans text-xs text-[#6F776F] leading-relaxed line-clamp-3">
+                <p className="font-sans text-xs text-[#68736B] leading-relaxed line-clamp-3">
                   {spotlightDrive.description}
                 </p>
 
@@ -420,10 +429,10 @@ export const OverviewPage: React.FC = () => {
 
                 <button
                   onClick={() => setRsvpDone(!rsvpDone)}
-                  className={`w-full py-2 px-3 rounded-md text-xs font-medium transition-colors flex items-center justify-center gap-1.5 ${
+                  className={`w-full py-2 px-3 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1.5 ${
                     rsvpDone
                       ? 'bg-[#FAF8F2] text-[#103D2A] border border-[#8BA681]'
-                      : 'bg-[#103D2A] hover:bg-[#08291D] text-white'
+                      : 'bg-[#103D2A] hover:bg-[#0B3827] text-white'
                   }`}
                 >
                   <Check className="w-3.5 h-3.5" />
@@ -432,23 +441,40 @@ export const OverviewPage: React.FC = () => {
               </div>
             ) : (
               <div className="py-2 flex flex-col gap-3">
-                <p className="font-sans text-xs text-[#6F776F] leading-relaxed">
+                <p className="font-sans text-xs text-[#68736B] leading-relaxed">
                   No community drives scheduled nearby.
                 </p>
                 <button
                   onClick={() => navigate('/community')}
-                  className="w-full py-1.5 px-3 bg-white hover:bg-[#FAF8F2] text-[#18251F] border border-[#DCD6CB] rounded-md text-xs font-medium transition-colors"
+                  className="w-full py-2 px-3 bg-white hover:bg-[#FAF8F2] text-[#18251F] border border-[#DCD6CB] rounded-lg text-xs font-medium transition-colors text-center"
                 >
                   Explore Initiatives
                 </button>
               </div>
             )}
+            <BotanicalWatermark />
+          </div>
+
+          {/* Your Impact Panel */}
+          <div className="bg-[#FFFEFA] border border-[#E9E2D5] rounded-2xl p-5 relative overflow-hidden flex flex-col gap-3 shadow-2xs">
+            <div className="flex items-center gap-2 border-b border-[#E8E4DA] pb-2.5">
+              <Leaf className="w-5 h-5 text-[#103D2A]" />
+              <h3 className="font-editorial text-lg text-[#18251F] font-bold">
+                Your Impact
+              </h3>
+            </div>
+
+            <p className="font-sans text-xs text-[#68736B] leading-relaxed py-1">
+              Keep contributing for a cleaner, circular Kerala.
+            </p>
+
+            <BotanicalWatermark />
           </div>
 
           {/* Environmental Watch & Reports */}
-          <div className="bg-white rounded-lg p-5 border border-[#E8E4DA] shadow-subtle flex flex-col gap-3">
+          <div className="bg-[#FFFEFA] border border-[#E9E2D5] rounded-2xl p-5 relative overflow-hidden flex flex-col gap-3 shadow-2xs">
             <div className="flex items-baseline justify-between border-b border-[#E8E4DA] pb-2.5">
-              <h3 className="font-editorial text-lg text-[#18251F] font-normal">
+              <h3 className="font-editorial text-lg text-[#18251F] font-bold">
                 Incident Reports
               </h3>
               <Link
