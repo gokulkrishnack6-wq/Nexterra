@@ -316,3 +316,4 @@ describe('GreenLoop Mandatory Waste Material Photographs Test Suite', () => {
     }, 30000);
   });
 });
+

@@ -144,3 +144,4 @@ export async function cleanupListingPhotos(storagePaths: string[]): Promise<void
     console.warn('Storage cleanup exception:', err);
   }
 }
+

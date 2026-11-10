@@ -319,7 +319,10 @@ export interface WasteLocation {
   opening_hours?: string;
   source: string;
   source_reference?: string;
+  source_information?: string;
+  photo_url?: string;
   verification_status: LocationVerificationStatus;
+  last_verified_at?: string;
   submitted_by?: string;
   created_at?: string;
   updated_at?: string;

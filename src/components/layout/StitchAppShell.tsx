@@ -361,7 +361,7 @@ export const StitchAppShell: React.FC<StitchAppShellProps> = ({ children }) => {
                     ? 'Detecting Location...'
                     : (currentLocality
                         ? `${currentLocality}, ${currentDistrict || 'Kasaragod'}`
-                        : (currentDistrict ? `${currentDistrict}, Kerala` : 'Quinta do Farol, Kasaragod'))}
+                        : (currentDistrict ? `${currentDistrict}, Kerala` : 'Kasaragod, Kerala'))}
                 </span>
                 <ChevronDown className="w-3.5 h-3.5 text-[#68736B] shrink-0" />
               </button>

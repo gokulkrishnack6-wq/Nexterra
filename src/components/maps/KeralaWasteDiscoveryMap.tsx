@@ -37,16 +37,19 @@ export interface KeralaWasteDiscoveryMapProps {
   onPickCoords?: (coords: { latitude: number; longitude: number }) => void;
   heightClass?: string;
   showLegend?: boolean;
+  fitBounds?: [[number, number], [number, number]] | null;
 }
 
-// Controller to smoothly pan/fly when centerCoords change
+// Controller to smoothly pan/fly or fitBounds when targets change
 const MapViewController: React.FC<{
   centerCoords?: { latitude: number; longitude: number } | null;
   zoomLevel?: number;
+  fitBounds?: [[number, number], [number, number]] | null;
   onZoomChange?: (zoom: number) => void;
-}> = ({ centerCoords, zoomLevel, onZoomChange }) => {
+}> = ({ centerCoords, zoomLevel, fitBounds, onZoomChange }) => {
   const map = useMap();
   const lastTargetRef = useRef<{ lat: number; lng: number; zoom?: number } | null>(null);
+  const lastBoundsKeyRef = useRef<string | null>(null);
 
   useMapEvents({
     zoomend: () => {
@@ -55,6 +58,15 @@ const MapViewController: React.FC<{
   });
 
   useEffect(() => {
+    if (fitBounds && fitBounds.length === 2) {
+      const key = `${fitBounds[0][0]}_${fitBounds[0][1]}_${fitBounds[1][0]}_${fitBounds[1][1]}`;
+      if (lastBoundsKeyRef.current !== key) {
+        lastBoundsKeyRef.current = key;
+        map.fitBounds(fitBounds, { padding: [40, 40], maxZoom: 15, duration: 0.9 });
+      }
+      return;
+    }
+
     if (centerCoords && centerCoords.latitude && centerCoords.longitude) {
       const targetZoom = zoomLevel || map.getZoom();
       const prev = lastTargetRef.current;
@@ -66,10 +78,11 @@ const MapViewController: React.FC<{
 
       if (isDifferent) {
         lastTargetRef.current = { lat: centerCoords.latitude, lng: centerCoords.longitude, zoom: targetZoom };
+        lastBoundsKeyRef.current = null;
         map.flyTo([centerCoords.latitude, centerCoords.longitude], targetZoom, { duration: 0.9 });
       }
     }
-  }, [centerCoords, zoomLevel, map]);
+  }, [centerCoords, zoomLevel, fitBounds, map]);
 
   return null;
 };
@@ -136,7 +149,7 @@ const createListingIcon = (isSelected: boolean) =>
         color: #FFFFFF;
         width: ${isSelected ? '38px' : '32px'};
         height: ${isSelected ? '38px' : '32px'};
-        border-radius: 10px;
+        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -170,7 +183,7 @@ const createCollectionCentreIcon = (isSelected: boolean) =>
         color: #FFFFFF;
         width: ${isSelected ? '38px' : '32px'};
         height: ${isSelected ? '38px' : '32px'};
-        border-radius: 8px;
+        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -285,6 +298,7 @@ export const KeralaWasteDiscoveryMap: React.FC<KeralaWasteDiscoveryMapProps> = (
   userCoords,
   centerCoords,
   zoomLevel = 11,
+  fitBounds,
   isPickingLocation = false,
   pickedCoords,
   onPickCoords,
@@ -292,6 +306,18 @@ export const KeralaWasteDiscoveryMap: React.FC<KeralaWasteDiscoveryMapProps> = (
   showLegend = true,
 }) => {
   const [currentZoom, setCurrentZoom] = useState(zoomLevel);
+  const markerRefs = useRef<Map<string, L.Marker>>(new Map());
+
+  // Automatically open marker popup when a location or listing is selected externally
+  useEffect(() => {
+    if (selectedLocationId && markerRefs.current.has(selectedLocationId)) {
+      const marker = markerRefs.current.get(selectedLocationId);
+      marker?.openPopup();
+    } else if (selectedListingId && markerRefs.current.has(selectedListingId)) {
+      const marker = markerRefs.current.get(selectedListingId);
+      marker?.openPopup();
+    }
+  }, [selectedLocationId, selectedListingId]);
 
   // Filter listings to active/reserved only (never completed/deleted)
   const availableListings = useMemo(() => {
@@ -304,8 +330,8 @@ export const KeralaWasteDiscoveryMap: React.FC<KeralaWasteDiscoveryMapProps> = (
   const defaultCenterLat = centerCoords?.latitude || userCoords?.latitude || 10.2500;
   const defaultCenterLng = centerCoords?.longitude || userCoords?.longitude || 76.3500;
 
-  // Grid-based lightweight clustering for zoom <= 9 (entire Kerala view)
-  const shouldCluster = currentZoom <= 9;
+  // Dynamic clustering for statewide low zoom levels (zoom <= 8 when point density is high)
+  const shouldCluster = currentZoom <= 8 && (locations.length + availableListings.length) > 50;
 
   const clusters = useMemo(() => {
     if (!shouldCluster) return [];
@@ -403,6 +429,7 @@ export const KeralaWasteDiscoveryMap: React.FC<KeralaWasteDiscoveryMapProps> = (
         <MapViewController
           centerCoords={centerCoords}
           zoomLevel={zoomLevel}
+          fitBounds={fitBounds}
           onZoomChange={setCurrentZoom}
         />
 
@@ -469,6 +496,10 @@ export const KeralaWasteDiscoveryMap: React.FC<KeralaWasteDiscoveryMapProps> = (
               return (
                 <Marker
                   key={loc.id}
+                  ref={(m) => {
+                    if (m) markerRefs.current.set(loc.id, m);
+                    else markerRefs.current.delete(loc.id);
+                  }}
                   position={[loc.latitude, loc.longitude]}
                   icon={icon}
                   eventHandlers={{
@@ -600,6 +631,10 @@ export const KeralaWasteDiscoveryMap: React.FC<KeralaWasteDiscoveryMapProps> = (
               return (
                 <Marker
                   key={listing.id}
+                  ref={(m) => {
+                    if (m) markerRefs.current.set(listing.id, m);
+                    else markerRefs.current.delete(listing.id);
+                  }}
                   position={[listing.latitude, listing.longitude]}
                   icon={createListingIcon(isSelected)}
                   eventHandlers={{
@@ -725,7 +760,7 @@ export const KeralaWasteDiscoveryMap: React.FC<KeralaWasteDiscoveryMapProps> = (
 
               {/* 2. Green: Available Waste Listings */}
               <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-lg bg-[#287A45] text-white flex items-center justify-center shrink-0 shadow-2xs">
+                <div className="w-5 h-5 rounded-full bg-[#287A45] text-white flex items-center justify-center shrink-0 shadow-2xs">
                   <Package className="w-3 h-3" />
                 </div>
                 <div className="flex items-baseline gap-1.5">
@@ -736,7 +771,7 @@ export const KeralaWasteDiscoveryMap: React.FC<KeralaWasteDiscoveryMapProps> = (
 
               {/* 3. Orange: Collection & Recycling Centres */}
               <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-md bg-[#B66A20] text-white flex items-center justify-center shrink-0 shadow-2xs">
+                <div className="w-5 h-5 rounded-full bg-[#B66A20] text-white flex items-center justify-center shrink-0 shadow-2xs">
                   <Recycle className="w-3 h-3" />
                 </div>
                 <div className="flex items-baseline gap-1.5">

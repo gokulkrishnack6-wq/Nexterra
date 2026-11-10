@@ -29,6 +29,11 @@ import { useData } from '../../contexts/DataContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGeolocation, calculateDistanceKm } from '../../hooks/useGeolocation';
 import { KeralaWasteDiscoveryMap } from '../../components/maps/KeralaWasteDiscoveryMap';
+import { MapSearchAutocomplete } from '../../components/maps/MapSearchAutocomplete';
+import {
+  MapSearchSuggestion,
+  getDistrictBounds,
+} from '../../services/mapSearchService';
 import {
   KERALA_DISTRICTS,
   KERALA_MUNICIPAL_BODIES,
@@ -70,6 +75,8 @@ export const MapPage: React.FC = () => {
   const [zoomLevel, setZoomLevel] = useState<number>(10);
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
+  const [fitBounds, setFitBounds] = useState<[[number, number], [number, number]] | null>(null);
+  const [activeMaterialFilter, setActiveMaterialFilter] = useState<string | null>(null);
 
   // Modals
   const [isSuggestModalOpen, setIsSuggestModalOpen] = useState(false);
@@ -94,6 +101,8 @@ export const MapPage: React.FC = () => {
   const [suggestHours, setSuggestHours] = useState('');
   const [suggestContact, setSuggestContact] = useState('');
   const [suggestDescription, setSuggestDescription] = useState('');
+  const [suggestPhotoUrl, setSuggestPhotoUrl] = useState('');
+  const [suggestSourceInfo, setSuggestSourceInfo] = useState('Personal Observation / Local Resident');
   const [suggestSuccessMsg, setSuggestSuccessMsg] = useState<string | null>(null);
   const [suggestSubmitting, setSuggestSubmitting] = useState(false);
   const [suggestError, setSuggestError] = useState<string | null>(null);
@@ -124,15 +133,23 @@ export const MapPage: React.FC = () => {
     setSelectedMunicipality('All Municipalities');
     setSelectedLocationId(null);
     setSelectedListingId(null);
+    setActiveMaterialFilter(null);
 
     if (districtName === 'All Kerala') {
       setCenterCoords({ latitude: 10.2500, longitude: 76.3500 });
       setZoomLevel(8);
+      setFitBounds(null);
     } else {
-      const dInfo = KERALA_DISTRICTS.find((d) => d.name === districtName);
-      if (dInfo) {
-        setCenterCoords({ latitude: dInfo.latitude, longitude: dInfo.longitude });
-        setZoomLevel(11);
+      const bounds = getDistrictBounds(districtName);
+      if (bounds) {
+        setFitBounds(bounds);
+      } else {
+        const dInfo = KERALA_DISTRICTS.find((d) => d.name === districtName);
+        if (dInfo) {
+          setCenterCoords({ latitude: dInfo.latitude, longitude: dInfo.longitude });
+          setZoomLevel(11);
+          setFitBounds(null);
+        }
       }
     }
   };
@@ -142,12 +159,19 @@ export const MapPage: React.FC = () => {
     setSelectedMunicipality(municipalityName);
     setSelectedLocationId(null);
     setSelectedListingId(null);
+    setActiveMaterialFilter(null);
+    setFitBounds(null);
 
     if (municipalityName === 'All Municipalities') {
-      const dInfo = KERALA_DISTRICTS.find((d) => d.name === selectedDistrict);
-      if (dInfo) {
-        setCenterCoords({ latitude: dInfo.latitude, longitude: dInfo.longitude });
-        setZoomLevel(11);
+      const bounds = getDistrictBounds(selectedDistrict);
+      if (bounds) {
+        setFitBounds(bounds);
+      } else {
+        const dInfo = KERALA_DISTRICTS.find((d) => d.name === selectedDistrict);
+        if (dInfo) {
+          setCenterCoords({ latitude: dInfo.latitude, longitude: dInfo.longitude });
+          setZoomLevel(11);
+        }
       }
     } else {
       const body = KERALA_MUNICIPAL_BODIES.find(
@@ -163,6 +187,7 @@ export const MapPage: React.FC = () => {
   // Explicit "Use My Location" trigger
   const handleUseMyLocation = async () => {
     try {
+      setFitBounds(null);
       await detectLocation({ force: true });
       if (userCoords) {
         setCenterCoords({ latitude: userCoords.latitude, longitude: userCoords.longitude });
@@ -173,6 +198,106 @@ export const MapPage: React.FC = () => {
       console.warn('Geolocation trigger notice:', e);
     }
   };
+
+  // Autocomplete Suggestion Selection Handler
+  const handleSelectSuggestion = useCallback((suggestion: MapSearchSuggestion) => {
+    setSearchQuery(suggestion.title);
+
+    if (suggestion.type === 'district') {
+      setSelectedDistrict(suggestion.title);
+      setSelectedMunicipality('All Municipalities');
+      setActiveMaterialFilter(null);
+      setSelectedLocationId(null);
+      setSelectedListingId(null);
+      if (suggestion.bounds) {
+        setFitBounds(suggestion.bounds);
+      } else if (suggestion.latitude && suggestion.longitude) {
+        setCenterCoords({ latitude: suggestion.latitude, longitude: suggestion.longitude });
+        setZoomLevel(11);
+        setFitBounds(null);
+      }
+    } else if (suggestion.type === 'municipality') {
+      if (suggestion.district) {
+        setSelectedDistrict(suggestion.district);
+      }
+      setSelectedMunicipality(suggestion.title);
+      setActiveMaterialFilter(null);
+      setSelectedLocationId(null);
+      setSelectedListingId(null);
+      if (suggestion.latitude && suggestion.longitude) {
+        setCenterCoords({ latitude: suggestion.latitude, longitude: suggestion.longitude });
+        setZoomLevel(13);
+        setFitBounds(null);
+      }
+    } else if (suggestion.type === 'place' || suggestion.type === 'pincode') {
+      if (suggestion.district) {
+        setSelectedDistrict(suggestion.district);
+      }
+      if (suggestion.municipality) {
+        setSelectedMunicipality(suggestion.municipality);
+      }
+      setActiveMaterialFilter(null);
+      if (suggestion.latitude && suggestion.longitude) {
+        setCenterCoords({ latitude: suggestion.latitude, longitude: suggestion.longitude });
+        setZoomLevel(14);
+        setFitBounds(null);
+      }
+    } else if (suggestion.type === 'material') {
+      setActiveMaterialFilter(suggestion.title);
+      setCategoryFilter('listings');
+      if (suggestion.bounds) {
+        setFitBounds(suggestion.bounds);
+      } else if (suggestion.latitude && suggestion.longitude) {
+        setCenterCoords({ latitude: suggestion.latitude, longitude: suggestion.longitude });
+        setZoomLevel(13);
+        setFitBounds(null);
+      }
+    } else if (suggestion.type === 'public_bin' || suggestion.type === 'collection_centre') {
+      if (suggestion.district) {
+        setSelectedDistrict(suggestion.district);
+      }
+      if (suggestion.municipality) {
+        setSelectedMunicipality(suggestion.municipality);
+      }
+      if (suggestion.locationId) {
+        setSelectedLocationId(suggestion.locationId);
+        setSelectedListingId(null);
+        setTimeout(() => {
+          const cardEl = document.getElementById(`result-loc-${suggestion.locationId}`);
+          if (cardEl) {
+            cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 300);
+      }
+      if (suggestion.latitude && suggestion.longitude) {
+        setCenterCoords({ latitude: suggestion.latitude, longitude: suggestion.longitude });
+        setZoomLevel(16);
+        setFitBounds(null);
+      }
+    }
+  }, []);
+
+  // Clear search and reset map viewport without resetting chosen district unexpectedly
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery('');
+    setActiveMaterialFilter(null);
+    setFitBounds(null);
+    if (selectedDistrict !== 'All Kerala') {
+      const bounds = getDistrictBounds(selectedDistrict);
+      if (bounds) {
+        setFitBounds(bounds);
+      } else {
+        const dInfo = KERALA_DISTRICTS.find((d) => d.name === selectedDistrict);
+        if (dInfo) {
+          setCenterCoords({ latitude: dInfo.latitude, longitude: dInfo.longitude });
+          setZoomLevel(11);
+        }
+      }
+    } else {
+      setCenterCoords({ latitude: 10.2500, longitude: 76.3500 });
+      setZoomLevel(8);
+    }
+  }, [selectedDistrict]);
 
   // Active GreenLoop listings
   const activeListings = useMemo(() => {
@@ -211,8 +336,15 @@ export const MapPage: React.FC = () => {
         if (!hasMat) return false;
       }
 
+      // 5b. Autocomplete material filter
+      if (activeMaterialFilter) {
+        const matLower = activeMaterialFilter.toLowerCase();
+        const hasMat = loc.accepted_waste_categories?.some((cat) => cat.toLowerCase().includes(matLower));
+        if (!hasMat) return false;
+      }
+
       // 6. Text search query
-      if (debouncedSearch) {
+      if (debouncedSearch && !activeMaterialFilter) {
         const matchName = loc.name.toLowerCase().includes(debouncedSearch);
         const matchAddress = loc.address.toLowerCase().includes(debouncedSearch);
         const matchDistrict = loc.district.toLowerCase().includes(debouncedSearch);
@@ -226,7 +358,7 @@ export const MapPage: React.FC = () => {
 
       return true;
     });
-  }, [wasteLocations, selectedDistrict, selectedMunicipality, categoryFilter, verifiedOnly, materialCategory, debouncedSearch]);
+  }, [wasteLocations, selectedDistrict, selectedMunicipality, categoryFilter, verifiedOnly, materialCategory, debouncedSearch, activeMaterialFilter]);
 
   // Filter GreenLoop Marketplace Listings
   const filteredListings = useMemo(() => {
@@ -242,7 +374,7 @@ export const MapPage: React.FC = () => {
 
       // 2. Municipality filter
       if (selectedMunicipality !== 'All Municipalities') {
-        const listLocality = (list.locality || list.address || '').toLowerCase();
+        const listLocality = (list.locality || list.address || list.formatted_address || '').toLowerCase();
         if (!listLocality.includes(selectedMunicipality.toLowerCase())) {
           return false;
         }
@@ -257,10 +389,19 @@ export const MapPage: React.FC = () => {
         if (!catName.includes(materialCategory.toLowerCase())) return false;
       }
 
+      // 4b. Autocomplete active material filter
+      if (activeMaterialFilter) {
+        const query = activeMaterialFilter.toLowerCase();
+        const matchTitle = list.title.toLowerCase().includes(query);
+        const matchDesc = list.description ? list.description.toLowerCase().includes(query) : false;
+        const matchCat = (list.category?.name || list.material_type || '').toLowerCase().includes(query);
+        if (!matchTitle && !matchDesc && !matchCat) return false;
+      }
+
       // 5. Text search query
-      if (debouncedSearch) {
+      if (debouncedSearch && !activeMaterialFilter) {
         const matchTitle = list.title.toLowerCase().includes(debouncedSearch);
-        const matchDesc = list.description.toLowerCase().includes(debouncedSearch);
+        const matchDesc = list.description ? list.description.toLowerCase().includes(debouncedSearch) : false;
         const matchMat = (list.material_type || '').toLowerCase().includes(debouncedSearch);
         const matchLoc = (list.formatted_address || list.district || '').toLowerCase().includes(debouncedSearch);
         if (!matchTitle && !matchDesc && !matchMat && !matchLoc) {
@@ -270,43 +411,79 @@ export const MapPage: React.FC = () => {
 
       return true;
     });
-  }, [activeListings, selectedDistrict, selectedMunicipality, categoryFilter, freeOnly, materialCategory, debouncedSearch]);
+  }, [activeListings, selectedDistrict, selectedMunicipality, categoryFilter, freeOnly, materialCategory, debouncedSearch, activeMaterialFilter]);
 
-  // Calculate distance if userCoords available
-  const sortedLocationsWithDistance = useMemo(() => {
-    return filteredLocations.map((loc) => {
-      const dist = userCoords
-        ? calculateDistanceKm(userCoords.latitude, userCoords.longitude, loc.latitude, loc.longitude)
-        : null;
-      return { ...loc, distanceKm: dist };
-    }).sort((a, b) => {
-      if (a.distanceKm !== null && b.distanceKm !== null) return a.distanceKm - b.distanceKm;
-      return 0;
+  // Geographic subset (district/municipality) before category filter
+  const areaLocations = useMemo(() => {
+    return wasteLocations.filter((loc) => {
+      if (selectedDistrict !== 'All Kerala' && loc.district.toLowerCase() !== selectedDistrict.toLowerCase()) {
+        return false;
+      }
+      if (
+        selectedMunicipality !== 'All Municipalities' &&
+        loc.municipality.toLowerCase() !== selectedMunicipality.toLowerCase()
+      ) {
+        return false;
+      }
+      return true;
     });
-  }, [filteredLocations, userCoords]);
+  }, [wasteLocations, selectedDistrict, selectedMunicipality]);
 
-  const sortedListingsWithDistance = useMemo(() => {
-    return filteredListings.map((list) => {
-      const dist = userCoords && list.latitude && list.longitude
-        ? calculateDistanceKm(userCoords.latitude, userCoords.longitude, list.latitude, list.longitude)
-        : null;
-      return { ...list, distanceKm: dist };
-    }).sort((a, b) => {
-      if (a.distanceKm !== null && b.distanceKm !== null) return a.distanceKm - b.distanceKm;
-      return 0;
+  const areaListings = useMemo(() => {
+    return activeListings.filter((list) => {
+      if (selectedDistrict !== 'All Kerala' && list.district.toLowerCase() !== selectedDistrict.toLowerCase()) {
+        return false;
+      }
+      if (selectedMunicipality !== 'All Municipalities') {
+        const listLocality = (list.locality || list.address || list.formatted_address || '').toLowerCase();
+        if (!listLocality.includes(selectedMunicipality.toLowerCase())) {
+          return false;
+        }
+      }
+      return true;
     });
-  }, [filteredListings, userCoords]);
+  }, [activeListings, selectedDistrict, selectedMunicipality]);
 
-  // Combined count
+  // Dynamic counts for toolbar buttons
+  const publicBinsCount = areaLocations.filter((l) => l.location_type === 'public_bin').length;
+  const collectionCentresCount = areaLocations.filter((l) => l.location_type === 'collection_centre').length;
+  const listingsCount = areaListings.length;
   const totalResultsCount = filteredLocations.length + filteredListings.length;
-  const publicBinsCount = filteredLocations.filter((l) => l.location_type === 'public_bin').length;
-  const collectionCentresCount = filteredLocations.filter((l) => l.location_type === 'collection_centre').length;
-  const listingsCount = filteredListings.length;
 
   // Selected municipality record count (for limited coverage detection)
   const isSpecificMunicipality = selectedMunicipality !== 'All Municipalities';
-  const municipalityTotalCount = isSpecificMunicipality ? totalResultsCount : 10;
+  const municipalityTotalCount = isSpecificMunicipality ? (areaLocations.length + areaListings.length) : 10;
   const isLimitedCoverage = isSpecificMunicipality && municipalityTotalCount < 10;
+
+  // Calculate distance if userCoords available
+  const sortedLocationsWithDistance = useMemo(() => {
+    return filteredLocations
+      .map((loc) => {
+        const dist = userCoords
+          ? calculateDistanceKm(userCoords.latitude, userCoords.longitude, loc.latitude, loc.longitude)
+          : null;
+        return { ...loc, distanceKm: dist };
+      })
+      .sort((a, b) => {
+        if (a.distanceKm !== null && b.distanceKm !== null) return a.distanceKm - b.distanceKm;
+        return 0;
+      });
+  }, [filteredLocations, userCoords]);
+
+  const sortedListingsWithDistance = useMemo(() => {
+    return filteredListings
+      .map((list) => {
+        const dist =
+          userCoords && list.latitude && list.longitude
+            ? calculateDistanceKm(userCoords.latitude, userCoords.longitude, list.latitude, list.longitude)
+            : null;
+        return { ...list, distanceKm: dist };
+      })
+      .sort((a, b) => {
+        if (a.distanceKm !== null && b.distanceKm !== null) return a.distanceKm - b.distanceKm;
+        return 0;
+      });
+  }, [filteredListings, userCoords]);
 
   // Handler when clicking a card in the results panel
   const handleSelectLocationCard = (loc: WasteLocation) => {
@@ -378,6 +555,28 @@ export const MapPage: React.FC = () => {
       return;
     }
 
+    // Duplicate prevention using location proximity (~50 meters) and name matching
+    const duplicate = wasteLocations.find((loc) => {
+      const dist = calculateDistanceKm(
+        pickedCoords.latitude,
+        pickedCoords.longitude,
+        loc.latitude,
+        loc.longitude
+      );
+      const isNearby = dist < 0.05; // 50 meters
+      const isSimilarName =
+        loc.name.toLowerCase().includes(suggestName.trim().toLowerCase()) ||
+        suggestName.trim().toLowerCase().includes(loc.name.toLowerCase());
+      return isNearby && isSimilarName;
+    });
+
+    if (duplicate) {
+      setSuggestError(
+        `A similar location already exists nearby: "${duplicate.name}" (${duplicate.address}). Please check existing markers before adding duplicates.`
+      );
+      return;
+    }
+
     setSuggestSubmitting(true);
     try {
       await addWasteLocation({
@@ -394,6 +593,8 @@ export const MapPage: React.FC = () => {
         longitude: pickedCoords.longitude,
         contact_number: suggestContact.trim() || undefined,
         opening_hours: suggestHours.trim() || undefined,
+        photo_url: suggestPhotoUrl.trim() || undefined,
+        source_information: suggestSourceInfo,
         source: 'community_submission',
         source_reference: `COMMUNITY-${Date.now()}`,
         verification_status: 'pending_verification',
@@ -409,6 +610,7 @@ export const MapPage: React.FC = () => {
       setSuggestDescription('');
       setSuggestHours('');
       setSuggestContact('');
+      setSuggestPhotoUrl('');
 
       setTimeout(() => {
         setIsSuggestModalOpen(false);
@@ -460,26 +662,17 @@ export const MapPage: React.FC = () => {
 
       {/* 2. Search & Geographic Filtering Toolbar */}
       <div className="bg-[#FFFEFA] border border-[#E6E0D5] p-3.5 rounded-2xl shadow-xs space-y-3">
-        {/* Top Search Bar */}
-        <div className="relative w-full">
-          <Search className="w-4 h-4 text-[#68736B] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search bins, materials or recycling centres by place, municipality, district, pincode, or material..."
-            className="w-full pl-10 pr-9 py-2 bg-[#F9F7F0] border border-[#E0D9CC] rounded-xl text-xs sm:text-sm text-[#18251F] placeholder:text-[#8C938D] focus:outline-none focus:border-[#103D2A] focus:ring-1 focus:ring-[#103D2A]/20 transition-all"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#68736B] hover:text-[#18251F]"
-              title="Clear search"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
+        {/* Top Autocomplete Search Bar */}
+        <MapSearchAutocomplete
+          value={searchQuery}
+          onChange={setSearchQuery}
+          onClear={handleClearSearch}
+          onSelectSuggestion={handleSelectSuggestion}
+          wasteLocations={wasteLocations}
+          activeListings={activeListings}
+          currentDistrict={selectedDistrict !== 'All Kerala' ? selectedDistrict : undefined}
+          placeholder="Search bins, materials or recycling centres by place, municipality, district, pincode, or material..."
+        />
 
         {/* Geographic Selectors Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-1">
@@ -688,6 +881,7 @@ export const MapPage: React.FC = () => {
             userCoords={userCoords}
             centerCoords={centerCoords}
             zoomLevel={zoomLevel}
+            fitBounds={fitBounds}
             isPickingLocation={isPickingCoordsOnMap}
             pickedCoords={pickedCoords}
             onPickCoords={(coords) => {
@@ -716,21 +910,46 @@ export const MapPage: React.FC = () => {
             </span>
           </div>
 
+          {/* Active Material Filter Banner */}
+          {activeMaterialFilter && (
+            <div className="mx-2 mt-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs text-emerald-900 shrink-0">
+              <div className="flex items-center gap-1.5 truncate">
+                <Package className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                <span className="truncate">Material: <strong>{activeMaterialFilter}</strong> ({filteredListings.length} matching)</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveMaterialFilter(null);
+                  setSearchQuery('');
+                }}
+                className="p-1 hover:bg-emerald-100 rounded text-emerald-800"
+                title="Clear material filter"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
           {/* Results Scrollable List */}
           <div className="flex-1 overflow-y-auto overscroll-contain divide-y divide-[#EFECE4] p-2 space-y-2">
             {totalResultsCount === 0 ? (
               <div className="py-12 px-4 text-center">
                 <EmptyState
-                  icon={<Compass className="w-8 h-8 text-[#8C938D]" />}
-                  title="No Locations in View"
-                  description="No waste bins or recycling centres matched your current filters. Try selecting 'All Kerala' or clearing search terms."
+                  icon={activeMaterialFilter ? <Package className="w-8 h-8 text-[#8C938D]" /> : <Compass className="w-8 h-8 text-[#8C938D]" />}
+                  title={activeMaterialFilter ? "No Material Listings Found" : "No Locations in View"}
+                  description={
+                    activeMaterialFilter
+                      ? "No available listings found for this material in the selected area."
+                      : "No waste bins or recycling centres matched your current filters. Try selecting 'All Kerala' or clearing search terms."
+                  }
                 />
                 <button
                   type="button"
-                  onClick={handleOpenSuggestModal}
+                  onClick={activeMaterialFilter ? () => { setActiveMaterialFilter(null); setSearchQuery(''); } : handleOpenSuggestModal}
                   className="mt-4 px-3.5 py-1.5 bg-[#103D2A] text-white rounded-xl text-xs font-semibold hover:bg-[#0B3827] transition-colors"
                 >
-                  + Add a Waste Location Here
+                  {activeMaterialFilter ? 'Clear Material Filter' : '+ Add a Waste Location Here'}
                 </button>
               </div>
             ) : (
@@ -743,12 +962,13 @@ export const MapPage: React.FC = () => {
                   return (
                     <div
                       key={loc.id}
+                      id={`result-loc-${loc.id}`}
                       onClick={() => handleSelectLocationCard(loc)}
                       className={`p-3 rounded-xl transition-all cursor-pointer border ${
                         isSelected
                           ? isBin
-                            ? 'bg-blue-50/70 border-blue-400 shadow-xs'
-                            : 'bg-amber-50/70 border-amber-400 shadow-xs'
+                            ? 'bg-blue-50/70 border-blue-400 shadow-xs ring-1 ring-blue-400'
+                            : 'bg-amber-50/70 border-amber-400 shadow-xs ring-1 ring-amber-400'
                           : 'bg-white hover:bg-[#FAF8F2] border-[#E8E4DA]'
                       }`}
                     >
@@ -859,10 +1079,11 @@ export const MapPage: React.FC = () => {
                   return (
                     <div
                       key={list.id}
+                      id={`result-listing-${list.id}`}
                       onClick={() => handleSelectListingCard(list)}
                       className={`p-3 rounded-xl transition-all cursor-pointer border ${
                         isSelected
-                          ? 'bg-emerald-50/70 border-emerald-400 shadow-xs'
+                          ? 'bg-emerald-50/70 border-emerald-400 shadow-xs ring-1 ring-emerald-400'
                           : 'bg-white hover:bg-[#FAF8F2] border-[#E8E4DA]'
                       }`}
                     >
@@ -1214,10 +1435,54 @@ export const MapPage: React.FC = () => {
             </div>
           </div>
 
+          {/* Source of Information */}
+          <div>
+            <label className="block text-xs font-semibold text-[#18251F] mb-1">
+              Source of Information
+            </label>
+            <select
+              value={suggestSourceInfo}
+              onChange={(e) => setSuggestSourceInfo(e.target.value)}
+              className="w-full p-2.5 bg-[#F9F7F0] border border-[#E0D9CC] rounded-xl text-xs text-[#18251F] focus:outline-none focus:border-[#103D2A]"
+            >
+              <option value="Personal Observation / Local Resident">Personal Observation / Local Resident</option>
+              <option value="Municipal Notice / Official Signboard">Municipal Notice / Official Signboard</option>
+              <option value="Haritha Karma Sena / Clean Kerala Point">Haritha Karma Sena / Clean Kerala Point</option>
+              <option value="Local Shopkeeper / Merchant Association">Local Shopkeeper / Merchant Association</option>
+              <option value="Government / LSGD Waste Directory">Government / LSGD Waste Directory</option>
+            </select>
+          </div>
+
+          {/* Photograph Upload / URL */}
+          <div>
+            <label className="block text-xs font-semibold text-[#18251F] mb-1">
+              Location Photograph (optional)
+            </label>
+            <div className="space-y-2">
+              <input
+                type="text"
+                value={suggestPhotoUrl}
+                onChange={(e) => setSuggestPhotoUrl(e.target.value)}
+                placeholder="Paste image URL (e.g. https://... or take a photo)"
+                className="w-full p-2.5 bg-[#F9F7F0] border border-[#E0D9CC] rounded-xl text-xs text-[#18251F] focus:outline-none focus:border-[#103D2A]"
+              />
+              {suggestPhotoUrl && (
+                <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-[#E0D9CC]">
+                  <img
+                    src={suggestPhotoUrl}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                    onError={() => setSuggestPhotoUrl('')}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Notes */}
           <div>
             <label className="block text-xs font-semibold text-[#18251F] mb-1">
-              Additional Details / Verification Source
+              Additional Details / Landmarks
             </label>
             <textarea
               rows={2}

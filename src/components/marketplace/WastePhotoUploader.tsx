@@ -316,3 +316,4 @@ export const WastePhotoUploader: React.FC<WastePhotoUploaderProps> = ({
     </div>
   );
 };
+

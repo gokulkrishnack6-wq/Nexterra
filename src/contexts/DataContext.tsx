@@ -18,8 +18,9 @@ import {
   ParticipantContact,
   WasteLocation
 } from '../types';
-import { INITIAL_CATEGORIES } from '../lib/mockData';
+import { INITIAL_CATEGORIES, INITIAL_WASTE_BINS } from '../lib/mockData';
 import { KERALA_WASTE_LOCATIONS_SEED } from '../data/keralaWasteLocationsSeed';
+import { mergeWasteLocations } from '../services/mapSearchService';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { useLocationContext } from './LocationContext';
@@ -245,9 +246,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [wasteBins, setWasteBins] = useState<PublicWasteBin[]>(() => {
     const saved = localStorage.getItem('greenloop_user_waste_bins');
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) { /* fallback */ }
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) { /* fallback */ }
     }
-    return [];
+    return INITIAL_WASTE_BINS;
   });
 
   const [wasteLocations, setWasteLocations] = useState<WasteLocation[]>(() => {
@@ -255,7 +259,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length >= KERALA_WASTE_LOCATIONS_SEED.length) {
+          return parsed;
+        }
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Merge previously saved community locations with full verified seed dataset
+          return mergeWasteLocations(KERALA_WASTE_LOCATIONS_SEED, parsed);
+        }
       } catch (e) { /* fallback */ }
     }
     return KERALA_WASTE_LOCATIONS_SEED;
@@ -423,7 +433,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .select('*')
           .order('name');
         if (!locError && dbLocations && dbLocations.length > 0) {
-          setWasteLocations(dbLocations as WasteLocation[]);
+          // Merge database records with full verified seed dataset so all 14 districts remain covered!
+          setWasteLocations((prev) =>
+            mergeWasteLocations(KERALA_WASTE_LOCATIONS_SEED, [...prev, ...(dbLocations as WasteLocation[])])
+          );
         }
       } catch (locErr) {
         console.warn('Notice: waste_locations fetch fallback to seed:', locErr);
@@ -948,6 +961,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           longitude: newLocation.longitude,
           contact_number: newLocation.contact_number,
           opening_hours: newLocation.opening_hours,
+          photo_url: newLocation.photo_url || null,
           source: newLocation.source || 'community_submission',
           source_reference: newLocation.source_reference || `COMMUNITY-${id.slice(0, 8)}`,
           verification_status: 'pending_verification',
